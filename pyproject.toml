@@ -1,0 +1,101 @@
+[build-system]
+requires = ["hatchling>=1.21.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "agencitylab"
+version = "0.1.0"
+description = "Scientific framework for the theory of Agencity"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+
+authors = [
+  { name = "Gilbert BEMWIZ", email = "bemwizigilbert@gmail.com" }
+]
+
+keywords = [
+  "agencity",
+  "complex systems",
+  "information physics",
+  "dynamical systems",
+  "signal processing",
+  "scientific computing"
+]
+
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Topic :: Scientific/Engineering",
+  "Topic :: Scientific/Engineering :: Information Analysis",
+]
+
+dependencies = [
+  "numpy>=1.22",
+  "scipy>=1.9",
+  "pandas>=1.5",
+]
+
+# 🔌 Dépendances optionnelles (IMPORTANT pour éviter lourdeur)
+[project.optional-dependencies]
+
+visualization = [
+  "matplotlib>=3.6",
+  "seaborn>=0.12",
+  "packaging>=23.0"
+]
+
+dashboard = [
+  "plotly>=5.0",
+  "streamlit>=1.25"
+]
+
+performance = [
+  "numba>=0.57"
+]
+
+ml = [
+  "jax>=0.4",
+  "jaxlib>=0.4"
+]
+
+docs = [
+  "sphinx>=7.0",
+  "myst-parser>=2.0"
+]
+
+dev = [
+  "pytest>=7.0",
+  "pytest-cov>=4.0",
+  "black",
+  "ruff"
+]
+
+all = [
+  "agencitylab[visualization,dashboard,performance,ml,docs,dev]"
+]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/agencitylab"
+Documentation = "https://agencitylab.readthedocs.io"
+Source = "https://github.com/yourusername/agencitylab"
+Issues = "https://github.com/yourusername/agencitylab/issues"
+
+# 🧠 Configuration outils
+
+[tool.black]
+line-length = 100
+
+[tool.ruff]
+line-length = 100
+select = ["E", "F", "W"]
+
+[tool.pytest.ini_options]
+testpaths = ["agencitylab/tests"]
+addopts = "-ra -q"
