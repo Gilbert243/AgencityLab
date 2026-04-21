@@ -4,9 +4,9 @@ build-backend = "hatchling.build"
 
 [project]
 name = "agencitylab"
-version = "0.1.0"
+version = "0.1.1"
 description = "Scientific framework for the theory of Agencity"
-readme = "README.md"
+readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.9"
 license = { text = "MIT" }
 
@@ -36,33 +36,30 @@ classifiers = [
   "Topic :: Scientific/Engineering :: Information Analysis",
 ]
 
+# ⚙️ Dépendances cœur (légères)
 dependencies = [
   "numpy>=1.22",
   "scipy>=1.9",
   "pandas>=1.5",
 ]
 
-# 🔌 Dépendances optionnelles (IMPORTANT pour éviter lourdeur)
+# 🔌 Dépendances optionnelles (modulaires et propres)
 [project.optional-dependencies]
 
-visualization = [
+viz = [
   "matplotlib>=3.6",
   "seaborn>=0.12",
-  "packaging>=23.0"
+  "plotly>=5.0"
 ]
 
-dashboard = [
-  "plotly>=5.0",
+app = [
   "streamlit>=1.25"
-]
-
-performance = [
-  "numba>=0.57"
 ]
 
 ml = [
   "jax>=0.4",
-  "jaxlib>=0.4"
+  "jaxlib>=0.4",
+  "numba>=0.57"
 ]
 
 docs = [
@@ -78,7 +75,7 @@ dev = [
 ]
 
 all = [
-  "agencitylab[visualization,dashboard,performance,ml,docs,dev]"
+  "agencitylab[viz,app,ml]"
 ]
 
 [project.urls]
@@ -87,7 +84,7 @@ Documentation = "https://agencitylab.readthedocs.io"
 Source = "https://github.com/Gilbert243/AgencityLab"
 Issues = "https://github.com/Gilbert243/AgencityLab/issues"
 
-# 🧠 Configuration outils
+# 🧠 Outils
 
 [tool.black]
 line-length = 100
