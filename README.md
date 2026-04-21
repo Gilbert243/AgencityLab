@@ -74,8 +74,9 @@ pip install agencitylab
 Optional features:
 
 ```bash
-pip install agencitylab[visualization]
-pip install agencitylab[dashboard]
+pip install agencitylab[viz]
+pip install agencitylab[app]
+pip install agencitylab[ml]
 pip install agencitylab[all]
 ```
 
