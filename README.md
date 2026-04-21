@@ -1,4 +1,5 @@
 # AgencityLab
+<<<<<<< HEAD
 
 **AgencityLab** is a scientific Python framework dedicated to the study and quantification of **Agencity** — an observable designed to measure a system’s ability to actively structure its own evolution.
 
@@ -236,3 +237,6 @@ This library provides a computational implementation intended for:
 AgencityLab is part of a broader effort to build:
 
 > **a unified science of dynamic systems combining physics, information, and structure**
+=======
+gencityLab** is a scientific Python framework dedicated to the study and quantification of **Agencity** — an observable designed to measure a system’s ability to actively structure its own evolution.
+>>>>>>> 7fdb362e5a99ca437937b5eb65e42c67b4ba6f62
