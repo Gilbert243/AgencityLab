@@ -2,6 +2,25 @@
 
 All notable changes to AgencityLab are documented here.
 
+## 0.4.0 - 2026-08-10
+
+### Scientific validation
+
+- Added a deterministic scientific reference battery covering exact rest, a sinusoid, an underdamped passive oscillator, the Van der Pol oscillator, a negative-damping unstable oscillator, a low-pass-filtered Ornstein-Uhlenbeck process, and the classical Lorenz system.
+- Added theory-facing regime checks for exact nullity, periodic structure, passive structure-dominated tails, bounded self-sustained oscillation, unstable logarithmic-contrast growth, and irregular stochastic/chaotic orientation.
+- Added mathematical-property tests for state-translation invariance, global sign-inversion invariance, temporal covariance under simultaneous time/tau rescaling, small structured-amplitude behaviour, large-amplitude logarithmic growth, and exact linearity in characteristic power.
+- Added a uniform-refinement convergence experiment against a fine-grid reference and a smooth-perturbation robustness experiment. These are numerical validation checks, not replacements for the analytical theorems.
+- Added explicit finite-record CRM warm-up handling to validation metrics (`t >= t0 + 2*tau`) without changing canonical CRM or introducing prehistory into the core.
+- Added `docs/scientific_validation.md`, distinguishing theorem-level claims, fixed-benchmark numerical observations, numerical tolerances, and empirical validation.
+- Bumped the package version to `0.4.0` without changing the v0.2 canonical equations or the v0.3 stable API schema.
+
+### Scientific boundary
+
+- Version 0.4.0 validates the implementation against selected consequences and reference regimes stated by the accepted theory; it is not experimental confirmation that Agencity is a universal physical observable.
+- Benchmark tolerances are fixed numerical acceptance criteria, never universal thresholds for coherent or "real" agencity.
+- Filtered noise is explicitly allowed to have non-zero `D` and local non-zero `beta`; stochastic validation focuses on reproducible structural/orientational behaviour rather than forcing a null signal.
+- Current canonical `e = exp(1)` governs v0.4 tests. Earlier numerical examples using a different effective offset convention are not silently converted into current acceptance targets.
+
 ## 0.3.0 - 2026-08-10
 
 ### Stable computational API
