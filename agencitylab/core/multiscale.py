@@ -1,817 +1,438 @@
-"""
-multiscale.py
+"""Multiscale and advanced discrete extensions for AgencityLab.
 
-Multi-scale agencity analysis.
+The stable scalar API keeps the project convention ``w = tau``.  This module
+implements the advanced-theory extensions where the CRM window ``w`` may be
+studied independently, including the ``b(t, tau)`` spectrum, the Chapter 13
+window-selection criterion, and the Pc-weighted multivariate construction.
 
-Canonical theory
-----------------
-tau is a structural characteristic time
-of the containing system.
-
-This module explores:
-
-    tau_k = k * tau0
-
-without estimating tau from the signal.
-
-The purpose is NOT to redefine the system,
-but to study the response of agencity metrics
-across structural observation scales.
-
-CRM rule
---------
-Canonical regime:
-    w = tau
-
-Compressed regime:
-    w = tau / A_fact
-
-Compression is activated only when:
-
-    T_obs < 2*tau
+Independent ``w`` is an extension of the canonical scalar reference path; it is
+never injected into :func:`agencitylab.compute_agencity` silently.
 """
 
 from __future__ import annotations
 
+from typing import Iterable
+
 import numpy as np
 
+from .activation import activation, reduced_coordinate
+from .activity import activity
+from .agencity import agencity
+from .beta import compute_beta
+from .intensity import compute_intensities
+from .memory import memory
+from .normalization import normalize_signal
+from .organization import organization
 from .validation import (
+    is_exactly_constant,
     validate_axis,
+    validate_positive_scalar,
     validate_signal,
 )
 
-from .normalization import (
-    normalize_signal,
-)
 
-from .activation import (
-    activation,
-)
-
-from .activity import (
-    activity,
-)
-
-from .tau import (
-    characteristic_time,
-)
-
-from .memory import (
-    memory,
-)
-
-from .organization import (
-    organization,
-)
-
-from .intensity import (
-    compute_intensities,
-)
-
-from .beta import (
-    compute_beta,
-)
-
-from .power import (
-    characteristic_power,
-)
-
-from .agencity import (
-    agencity,
-)
-
-from agencitylab.constants.activity_factors import (
-    resolve_activity_factor,
-)
-
-
-# ============================================================
-# INTERNAL HELPERS
-# ============================================================
-
-def _default_scales(
-    n=12,
-    low=0.5,
-    high=2.5,
-):
-    """
-    Default logarithmic scale grid.
-    """
-
-    return np.exp(
-        np.linspace(
-            np.log(low),
-            np.log(high),
-            n,
-        )
-    )
-
-
-def _infer_step(axis):
-
+def _sample_step(axis: np.ndarray) -> float:
+    axis = validate_axis(axis)
     diffs = np.diff(axis)
-
-    diffs = diffs[
-        np.isfinite(diffs)
-        & (np.abs(diffs) > 1e-12)
-    ]
-
-    if diffs.size == 0:
-        return 1.0
-
-    return float(
-        np.median(
-            np.abs(diffs)
-        )
-    )
+    step = float(diffs[0])
+    tolerance = np.finfo(float).eps * max(1.0, abs(step)) * 64.0
+    if not np.allclose(diffs, step, rtol=1e-10, atol=tolerance):
+        raise ValueError("discrete multiscale extensions require uniformly sampled coordinates")
+    return step
 
 
-def _crm_window(
-    tau,
-    T_obs,
-    A_fact,
+def _window_samples(window: float, axis: np.ndarray) -> int:
+    window = validate_positive_scalar(window, name="w")
+    step = _sample_step(axis)
+    samples = int(round(window / step))
+    if samples < 1:
+        raise ValueError("w is smaller than one sampling interval")
+    represented = samples * step
+    tolerance = max(np.finfo(float).eps * max(1.0, abs(window)) * 128.0, step * 1e-9)
+    if not np.isclose(represented, window, rtol=1e-9, atol=tolerance):
+        raise ValueError("w must be an integer multiple of the sampling interval")
+    return samples
+
+
+def _power_profile(P_c, xi: np.ndarray):
+    candidate = P_c(xi) if callable(P_c) else P_c
+    try:
+        arr = np.asarray(candidate, dtype=float)
+    except Exception as exc:  # pragma: no cover - defensive
+        raise ValueError("P_c must be numeric") from exc
+    if arr.ndim == 0:
+        value = float(arr)
+        if not np.isfinite(value) or value <= 0.0:
+            raise ValueError("P_c must be strictly positive and finite")
+        return value
+    if arr.ndim != 1 or arr.shape != xi.shape:
+        raise ValueError("sampled P_c must be one-dimensional and match xi")
+    if not np.all(np.isfinite(arr)) or np.any(arr <= 0.0):
+        raise ValueError("sampled P_c must contain strictly positive finite values")
+    return arr
+
+
+def compute_scale_response(
+    xi,
+    u,
+    *,
+    tau: float,
+    w: float,
+    A_ref: float,
+    P_c,
 ):
-    """
-    Determine CRM window mode.
-    """
+    """Compute one scalar advanced-theory response at explicit ``tau`` and ``w``.
 
-    if T_obs >= 2.0 * tau:
+    The canonical formulas for normalization, reduced derivatives, intensities,
+    contrast, orientation, beta and b are unchanged.  Only the CRM window is
+    explicitly allowed to differ from ``tau`` in this extension function.
+    """
+    xi = validate_axis(xi)
+    u = validate_signal(u, name="u").ravel()
+    if u.shape != xi.shape:
+        raise ValueError("xi and u must have the same shape")
+    tau = validate_positive_scalar(tau, name="tau")
+    w = validate_positive_scalar(w, name="w")
+    _window_samples(w, xi)
+    P_eff = _power_profile(P_c, xi)
+    u_star, A_ref_used = normalize_signal(u, A_ref=A_ref, method="canonical")
+    t_star = reduced_coordinate(xi, tau)
 
-        return {
-            "mode": "canonical",
-            "window": tau,
-        }
+    if is_exactly_constant(u):
+        zeros = np.zeros_like(u_star, dtype=float)
+        complex_zeros = np.zeros_like(u_star, dtype=complex)
+        X_star = zeros.copy()
+        A_star = zeros.copy()
+        M = zeros.copy()
+        O = zeros.copy()
+        D = zeros.copy()
+        S = zeros.copy()
+        J = zeros.copy()
+        U = complex_zeros.copy()
+        beta = complex_zeros.copy()
+        b = complex_zeros.copy()
+    else:
+        X_star = activation(u_star, axis=t_star)
+        A_star = activity(X_star, axis=t_star)
+        M = memory(u_star, tau, axis=xi, window=w)
+        O = organization(u_star, X_star, tau, axis=xi, window=w)
+        D, S = compute_intensities(X_star, A_star, M, O)
+        J, U, beta = compute_beta(D, S, M, O)
+        b = agencity(beta, P_c=P_eff)
 
     return {
-        "mode": "compressed",
-        "window": tau / max(A_fact, 1e-12),
+        "xi": xi,
+        "u": u,
+        "u_star": u_star,
+        "t_star": t_star,
+        "tau": float(tau),
+        "w": float(w),
+        "A_ref": float(A_ref_used),
+        "P_c": P_eff,
+        "X_star": X_star,
+        "A_star": A_star,
+        "M": M,
+        "O": O,
+        "D": D,
+        "S": S,
+        "J": J,
+        "U": U,
+        "theta": np.angle(U),
+        "beta": beta,
+        "b": b,
+        "extension_status": "advanced-theory independent-w extension" if w != tau else "w=tau",
     }
 
 
-# ============================================================
-# MULTISCALE ANALYSIS
-# ============================================================
+def _resolve_windows(taus: np.ndarray, windows) -> np.ndarray:
+    if windows is None:
+        return taus.copy()
+    arr = np.asarray(windows, dtype=float)
+    if arr.ndim == 0:
+        arr = np.full(taus.size, float(arr), dtype=float)
+    if arr.ndim != 1 or arr.size != taus.size:
+        raise ValueError("windows must be a scalar or have one value per tau")
+    if not np.all(np.isfinite(arr)) or np.any(arr <= 0.0):
+        raise ValueError("all windows must be strictly positive and finite")
+    return arr
+
+
+def agencity_spectrum(
+    xi,
+    u,
+    taus: Iterable[float],
+    *,
+    A_ref: float,
+    P_c,
+    windows=None,
+    return_full: bool = False,
+):
+    """Compute the time-resolved multiscale spectrum ``b(t, tau)``.
+
+    By default each scale uses ``w = tau``.  Passing ``windows`` explicitly
+    activates the advanced independent-window extension and keeps ``tau`` and
+    ``w`` visible as separate coordinates.
+    """
+    taus = np.asarray(list(taus), dtype=float)
+    if taus.ndim != 1 or taus.size == 0:
+        raise ValueError("taus must be a non-empty one-dimensional sequence")
+    if not np.all(np.isfinite(taus)) or np.any(taus <= 0.0):
+        raise ValueError("all taus must be strictly positive and finite")
+    windows_arr = _resolve_windows(taus, windows)
+
+    responses = [
+        compute_scale_response(xi, u, tau=float(tau), w=float(w), A_ref=A_ref, P_c=P_c)
+        for tau, w in zip(taus, windows_arr)
+    ]
+    b = np.stack([item["b"] for item in responses], axis=0)
+    beta = np.stack([item["beta"] for item in responses], axis=0)
+    J = np.stack([item["J"] for item in responses], axis=0)
+    S = np.stack([item["S"] for item in responses], axis=0)
+
+    out = {
+        "tau": taus,
+        "w": windows_arr,
+        "b": b,
+        "beta": beta,
+        "b_mean": np.mean(np.abs(b), axis=1),
+        "b_rms": np.sqrt(np.mean(np.abs(b) ** 2, axis=1)),
+        "beta_mean": np.mean(np.abs(beta), axis=1),
+        "J_mean": np.mean(J, axis=1),
+        "S_mean": np.mean(S, axis=1),
+        "window_mode": "w=tau" if np.array_equal(taus, windows_arr) else "explicit independent w",
+        "scientific_boundary": (
+            "multiscale tau and independent-w studies are extensions; the stable scalar API keeps w=tau"
+        ),
+    }
+    if return_full:
+        out["responses"] = responses
+    return out
+
+
+def _phi2(theta: np.ndarray, S: np.ndarray, samples: int) -> float:
+    """Discrete Chapter 13 angular-stability functional on defined orientations."""
+    values = []
+    valid = S > 0.0
+    for end in range(samples - 1, theta.size):
+        start = end - samples + 1
+        if not np.all(valid[start : end + 1]):
+            continue
+        segment = np.unwrap(theta[start : end + 1])
+        values.append(float(np.var(segment)))
+    return float(np.mean(values)) if values else float("inf")
+
+
+def _candidate_windows(xi: np.ndarray, candidates, n_candidates: int) -> np.ndarray:
+    step = _sample_step(xi)
+    max_samples = xi.size // 2
+    if max_samples < 1:
+        raise ValueError("signal is too short for window optimisation")
+    if candidates is None:
+        raw = np.geomspace(step, max_samples * step, max(2, int(n_candidates)))
+    else:
+        raw = np.asarray(list(candidates), dtype=float)
+        if raw.ndim != 1 or raw.size == 0:
+            raise ValueError("candidates must be a non-empty one-dimensional sequence")
+    sample_counts = np.unique(np.clip(np.rint(raw / step).astype(int), 1, max_samples))
+    return sample_counts.astype(float) * step
+
+
+def optimize_memory_window(
+    xi,
+    u,
+    *,
+    tau: float,
+    A_ref: float,
+    P_c,
+    candidates=None,
+    n_candidates: int = 24,
+):
+    """Select ``w`` by the advanced theory's angular-stability criterion ``Phi2``.
+
+    Candidate widths are represented by integer sample counts as required by the
+    discrete CRM.  A candidate with no complete interval on which ``S > 0`` has
+    undefined structural orientation and receives an infinite operational score;
+    this avoids manufacturing angular coherence from the ``S = 0`` convention.
+    """
+    xi = validate_axis(xi)
+    u = validate_signal(u, name="u").ravel()
+    windows = _candidate_windows(xi, candidates, n_candidates)
+    scores = []
+    phi1 = []
+    eligible = []
+
+    for w in windows:
+        response = compute_scale_response(xi, u, tau=tau, w=float(w), A_ref=A_ref, P_c=P_c)
+        n = _window_samples(float(w), xi)
+        score = _phi2(response["theta"], response["S"], n)
+        start = 2 * n - 1
+        contrast = (
+            float(np.mean(np.abs(response["J"][start:])))
+            if start < response["J"].size
+            else float("nan")
+        )
+        scores.append(score)
+        phi1.append(contrast)
+        eligible.append(bool(np.isfinite(score)))
+
+    scores_arr = np.asarray(scores, dtype=float)
+    eligible_arr = np.asarray(eligible, dtype=bool)
+    if not np.any(eligible_arr):
+        raise ValueError("no candidate window has a complete interval with defined structural orientation")
+    best_index = int(np.argmin(scores_arr))
+
+    return {
+        "w_opt": float(windows[best_index]),
+        "criterion": "Phi2 angular stability",
+        "candidate_w": windows,
+        "phi2": scores_arr,
+        "phi1_mean_abs_contrast": np.asarray(phi1, dtype=float),
+        "eligible": eligible_arr,
+        "best_index": best_index,
+        "tau": float(tau),
+        "selection_status": "advanced-theory window optimisation",
+        "numerical_note": (
+            "candidates without defined structural orientation are excluded rather than treated as zero variance"
+        ),
+    }
+
+
+def _component_parameter(value, n_components: int, name: str) -> np.ndarray:
+    arr = np.asarray(value, dtype=float)
+    if arr.ndim == 0:
+        arr = np.full(n_components, float(arr), dtype=float)
+    if arr.ndim != 1 or arr.size != n_components:
+        raise ValueError(f"{name} must be scalar or have one value per component")
+    if not np.all(np.isfinite(arr)) or np.any(arr <= 0.0):
+        raise ValueError(f"{name} must contain strictly positive finite values")
+    return arr
+
+
+def _component_power(P_c, xi: np.ndarray, n_components: int) -> np.ndarray:
+    candidate = P_c(xi) if callable(P_c) else P_c
+    arr = np.asarray(candidate, dtype=float)
+    if arr.ndim == 0:
+        arr = np.full((n_components, xi.size), float(arr), dtype=float)
+    elif arr.ndim == 1:
+        if arr.size != n_components:
+            raise ValueError("one-dimensional multivariate P_c must have one value per component")
+        arr = np.repeat(arr[:, None], xi.size, axis=1)
+    elif arr.ndim == 2:
+        if arr.shape == (xi.size, n_components):
+            arr = arr.T
+        elif arr.shape != (n_components, xi.size):
+            raise ValueError("sampled multivariate P_c must have shape (components, samples) or transpose")
+    else:
+        raise ValueError("multivariate P_c must be scalar, component vector, or sampled matrix")
+    if not np.all(np.isfinite(arr)) or np.any(arr <= 0.0):
+        raise ValueError("multivariate P_c must contain strictly positive finite values")
+    return arr
+
+
+def multivariate_agencity(
+    xi,
+    u,
+    *,
+    A_ref,
+    tau,
+    P_c,
+    w=None,
+    sample_axis: int = 0,
+):
+    """Compute the advanced theory's Pc-weighted multivariate extension.
+
+    Each observable component is processed by the scalar equations.  The total
+    flux is ``sum_k P_c,k beta_k`` and the aggregate state is the pointwise
+    Pc-weighted mean ``beta_multi``.
+    """
+    xi = validate_axis(xi)
+    data = np.asarray(u, dtype=float)
+    if data.ndim != 2:
+        raise ValueError("multivariate u must be a two-dimensional array")
+    if sample_axis not in {0, 1}:
+        raise ValueError("sample_axis must be 0 or 1")
+    if sample_axis == 1:
+        data = data.T
+    if data.shape[0] != xi.size:
+        raise ValueError("the sample dimension of u must match xi")
+    if not np.all(np.isfinite(data)):
+        raise ValueError("multivariate u must contain only finite values")
+
+    n_components = data.shape[1]
+    A_refs = _component_parameter(A_ref, n_components, "A_ref")
+    taus = _component_parameter(tau, n_components, "tau")
+    windows = taus.copy() if w is None else _component_parameter(w, n_components, "w")
+    powers = _component_power(P_c, xi, n_components)
+
+    responses = []
+    for k in range(n_components):
+        responses.append(
+            compute_scale_response(
+                xi,
+                data[:, k],
+                tau=float(taus[k]),
+                w=float(windows[k]),
+                A_ref=float(A_refs[k]),
+                P_c=powers[k],
+            )
+        )
+
+    beta_components = np.stack([item["beta"] for item in responses], axis=0)
+    b_components = powers * beta_components
+    total_power = np.sum(powers, axis=0)
+    b_total = np.sum(b_components, axis=0)
+    beta_multi = b_total / total_power
+
+    return {
+        "xi": xi,
+        "n_components": n_components,
+        "A_ref": A_refs,
+        "tau": taus,
+        "w": windows,
+        "P_c_components": powers,
+        "P_c_total": total_power,
+        "beta_components": beta_components,
+        "b_components": b_components,
+        "beta_multi": beta_multi,
+        "b_total": b_total,
+        "components": responses,
+        "aggregation": "Pc-weighted beta; vector-additive total flux",
+        "scientific_boundary": "advanced multivariate extension; each component uses scalar Agencity",
+    }
+
 
 def multiscale_agencity(
     t,
     u,
     *,
     scales=None,
-    tau="auto",
-    P_c="auto",
-    A_ref="auto",
-    activity_factor="auto",
-    domain=None,
-    mechanism=None,
-    system="generic",
-    smooth=False,
-    resolution_scale=None,
+    tau=None,
+    P_c=None,
+    A_ref=None,
+    w=None,
     return_full=False,
-    verbose=False,
+    **legacy,
 ):
+    """Compatibility wrapper for the historical multiplicative-scale API.
+
+    Unlike the pre-v0.6 implementation, this wrapper never infers ``A_ref``,
+    ``tau`` or ``P_c`` from the observed signal and never compresses ``w``.
     """
-    Compute agencity metrics
-    across multiple structural scales.
-
-    Parameters
-    ----------
-    t :
-        External coordinate axis.
-
-    u :
-        Observable signal.
-
-    scales :
-        Multiplicative factors applied to tau0.
-
-    tau :
-        Structural characteristic time.
-
-    P_c :
-        Characteristic power.
-
-    A_ref :
-        Canonical normalization scale.
-
-    activity_factor :
-        Canonical activity factor.
-
-    domain :
-        Physical domain.
-
-    mechanism :
-        Physical mechanism.
-
-    system :
-        System identifier.
-
-    smooth :
-        Apply physical smoothing.
-
-    resolution_scale :
-        Observation resolution scale.
-
-    return_full :
-        Return detailed outputs.
-
-    Returns
-    -------
-    dict
-    """
-
-    # ========================================================
-    # VALIDATION
-    # ========================================================
-
-    t = validate_axis(t)
-
-    u = validate_signal(
-        u
-    ).ravel()
-
+    unsupported = {key: value for key, value in legacy.items() if value not in {None, False, "auto"}}
+    if unsupported:
+        names = ", ".join(sorted(unsupported))
+        raise ValueError(f"unsupported legacy multiscale option(s): {names}")
+    if tau is None or isinstance(tau, str):
+        raise ValueError("multiscale_agencity requires an explicit physical tau")
+    if P_c is None or isinstance(P_c, str):
+        raise ValueError("multiscale_agencity requires explicit P_c")
+    if A_ref is None or isinstance(A_ref, str):
+        raise ValueError("multiscale_agencity requires explicit A_ref")
     if scales is None:
-        scales = _default_scales()
-
-    scales = np.asarray(
-        scales,
-        dtype=float,
-    )
-
-    if np.any(scales <= 0):
-        raise ValueError(
-            "all scales must be positive"
-        )
-
-    # ========================================================
-    # OBSERVATION STRUCTURE
-    # ========================================================
-
-    T_obs = float(
-        t[-1] - t[0]
-    )
-
-    dt = _infer_step(t)
-
-    # ========================================================
-    # NORMALIZATION
-    # ========================================================
-
-    u_star, A_ref_resolved = normalize_signal(
-        u,
-        A_ref=A_ref,
-        domain=domain,
-        method="canonical",
-        verbose=False,
-    )
-
-    # ========================================================
-    # STRUCTURAL PARAMETERS
-    # ========================================================
-
-    tau0 = characteristic_time(
-        tau=tau,
-        system=system,
-        domain=domain,
-        verbose=False,
-    )
-
-    P_c0 = characteristic_power(
-        value=None if P_c == "auto" else P_c,
-        tau=tau0,
-        system=system,
-        domain=domain,
-        verbose=False,
-    )
-
-    A_fact = resolve_activity_factor(
-        mechanism=mechanism,
-        domain=domain,
-        A_fact=activity_factor,
-    )
-
-    # ========================================================
-    # BASE DYNAMICS
-    # ========================================================
-
-    X = activation(
-        u_star,
-        axis=t,
-        verbose=False,
-    )
-
-    A = activity(
-        X,
-        axis=t,
-        verbose=False,
-    )
-
-    # ========================================================
-    # GLOBAL DIAGNOSTICS
-    # ========================================================
-
-    if verbose:
-
-        print(
-            "[multiscale] "
-            f"T_obs={T_obs:.6f}"
-        )
-
-        print(
-            "[multiscale] "
-            f"dt={dt:.6f}"
-        )
-
-        print(
-            "[multiscale] "
-            f"tau0={tau0:.6f}"
-        )
-
-        print(
-            "[multiscale] "
-            f"Pc0={P_c0:.6f}"
-        )
-
-        print(
-            "[multiscale] "
-            f"A_fact={A_fact:.6f}"
-        )
-
-        print(
-            "[multiscale] "
-            f"A_ref={A_ref_resolved:.6f}"
-        )
-
-        print(
-            "[multiscale] "
-            f"scales={scales}"
-        )
-
-    # ========================================================
-    # STORAGE
-    # ========================================================
-
-    taus = []
-
-    windows = []
-
-    modes = []
-
-    resolution_ratios = []
-
-    effective_samples = []
-
-    collapsed_scales = []
-
-    beta_means = []
-
-    beta_stds = []
-
-    J_means = []
-
-    D_means = []
-
-    S_means = []
-
-    M_means = []
-
-    O_means = []
-
-    b_means = []
-
-    theta_stds = []
-
-    crm_coverages = []
-
-    raws = []
-
-    # ========================================================
-    # MULTISCALE LOOP
-    # ========================================================
-
-    for k in scales:
-
-        tau_k = float(k) * float(tau0)
-
-        crm_cfg = _crm_window(
-            tau=tau_k,
-            T_obs=T_obs,
-            A_fact=A_fact,
-        )
-
-        mode = crm_cfg["mode"]
-
-        w_k = crm_cfg["window"]
-
-        resolution_ratio = (
-            w_k / max(dt, 1e-12)
-        )
-
-        collapsed = (
-            resolution_ratio < 2.0
-        )
-
-        n_eff = max(
-            1,
-            int(round(w_k / dt))
-        )
-
-        if verbose:
-
-            print(
-                "\n[multiscale] "
-                f"tau={tau_k:.6f} "
-                f"(k={k:.3f})"
-            )
-
-            print(
-                "[multiscale] "
-                f"mode={mode}"
-            )
-
-            print(
-                "[multiscale] "
-                f"window={w_k:.6f}"
-            )
-
-            print(
-                "[multiscale] "
-                f"resolution_ratio="
-                f"{resolution_ratio:.6f}"
-            )
-
-            print(
-                "[multiscale] "
-                f"effective_samples="
-                f"{n_eff}"
-            )
-
-            if collapsed:
-
-                print(
-                    "[multiscale warning] "
-                    "CRM scale below reliable "
-                    "measurement resolution"
-                )
-
-        # ====================================================
-        # MEMORY
-        # ====================================================
-
-        M = memory(
-            A,
-            tau=tau_k,
-            axis=t,
-            activity_factor=A_fact,
-            mechanism=mechanism,
-            domain=domain,
-            verbose=False,
-        )
-
-        # ====================================================
-        # ORGANIZATION
-        # ====================================================
-
-        O = organization(
-            X,
-            tau=tau_k,
-            axis=t,
-            activity_factor=A_fact,
-            mechanism=mechanism,
-            domain=domain,
-            verbose=False,
-        )
-
-        # ====================================================
-        # INTENSITIES
-        # ====================================================
-
-        D, S = compute_intensities(
-            X,
-            A,
-            M,
-            O,
-            verbose=False,
-        )
-
-        # ====================================================
-        # STRUCTURED AGENCITY
-        # ====================================================
-
-        J, U, B = compute_beta(
-            D,
-            S,
-            M,
-            O,
-            verbose=False,
-        )
-
-        # ====================================================
-        # CHARACTERISTIC POWER
-        # ====================================================
-
-        P_ck = characteristic_power(
-            value=P_c0,
-            tau=tau_k,
-            system=system,
-            domain=domain,
-            verbose=False,
-        )
-
-        # ====================================================
-        # OBSERVABLE AGENCITY
-        # ====================================================
-
-        b = agencity(
-            B,
-            P_c=P_ck,
-            smooth=smooth,
-            resolution_scale=resolution_scale,
-            verbose=False,
-        )
-
-        # ====================================================
-        # METRICS
-        # ====================================================
-
-        beta_abs = np.abs(B)
-
-        b_abs = np.abs(b)
-
-        theta = np.angle(U)
-
-        crm_valid = np.isfinite(M)
-
-        crm_coverage = float(
-            np.mean(crm_valid)
-        )
-
-        taus.append(tau_k)
-
-        windows.append(w_k)
-
-        modes.append(mode)
-
-        resolution_ratios.append(
-            resolution_ratio
-        )
-
-        effective_samples.append(
-            n_eff
-        )
-
-        collapsed_scales.append(
-            collapsed
-        )
-
-        beta_means.append(
-            float(
-                np.nanmean(beta_abs)
-            )
-        )
-
-        beta_stds.append(
-            float(
-                np.nanstd(beta_abs)
-            )
-        )
-
-        J_means.append(
-            float(
-                np.nanmean(J)
-            )
-        )
-
-        D_means.append(
-            float(
-                np.nanmean(D)
-            )
-        )
-
-        S_means.append(
-            float(
-                np.nanmean(S)
-            )
-        )
-
-        M_means.append(
-            float(
-                np.nanmean(M)
-            )
-        )
-
-        O_means.append(
-            float(
-                np.nanmean(O)
-            )
-        )
-
-        b_means.append(
-            float(
-                np.nanmean(b_abs)
-            )
-        )
-
-        theta_stds.append(
-            float(
-                np.nanstd(theta)
-            )
-        )
-
-        crm_coverages.append(
-            crm_coverage
-        )
-
-        # ====================================================
-        # RAW STORAGE
-        # ====================================================
-
-        if return_full:
-
-            raws.append({
-
-                "scale":
-                    float(k),
-
-                "tau":
-                    tau_k,
-
-                "window":
-                    w_k,
-
-                "mode":
-                    mode,
-
-                "resolution_ratio":
-                    resolution_ratio,
-
-                "effective_samples":
-                    n_eff,
-
-                "collapsed":
-                    collapsed,
-
-                "P_c":
-                    P_ck,
-
-                "A_fact":
-                    A_fact,
-
-                "X":
-                    X,
-
-                "A":
-                    A,
-
-                "M":
-                    M,
-
-                "O":
-                    O,
-
-                "D":
-                    D,
-
-                "S":
-                    S,
-
-                "J":
-                    J,
-
-                "U":
-                    U,
-
-                "beta":
-                    B,
-
-                "b":
-                    b,
-
-                "theta":
-                    theta,
-            })
-
-    # ========================================================
-    # GLOBAL OUTPUT
-    # ========================================================
-
-    out = {
-
-        # structural
-        "tau":
-            np.asarray(taus),
-
-        "window":
-            np.asarray(windows),
-
-        "mode":
-            np.asarray(modes),
-
-        "A_fact":
-            float(A_fact),
-
-        "A_ref":
-            float(A_ref_resolved),
-
-        "P_c":
-            float(P_c0),
-
-        # resolution
-        "resolution_ratio":
-            np.asarray(
-                resolution_ratios
-            ),
-
-        "effective_samples":
-            np.asarray(
-                effective_samples
-            ),
-
-        "collapsed_scale":
-            np.asarray(
-                collapsed_scales
-            ),
-
-        # beta
-        "beta_mean":
-            np.asarray(beta_means),
-
-        "beta_std":
-            np.asarray(beta_stds),
-
-        # agencity
-        "b_mean":
-            np.asarray(b_means),
-
-        # structure
-        "J_mean":
-            np.asarray(J_means),
-
-        "D_mean":
-            np.asarray(D_means),
-
-        "S_mean":
-            np.asarray(S_means),
-
-        # memory / organization
-        "M_mean":
-            np.asarray(M_means),
-
-        "O_mean":
-            np.asarray(O_means),
-
-        # angular coherence
-        "theta_std":
-            np.asarray(theta_stds),
-
-        # CRM validity
-        "crm_coverage":
-            np.asarray(crm_coverages),
-
-        # metadata
-        "domain":
-            domain,
-
-        "mechanism":
-            mechanism,
-
-        "system":
-            system,
-
-        "T_obs":
-            T_obs,
-
-        "dt":
-            dt,
-    }
-
-    # ========================================================
-    # OPTIONAL RAWS
-    # ========================================================
-
-    if return_full:
-
-        out["raw"] = raws
-
-    # ========================================================
-    # FINAL DIAGNOSTICS
-    # ========================================================
-
-    if verbose:
-
-        n_collapsed = int(
-            np.sum(collapsed_scales)
-        )
-
-        print(
-            "\n[multiscale] "
-            "completed"
-        )
-
-        print(
-            "[multiscale] "
-            f"collapsed_scales="
-            f"{n_collapsed}/"
-            f"{len(scales)}"
-        )
-
+        scales = np.geomspace(0.5, 2.5, 12)
+    scales = np.asarray(scales, dtype=float)
+    taus = float(tau) * scales
+    windows = None if w is None else np.full(taus.size, float(w), dtype=float)
+    out = agencity_spectrum(t, u, taus, A_ref=A_ref, P_c=P_c, windows=windows, return_full=return_full)
+    out["scale"] = scales
     return out

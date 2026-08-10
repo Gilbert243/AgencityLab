@@ -6,7 +6,7 @@ The project is research software. Its purpose is to make the theory inspectable,
 
 ## Status of the implementation
 
-Version `0.5.0` keeps the v0.2 canonical scalar-signal `u -> b` core, the v0.3 stable computational API, and the v0.4 scientific-validation battery, then establishes a theory-facing **Agencity Analysis** layer for structural coherence, real-agencity diagnostics, beta-trajectory geometry, transitions, events, signatures, and contextual regime classification.
+Version `0.6.0` keeps the v0.2 canonical scalar-signal `u -> b` core, the v0.3 stable computational API, the v0.4 scientific-validation battery, and the v0.5 Agencity Analysis layer, then adds explicit multiscale, independent-window, discrete, and multivariate extensions. The stable scalar reference path is unchanged and still uses `w = tau`.
 
 ```text
 u -> u* -> X* -> A* -> M, O -> D, S -> J, U -> beta -> b
@@ -125,20 +125,36 @@ When an experiment supplies physically or statistically justified thresholds, pa
 
 See [`docs/agencity_analysis.md`](docs/agencity_analysis.md) for the complete v0.5 interpretation contract.
 
+## Multiscale & Extensions in 0.6
+
+The v0.6 extension layer generalises the usable framework without silently modifying the scalar reference equations:
+
+- `compute_agencity_spectrum()` returns the time-resolved spectrum `b(t, tau)` plus scalar summaries. By default every scale uses `w = tau`.
+- Supplying `windows=` makes the CRM width `w` explicit and independent from `tau`, as an advanced-theory extension. The stable `compute_agencity()` path continues to reject `w != tau`.
+- `optimize_agencity_window()` implements the advanced angular-stability criterion `Phi2`, searching discrete windows `w = N delta` without treating undefined structural orientation as artificial zero variance.
+- `compute_discrete_agencity()` is a convenience entry point for uniformly sampled sequences and delegates to the existing canonical sampled-data engine rather than duplicating equations.
+- `compute_multivariate_agencity()` computes scalar Agencity component by component, then forms the theory-specified pointwise `P_c`-weighted state and additive total flux.
+- `riemannian_extension_status()` reports the Riemannian construction as **experimental and not implemented** because the source gives the geometric direction but explicitly defers the detailed analysis needed for a production pipeline.
+
+`tau`, `w`, the sampling interval `delta`, and a multiscale scan are therefore represented as different objects. A peak in a user-supplied scale spectrum is a diagnostic result; it is not silently promoted to the physical characteristic time.
+
+See [`docs/multiscale_extensions.md`](docs/multiscale_extensions.md) for the complete v0.6 contract and scientific boundary.
+
 ## Repository map
 
-- `agencitylab/core/`: deterministic canonical mathematical operators. No regime interpretation belongs here.
-- `agencitylab/api/`: stable user-facing orchestration; `compute_agencity` is the canonical reference entry point.
+- `agencitylab/core/`: deterministic canonical mathematical operators plus explicitly labelled mathematical extensions. No regime interpretation belongs here.
+- `agencitylab/api/`: stable user-facing orchestration; `compute_agencity` is the canonical scalar reference entry point and `extensions.py` exposes explicit v0.6 generalisations.
 - `agencitylab/analysis/`: derived indicators, diagnostics, geometry, coherence, events, transitions, signatures, classifications, and reports.
 - `agencitylab/models/`: reproducibility-oriented result and metadata containers.
-- `tests/`: analytical, API, scientific-validation, analysis, integration, regression, and foundation tests.
-- `docs/`: project overview, theory mapping, stable API, scientific-validation, and analysis documentation.
+- `tests/`: analytical, API, scientific-validation, analysis, extension, integration, regression, and foundation tests.
+- `docs/`: project overview, theory mapping, stable API, scientific-validation, analysis, and extension documentation.
 - `benchmarks/scientific/`: deterministic theory-facing reference systems; other benchmark folders remain experimental/performance-oriented.
 
 ## Documentation
 
 Start with:
 
+- [`docs/multiscale_extensions.md`](docs/multiscale_extensions.md) for the v0.6 multiscale, window, discrete, multivariate, and Riemannian boundaries.
 - [`docs/agencity_analysis.md`](docs/agencity_analysis.md) for the v0.5 analysis layer and diagnostic boundaries.
 - [`docs/scientific_validation.md`](docs/scientific_validation.md) for the v0.4 validation scope and reference systems.
 - [`docs/stable_api.md`](docs/stable_api.md) for the public computational contract established in v0.3.
@@ -161,9 +177,9 @@ The Ruff policy remains a correctness-focused baseline (`E9`, `F63`, `F7`, `F82`
 
 ## Scientific caution
 
-Agencity is an emerging theoretical framework. Implementation fidelity, API stability, deterministic reference validation, and diagnostic tooling are not empirical validation. High dynamic intensity is not, by itself, evidence of agency, and `beta != 0` does not establish coherent or "real" agencity.
+Agencity is an emerging theoretical framework. Implementation fidelity, API stability, deterministic reference validation, diagnostic tooling, and mathematically specified extensions are not empirical validation. High dynamic intensity is not, by itself, evidence of agency, and `beta != 0` does not establish coherent or "real" agencity.
 
-Analysis thresholds, peak filters, plateau tolerances, persistence fractions, and regime criteria are diagnostics. They must be justified for the physical context and must never silently become canonical constants.
+Analysis thresholds, peak filters, plateau tolerances, persistence fractions, regime criteria, scale selections, and signal-derived window optima are diagnostics or explicit extensions. They must never silently become canonical physical constants.
 
 Experimental, heuristic, diagnostic, or legacy components must remain labelled as such. The current theory documents define the canonical physics; Git history only documents previous implementations.
 

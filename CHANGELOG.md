@@ -2,6 +2,28 @@
 
 All notable changes to AgencityLab are documented here.
 
+## 0.6.0 - 2026-08-10
+
+### Multiscale & Extensions
+
+- Replaced the legacy multiscale implementation with an explicit extension engine that preserves the canonical scalar equations and never silently compresses the CRM window or infers physical parameters from signal statistics.
+- Added a time-resolved `b(t, tau)` spectrum with explicit `tau` and `w` coordinates. The default extension convention is `w = tau` at every scale; independent `w` is available only through an explicitly named advanced-theory path.
+- Kept stable `compute_agencity()` unchanged: its project-canonical scalar contract still requires `w = tau` exactly.
+- Added the advanced-theory Chapter 13 angular-stability window optimiser `Phi2(w)`, with discrete candidate windows `w = N delta` and explicit exclusion of candidates whose structural orientation is undefined because no complete interval has `S > 0`.
+- Added `compute_discrete_agencity()` as a sampled-sequence convenience API that constructs a uniform coordinate and delegates to the existing canonical discrete implementation instead of duplicating equations.
+- Added the advanced multivariate construction: scalar Agencity is computed independently per component, `beta_multi` is the pointwise `P_c`-weighted average, and `b_total` is the vector-additive sum of component fluxes. Scalar, per-component, and sampled component-power inputs are supported.
+- Reworked analysis-side multiscale helpers to require explicit `A_ref` and `P_c`, to reject physical normalization of `b`, and to label `find_optimal_tau()` as diagnostic selection across a supplied scale grid rather than inference of the physical characteristic time.
+- Added `docs/multiscale_extensions.md` and dedicated extension tests covering spectrum/scalar equivalence, independent-window isolation, window optimisation, sampled-signal equivalence, `P_c`-weighted multivariate aggregation, time-varying component power, and the Riemannian implementation boundary.
+- Added public APIs `compute_agencity_spectrum()`, `optimize_agencity_window()`, `compute_discrete_agencity()`, `compute_multivariate_agencity()`, and `riemannian_extension_status()`.
+- Bumped the package version to `0.6.0`; the canonical `AgencityResult` serialization schema remains unchanged.
+
+### Scientific boundary
+
+- `tau`, CRM window `w`, sampling interval `delta`, and a multiscale scan are separate concepts. A spectrum maximum is not automatically the physical `tau`, and an optimised signal-derived `w` is not silently promoted to a canonical structural parameter.
+- The multivariate extension follows the accepted `P_c`-weighted formula and additive flux law; it does not invent a coupled-vector CRM theory.
+- The advanced source sketches a Riemannian formulation but explicitly defers detailed analysis. v0.6 therefore does not invent a production Riemannian pipeline and reports that extension as `experimental` and unimplemented.
+- No v0.6 extension changes canonical `beta`, `J`, CRM, `M`, `O`, `D`, `S`, `P_c`, `A_ref`, or the exact rest-state convention.
+
 ## 0.5.0 - 2026-08-10
 
 ### Agencity Analysis
@@ -52,7 +74,7 @@ All notable changes to AgencityLab are documented here.
 
 - Stabilized `compute_agencity()` as the scalar-signal canonical reference entry point without changing the v0.2 equations.
 - Added strict one-dimensional input validation, explicit ambiguity errors for `u` versus the compatibility alias `data`, and rejection of unknown compute keywords instead of silently ignoring them.
-- Added typed public exceptions for validation, physical-parameter, unit-label, batch, and streaming failures while keeping validation exceptions compatible with `ValueError` handling.
+- Added typed public exceptions for validation, physical-parameter, unit-label, batch, and streaming failures while keeping validation exceptions compatible with existing `ValueError` handling.
 - Added descriptive unit-label support: `unit` for `u`/`A_ref`, `coordinate_unit` for `xi`/`tau`, and `power_unit` for `P_c`; observable flux `b` is labelled as informational power (`power_unit·nat`, e.g. `W·nat`). No hidden unit conversion is performed.
 - Stabilized `ExperimentMetadata` with validation, unit contracts, canonical `memory_window`, forward-compatible unknown-field preservation, and explicit separation of legacy observational metadata from canonical modifiers.
 - Stabilized `AgencityResult` with schema version `0.3`, scalar or sampled strictly positive `P_c`, consistent metadata synchronization, complex round-tripping, canonical wrapped `theta = angle(U)`, and exact `eta = |b| / P_c` without epsilon substitution.

@@ -14,6 +14,14 @@ from agencitylab.backends.selector import get_backend
 from agencitylab.analysis import ANALYSIS_SCHEMA_VERSION, RegimeCriteria
 
 from .compute import compute_agencity
+from .extensions import (
+    RIEMANNIAN_EXTENSION_STATUS,
+    compute_agencity_spectrum,
+    compute_discrete_agencity,
+    compute_multivariate_agencity,
+    optimize_agencity_window,
+    riemannian_extension_status,
+)
 from .analyze import (
     analyze_agencity,
     textual_analysis,
@@ -60,6 +68,12 @@ __all__ = [
     "StreamStateError",
     "StreamNotReadyError",
     "compute_agencity",
+    "compute_agencity_spectrum",
+    "optimize_agencity_window",
+    "compute_discrete_agencity",
+    "compute_multivariate_agencity",
+    "riemannian_extension_status",
+    "RIEMANNIAN_EXTENSION_STATUS",
     "analyze_agencity",
     "textual_analysis",
     "analyze_regime",

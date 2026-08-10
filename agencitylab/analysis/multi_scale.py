@@ -1,78 +1,22 @@
-"""
-Multi-scale analysis for AgencityLab.
+"""Analysis-side summaries for the v0.6 multiscale extension.
 
-Computes agencity across multiple characteristic times tau.
-This is the analysis-side interpretation of the scale dependence.
+All numerical Agencity equations are delegated to :mod:`agencitylab.core.multiscale`.
+This module only reshapes and interprets the resulting spectra.
 """
 
 from __future__ import annotations
 
-from typing import Iterable, List, Dict, Any, Optional
+from typing import Any, Dict, Iterable, List
 
 import numpy as np
 
-from agencitylab.core.safeguards import EPS
-from agencitylab.core.validation import validate_axis, validate_signal
-from agencitylab.core.normalization import normalize_signal
-from agencitylab.core.activation import compute_activation
-from agencitylab.core.activity import compute_activity
-from agencitylab.core.memory import memory
-from agencitylab.core.organization import organization
-from agencitylab.core.intensity import compute_intensities
-from agencitylab.core.beta import compute_beta
-from agencitylab.core.power import estimate_characteristic_power
-from agencitylab.core.agencity import agencity
+from agencitylab.core.multiscale import agencity_spectrum as _core_spectrum
 
 
-def _default_scales(n=12, low=0.5, high=2.5):
-    """Log-spaced multiplicative factors."""
-    return np.exp(np.linspace(np.log(low), np.log(high), n))
-
-
-def _compute_at_tau(
-    xi: np.ndarray,
-    u: np.ndarray,
-    tau: float,
-    *,
-    normalize: bool = False,
-    verbose: bool = False,
-):
-    """
-    Compute the full agencity pipeline at a fixed tau.
-    """
-    u_star, _ = normalize_signal(u)
-    X = compute_activation(u_star, xi)
-    A = compute_activity(X, xi)
-
-    M = memory(A, tau, axis=xi, verbose=verbose)
-    O = organization(X, tau, axis=xi, verbose=verbose)
-
-    D, S = compute_intensities(X, A, M, O, verbose=verbose)
-    J, U, beta = compute_beta(D, S, M, O, verbose=verbose)
-
-    P_c = estimate_characteristic_power(u, tau=tau, verbose=verbose)
-    b = agencity(beta, P_c, verbose=verbose)
-
-    if normalize:
-        s = np.std(np.abs(b))
-        if s > EPS:
-            b = b / s
-
-    return {
-        "tau": float(tau),
-        "u_star": u_star,
-        "X": X,
-        "A": A,
-        "M": M,
-        "O": O,
-        "D": D,
-        "S": S,
-        "J": J,
-        "U": U,
-        "beta": beta,
-        "P_c": P_c,
-        "b": b,
-    }
+def _mean_power(P_c, xi) -> float:
+    """Return a descriptive mean of an already supplied characteristic power."""
+    candidate = P_c(np.asarray(xi, dtype=float)) if callable(P_c) else P_c
+    return float(np.mean(np.asarray(candidate, dtype=float)))
 
 
 def agencity_multiscale(
@@ -80,48 +24,63 @@ def agencity_multiscale(
     u: np.ndarray,
     taus: Iterable[float],
     *,
+    A_ref=None,
+    P_c=None,
+    windows=None,
     normalize: bool = False,
     return_full: bool = False,
     verbose: bool = False,
 ) -> List[Dict[str, Any]]:
+    """Return one summary dictionary per explicitly supplied structural scale.
+
+    ``A_ref`` and ``P_c`` are required physical/contextual quantities. The old
+    analysis helper inferred them from the observed signal; v0.6 intentionally
+    rejects that behaviour. ``normalize=True`` is also rejected because spectrum
+    normalization would alter the physical magnitude of ``b``.
+
+    Historical descriptive keys such as ``b_std`` and ``beta_std`` are retained
+    for compatibility. They remain diagnostics and do not alter the spectrum.
     """
-    Compute the agencity spectrum across multiple scales tau.
+    del verbose
+    if normalize:
+        raise ValueError("multiscale b must not be signal-normalized; normalize only diagnostic plots")
+    if A_ref is None:
+        raise ValueError("A_ref must be supplied explicitly for multiscale analysis")
+    if P_c is None:
+        raise ValueError("P_c must be supplied explicitly for multiscale analysis")
 
-    Returns a list of dictionaries, one per tau.
-    """
-    xi = validate_axis(xi)
-    u = validate_signal(u).ravel()
+    spectrum = _core_spectrum(
+        xi,
+        u,
+        taus,
+        A_ref=A_ref,
+        P_c=P_c,
+        windows=windows,
+        return_full=return_full,
+    )
+    power_mean = _mean_power(P_c, xi)
 
-    if xi.shape != u.shape:
-        raise ValueError("xi and u must have the same shape")
-
-    spectrum = []
-
-    for tau in taus:
-        if verbose:
-            print(f"[multiscale] tau = {float(tau):.6g}")
-
-        res = _compute_at_tau(xi, u, float(tau), normalize=normalize, verbose=verbose)
-
-        b = res["b"]
-        beta = res["beta"]
-
-        entry = {
+    entries: List[Dict[str, Any]] = []
+    for index, tau in enumerate(spectrum["tau"]):
+        b_abs = np.abs(spectrum["b"][index])
+        beta_abs = np.abs(spectrum["beta"][index])
+        entry: Dict[str, Any] = {
             "tau": float(tau),
-            "b_mean": float(np.mean(np.abs(b))),
-            "b_std": float(np.std(np.abs(b))),
-            "beta_mean": float(np.mean(np.abs(beta))),
-            "beta_std": float(np.std(np.abs(beta))),
-            "J_mean": float(np.mean(res["J"])),
-            "P_c": float(np.asarray(res["P_c"]).mean()),
+            "w": float(spectrum["w"][index]),
+            "b_mean": float(spectrum["b_mean"][index]),
+            "b_rms": float(spectrum["b_rms"][index]),
+            "b_std": float(np.std(b_abs)),
+            "beta_mean": float(spectrum["beta_mean"][index]),
+            "beta_std": float(np.std(beta_abs)),
+            "J_mean": float(spectrum["J_mean"][index]),
+            "S_mean": float(spectrum["S_mean"][index]),
+            "P_c": power_mean,
+            "window_mode": spectrum["window_mode"],
         }
-
         if return_full:
-            entry["raw"] = res
-
-        spectrum.append(entry)
-
-    return spectrum
+            entry["raw"] = spectrum["responses"][index]
+        entries.append(entry)
+    return entries
 
 
 def agencity_spectrum_array(
@@ -129,25 +88,37 @@ def agencity_spectrum_array(
     u: np.ndarray,
     taus: Iterable[float],
     *,
+    A_ref=None,
+    P_c=None,
+    windows=None,
     normalize: bool = False,
     verbose: bool = False,
 ) -> Dict[str, np.ndarray]:
-    """
-    Compute the multiscale spectrum and return arrays.
-    """
-    spec = agencity_multiscale(
-        xi, u, taus, normalize=normalize, return_full=False, verbose=verbose
+    """Return scalar summary arrays of the ``b(t, tau)`` spectrum."""
+    entries = agencity_multiscale(
+        xi,
+        u,
+        taus,
+        A_ref=A_ref,
+        P_c=P_c,
+        windows=windows,
+        normalize=normalize,
+        return_full=False,
+        verbose=verbose,
     )
-
-    return {
-        "tau": np.array([s["tau"] for s in spec], dtype=float),
-        "b_mean": np.array([s["b_mean"] for s in spec], dtype=float),
-        "b_std": np.array([s["b_std"] for s in spec], dtype=float),
-        "beta_mean": np.array([s["beta_mean"] for s in spec], dtype=float),
-        "beta_std": np.array([s["beta_std"] for s in spec], dtype=float),
-        "J_mean": np.array([s["J_mean"] for s in spec], dtype=float),
-        "P_c": np.array([s["P_c"] for s in spec], dtype=float),
-    }
+    keys = (
+        "tau",
+        "w",
+        "b_mean",
+        "b_rms",
+        "b_std",
+        "beta_mean",
+        "beta_std",
+        "J_mean",
+        "S_mean",
+        "P_c",
+    )
+    return {key: np.asarray([entry[key] for entry in entries], dtype=float) for key in keys}
 
 
 def find_optimal_tau(
@@ -155,97 +126,94 @@ def find_optimal_tau(
     u: np.ndarray,
     taus: Iterable[float],
     *,
+    A_ref=None,
+    P_c=None,
+    windows=None,
     criterion: str = "max_beta_mean",
     normalize: bool = False,
     verbose: bool = False,
 ) -> Dict[str, Any]:
-    """
-    Find an optimal tau according to a criterion.
+    """Select a diagnostic scale from an explicitly defined spectrum.
 
-    Supported criteria:
-        - max_beta_mean
-        - max_b_mean
-        - max_J_mean
-        - max_variability
-        - min_variability
+    This function does **not** estimate the physical characteristic time ``tau``.
+    It only selects one supplied scale according to a stated descriptive metric.
+    Window optimisation is a different operation implemented by
+    ``optimize_agencity_window`` in the public API.
+
+    Historical ``max_variability`` and ``min_variability`` retain their previous
+    meaning based on the standard deviation of ``|b|``.
     """
-    spec = agencity_multiscale(
-        xi, u, taus, normalize=normalize, return_full=False, verbose=verbose
+    entries = agencity_multiscale(
+        xi,
+        u,
+        taus,
+        A_ref=A_ref,
+        P_c=P_c,
+        windows=windows,
+        normalize=normalize,
+        return_full=False,
+        verbose=verbose,
     )
-
-    if criterion == "max_beta_mean":
-        key = "beta_mean"
-        best = max(spec, key=lambda x: x[key])
-    elif criterion == "max_b_mean":
-        key = "b_mean"
-        best = max(spec, key=lambda x: x[key])
-    elif criterion == "max_J_mean":
-        key = "J_mean"
-        best = max(spec, key=lambda x: x[key])
-    elif criterion == "max_variability":
-        key = "b_std"
-        best = max(spec, key=lambda x: x[key])
-    elif criterion == "min_variability":
-        key = "b_std"
-        best = min(spec, key=lambda x: x[key])
-    else:
+    selectors = {
+        "max_beta_mean": ("beta_mean", np.argmax),
+        "max_b_mean": ("b_mean", np.argmax),
+        "max_J_mean": ("J_mean", np.argmax),
+        "max_variability": ("b_std", np.argmax),
+        "min_variability": ("b_std", np.argmin),
+    }
+    if criterion not in selectors:
         raise ValueError(f"Unknown criterion: {criterion}")
-
+    key, selector = selectors[criterion]
+    values = np.asarray([entry[key] for entry in entries], dtype=float)
+    index = int(selector(values))
     return {
-        "tau_opt": best["tau"],
-        "value": best[key],
+        "tau_opt": entries[index]["tau"],
+        "w": entries[index]["w"],
+        "value": float(values[index]),
         "criterion": criterion,
-        "spectrum": spec,
+        "status": "diagnostic scale selection; not physical tau inference",
+        "spectrum": entries,
     }
 
 
 def summarize_multiscale(spectrum: List[Dict[str, Any]], *, verbose: bool = False):
-    """
-    Return a concise interpretation of the tau spectrum.
-    """
+    """Return a concise descriptive summary of an already computed spectrum."""
     if not spectrum:
         return {}
-
-    tau = np.array([s["tau"] for s in spectrum], dtype=float)
-    beta_mean = np.array([s["beta_mean"] for s in spectrum], dtype=float)
-    b_mean = np.array([s["b_mean"] for s in spectrum], dtype=float)
-
+    tau = np.asarray([item["tau"] for item in spectrum], dtype=float)
+    beta_mean = np.asarray([item["beta_mean"] for item in spectrum], dtype=float)
+    b_mean = np.asarray([item["b_mean"] for item in spectrum], dtype=float)
     idx_beta = int(np.argmax(beta_mean))
     idx_b = int(np.argmax(b_mean))
-
     trend = "decreasing" if beta_mean[0] > beta_mean[-1] else "increasing"
-
     out = {
+        "tau_peak_beta": float(tau[idx_beta]),
+        "tau_peak_b": float(tau[idx_b]),
+        # Compatibility aliases retained from the pre-v0.6 analysis API.
         "tau_opt_beta": float(tau[idx_beta]),
         "tau_opt_b": float(tau[idx_b]),
         "beta_peak": float(beta_mean[idx_beta]),
         "b_peak": float(b_mean[idx_b]),
         "trend": trend,
-        "n_scales": int(len(spectrum)),
+        "n_scales": int(tau.size),
+        "status": "descriptive multiscale summary; peaks are not physical tau inference",
     }
-
     if verbose:
-        print("[multiscale] ---")
-        for k, v in out.items():
-            print(f"[multiscale] {k}: {v}")
-
+        for key, value in out.items():
+            print(f"[multiscale] {key}: {value}")
     return out
 
 
 def print_spectrum(spectrum: List[Dict[str, Any]]) -> None:
-    """
-    Pretty-print the spectrum.
-    """
+    """Print a compact human-readable multiscale summary."""
     print("\n=== AGENCITY SPECTRUM ===")
-    print(f"{'tau':>8} | {'beta_mean':>10} | {'b_mean':>10} | {'b_std':>10}")
-    print("-" * 48)
-
-    for s in spectrum:
+    print(f"{'tau':>10} | {'w':>10} | {'beta_mean':>12} | {'b_mean':>12}")
+    print("-" * 56)
+    for item in spectrum:
         print(
-            f"{s['tau']:8.3f} | {s['beta_mean']:10.4f} | "
-            f"{s['b_mean']:10.4f} | {s['b_std']:10.4f}"
+            f"{item['tau']:10.4g} | {item['w']:10.4g} | "
+            f"{item['beta_mean']:12.5g} | {item['b_mean']:12.5g}"
         )
 
 
-# Backward-compatible alias
 agencity_spectrum = agencity_multiscale
