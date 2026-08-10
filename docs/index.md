@@ -6,6 +6,18 @@
 
 overview
 theory_mapping
+scientific_validation
+```
+
+```{toctree}
+:maxdepth: 2
+:caption: Scientific computation and analysis
+
+stable_api
+agencity_analysis
+multiscale_extensions
+scientific_ux
+engineering_performance
 ```
 
 ```{toctree}
@@ -27,21 +39,22 @@ references/glossary
 
 ## Project status
 
-AgencityLab is alpha-stage research software for implementing and experimentally studying the theory of Agencity.
+AgencityLab is alpha-stage research software for implementing and experimentally studying the Theory of Agencity. Version `0.8.0` includes the canonical scalar pipeline, a stable computational API, deterministic scientific-validation systems, a separate diagnostic analysis layer, multiscale/discrete/multivariate constructions, researcher-facing workflows, and a measured engineering/performance layer.
 
-Version `0.1.12` establishes software foundations and theory-to-code traceability. It does **not** claim that every numerical operator has already been reconciled with the current theory source or that the theory has been validated across domains.
+Version 0.8 optimizes algorithms, dependency boundaries, packaging, and verification. It does not redefine `CRM`, `M`, `O`, `D`, `S`, `J`, `Theta`, `beta`, `b`, `A_ref`, `tau`, `w`, or `P_c`, and it is not empirical confirmation of the theory.
 
-Read [the overview](overview.md) for the software architecture and [the theory mapping](theory_mapping.md) before treating any implementation detail as canonical.
+Read [the overview](overview.md), [the theory mapping](theory_mapping.md), and [the engineering report](engineering_performance.md) before treating an implementation detail, diagnostic threshold, or benchmark observation as a scientific claim.
 
-## Core target quantities
+## Canonical target quantities
 
-The selected current theory target uses:
+The reference scalar construction uses:
 
 - observable `u` and normalized observable `u*`;
 - reduced activation `X*` and reduced activity `A*`;
-- memory `M` and organisation `O`;
+- memory `M` and organisation `O` from causal moving correlation;
 - dynamic intensity `D` and structural intensity `S`;
-- logarithmic contrast `J` and structural direction `U`;
-- structured Agencity `beta` and observable flow `b`.
+- logarithmic contrast `J` and structural direction `U = exp(i Theta)` when `S > 0`;
+- intrinsic state `beta`, with `beta = 0` when `S = 0`;
+- observable agencity flux `b = P_c beta`.
 
-Known differences between this target and the current `0.1.x` numerical path are recorded explicitly in `theory_mapping.md` and are scheduled for scientific reconciliation rather than hidden by documentation.
+Canonical computation, numerical safeguards, diagnostics, heuristics, experimental extensions, and legacy compatibility paths are labelled separately throughout the documentation.

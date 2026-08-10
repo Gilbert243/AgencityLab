@@ -1,10 +1,9 @@
-"""
-NumPy backend for AgencityLab.
+"""NumPy computational primitives for optional AgencityLab backend experiments.
 
-This module provides pure-NumPy implementations of the computational
-primitives used by the core and optional acceleration layers.
-
-It is the safe default backend and should never block users.
+The canonical public pipeline is implemented in :mod:`agencitylab.core` and
+uses NumPy as its reference numerical engine. The helpers in this module remain
+available for direct backend experiments, but they do not redefine canonical
+normalisation, CRM, or any physical equation.
 """
 
 from __future__ import annotations
@@ -13,19 +12,16 @@ from typing import Literal
 
 import numpy as np
 
+from agencitylab.core.crm import _rolling_pearson
+
 WindowKind = Literal["hann", "hamming", "blackman", "rectangular"]
 
 
 def normalize_numpy(u, method: str = "zscore", epsilon: float = 1e-12, axis=None):
-    """
-    Normalize an array.
+    """Apply a diagnostic array normalisation.
 
-    Supported methods:
-    - zscore
-    - minmax
-    - centered
-
-    Works on 1D or nD arrays.
+    These z-score/min-max helpers are optional preprocessing primitives. They
+    are not the canonical ``u_star = u / A_ref`` normalisation.
     """
     u = np.asarray(u, dtype=float)
     method = str(method).lower().strip()
@@ -49,11 +45,7 @@ def normalize_numpy(u, method: str = "zscore", epsilon: float = 1e-12, axis=None
 
 
 def central_difference_numpy(values, step: float, axis: int = -1):
-    """
-    Compute the first derivative using central differences.
-
-    Supports nD arrays along the selected axis.
-    """
+    """Compute the first derivative using central differences."""
     values = np.asarray(values, dtype=float)
 
     if step <= 0:
@@ -72,9 +64,7 @@ def central_difference_numpy(values, step: float, axis: int = -1):
 
 
 def apply_window_numpy(values, kind: WindowKind = "hann", axis: int = -1):
-    """
-    Apply a tapering window to an array along the selected axis.
-    """
+    """Apply a tapering window to an array along the selected axis."""
     values = np.asarray(values, dtype=float)
     if values.shape[axis] < 1:
         raise ValueError("values must contain at least one sample.")
@@ -99,31 +89,24 @@ def apply_window_numpy(values, kind: WindowKind = "hann", axis: int = -1):
 
 
 def causal_moving_correlation_numpy(values, window: int = 1, epsilon: float = 1e-12):
-    """
-    Compute a causal moving Pearson-like correlation on a 1D signal.
+    """Compute adjacent-window CRM with the canonical Pearson convention.
 
-    The output is aligned with the most recent sample. Early positions are set to 0.
+    ``epsilon`` is accepted for backward source compatibility but is not used in
+    the Pearson denominator. Exactly zero empirical variance gives correlation
+    zero; non-zero variance is never reclassified as zero by a threshold.
     """
+    del epsilon
     values = np.asarray(values, dtype=float).ravel()
 
+    if not isinstance(window, (int, np.integer)) or isinstance(window, bool):
+        raise ValueError("window must be an integer >= 1.")
+    window = int(window)
     if window < 1:
         raise ValueError("window must be >= 1.")
     if values.size < 2 * window:
         raise ValueError("values must contain at least 2*window samples.")
+    if not np.all(np.isfinite(values)):
+        raise ValueError("values must contain only finite samples.")
 
-    result = np.zeros_like(values, dtype=float)
-
-    for i in range(2 * window - 1, values.size):
-        a = values[i - 2 * window + 1 : i - window + 1]
-        b = values[i - window + 1 : i + 1]
-
-        a0 = a - np.mean(a)
-        b0 = b - np.mean(b)
-
-        denom = float(np.linalg.norm(a0) * np.linalg.norm(b0))
-        if denom < epsilon:
-            result[i] = 0.0
-        else:
-            result[i] = float(np.dot(a0, b0) / denom)
-
-    return np.clip(result, -1.0, 1.0)
+    result, _ = _rolling_pearson(values, values, window, auto=True)
+    return result

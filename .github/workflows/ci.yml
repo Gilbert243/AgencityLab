@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - "chore/**"
   pull_request:
     branches:
       - main
@@ -12,21 +11,25 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  foundations:
-    name: Python ${{ matrix.python-version }}
+  tests:
+    name: Tests / Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.11"]
+        python-version: ["3.10", "3.11", "3.12"]
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
@@ -34,16 +37,177 @@ jobs:
       - name: Install package and development tools
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e ".[dev,viz]"
+          python -m pip install -e ".[dev]"
 
       - name: Verify package import and version
-        run: python -c "import agencitylab; print(agencitylab.__version__)"
+        run: |
+          python - <<'PY'
+          import agencitylab
+          assert agencitylab.__version__ == "0.8.0"
+          print(agencitylab.__version__)
+          PY
 
       - name: Ruff
-        run: ruff check agencitylab tests
+        run: ruff check agencitylab tests benchmarks/performance
 
       - name: Pytest
         run: pytest
 
-      - name: Build distributions
-        run: python -m build
+  package:
+    name: Package / wheel, sdist, clean install
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Build wheel and source distribution
+        run: |
+          python -m pip install --upgrade pip build
+          python -m build
+          test "$(find dist -maxdepth 1 -name '*.whl' | wc -l)" -eq 1
+          test "$(find dist -maxdepth 1 -name '*.tar.gz' | wc -l)" -eq 1
+
+      - name: Clean wheel install and minimal compute
+        run: |
+          python -m venv .venv-wheel
+          .venv-wheel/bin/python -m pip install --upgrade pip
+          .venv-wheel/bin/python -m pip install dist/*.whl
+          .venv-wheel/bin/python -m pip check
+          cd /tmp
+          "$GITHUB_WORKSPACE/.venv-wheel/bin/python" - <<'PY'
+          import importlib.metadata as metadata
+          import importlib.util
+          import numpy as np
+          import agencitylab
+
+          assert agencitylab.__version__ == "0.8.0"
+          requirements = metadata.requires("agencitylab") or []
+          assert any(requirement.lower().startswith("numpy") for requirement in requirements)
+          for optional in ("scipy", "pandas", "matplotlib", "numba", "jax"):
+              assert importlib.util.find_spec(optional) is None, optional
+
+          xi = np.arange(256, dtype=float)
+          result = agencitylab.compute_agencity(
+              u=np.sin(0.07 * xi),
+              xi=xi,
+              A_ref=1.0,
+              tau=16.0,
+              w=16.0,
+              P_c=2.0,
+          )
+          analysis = agencitylab.analyze_agencity(result)
+          assert result.b.shape == xi.shape
+          assert np.all(np.isfinite(result.b))
+          assert analysis["events"]["dynamic_peaks"]["count"] >= 0
+          print("minimal wheel install and analysis: PASS")
+          PY
+
+      - name: Clean sdist install and minimal import
+        run: |
+          python -m venv .venv-sdist
+          .venv-sdist/bin/python -m pip install --upgrade pip
+          .venv-sdist/bin/python -m pip install dist/*.tar.gz
+          .venv-sdist/bin/python -m pip check
+          cd /tmp
+          "$GITHUB_WORKSPACE/.venv-sdist/bin/python" - <<'PY'
+          import agencitylab
+          assert agencitylab.__version__ == "0.8.0"
+          assert agencitylab.available_backends() == ("numpy",)
+          print("minimal sdist install: PASS")
+          PY
+
+      - name: Upload distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: agencitylab-0.8.0-distributions
+          path: dist/
+          if-no-files-found: error
+
+  optional-extras:
+    name: Extra / ${{ matrix.extra }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        extra: [scientific, data, viz, export, numba, jax]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install isolated extra
+        env:
+          EXTRA: ${{ matrix.extra }}
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install ".[${EXTRA}]"
+          python -m pip check
+
+      - name: Smoke test isolated extra
+        env:
+          EXTRA: ${{ matrix.extra }}
+        run: python tests/packaging/smoke_extra.py "${EXTRA}"
+
+  benchmark:
+    name: Benchmark / reproducible quick suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install NumPy-only benchmark environment
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+
+      - name: Run before-after benchmark
+        run: |
+          python benchmarks/performance/benchmark_v08.py \
+            --quick \
+            --output benchmark-v08.json
+
+      - name: Verify numerical equivalence, not timing
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          report = json.loads(Path("benchmark-v08.json").read_text(encoding="utf-8"))
+          for group in ("crm", "pipeline", "sigma_theta"):
+              for row in report[group]:
+                  assert row["max_abs_difference"] <= 1e-8, (group, row)
+          assert all(row["finite_domain_equal"] for row in report["sigma_theta"])
+          workloads = report["representative_workloads"]
+          assert workloads["stream_final_max_abs_difference"] == 0.0
+          assert workloads["batch_threaded_max_abs_difference"] == 0.0
+          print("benchmark scientific equivalence: PASS")
+          PY
+
+      - name: Upload benchmark report
+        uses: actions/upload-artifact@v4
+        with:
+          name: agencitylab-v0.8-benchmark
+          path: benchmark-v08.json
+          if-no-files-found: error

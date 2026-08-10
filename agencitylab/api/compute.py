@@ -112,6 +112,11 @@ def compute_agencity(
     an explicitly supplied positive ``w`` is preserved exactly and recorded in
     the result metadata. No signal statistic is used to choose ``w`` here.
 
+    NumPy remains the stable reference backend for the complete canonical
+    pipeline. ``backend='numba'`` or ``backend='jax'`` validates availability of
+    optional experimental primitives and records that request, but it does not
+    silently replace the canonical equations, precision, or result semantics.
+
     Unit arguments are descriptive labels only. ``unit`` labels ``u`` and
     ``A_ref``; ``coordinate_unit`` labels ``xi``, ``tau`` and ``w``;
     ``power_unit`` labels ``P_c``. The result reports ``b`` with the
@@ -165,17 +170,29 @@ def compute_agencity(
             "compute_agencity requires normalization_method='A_ref'"
         )
 
-    backend_name = cfg.get("backend", "numpy")
+    requested_backend = str(cfg.get("backend", "numpy")).strip().lower()
     try:
         backend = select_backend(
-            backend_name,
-            auto=(backend_name == "auto"),
+            requested_backend,
+            auto=(requested_backend == "auto"),
             prefer_gpu=bool(cfg.get("prefer_gpu", False)),
         )
     except Exception as exc:
         raise AgencityValidationError(f"backend selection failed: {exc}") from exc
+
+    cfg["backend_requested"] = requested_backend
+    cfg["backend_resolved"] = backend["name"]
+    cfg["backend_status"] = backend["status"]
+    cfg["backend_scope"] = backend["scope"]
+    cfg["canonical_backend"] = "numpy"
     if verbose:
-        print(f"[backend] {backend['name']}")
+        if backend["canonical_pipeline"]:
+            print("[backend] canonical=numpy, status=stable")
+        else:
+            print(
+                f"[backend] requested primitives={backend['name']} ({backend['status']}); "
+                "canonical pipeline=numpy"
+            )
 
     xi_was_provided = xi is not None
     xi, u = prepare_inputs(data=data, u=u, xi=xi)

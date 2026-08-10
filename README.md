@@ -6,7 +6,7 @@ The project is research software. Its purpose is to make the theory inspectable,
 
 ## Status of the implementation
 
-Version `0.7.0` combines the scalar Theory of Agencity engine, stable computational API, scientific-validation battery, analysis layer, multiscale/discrete/multivariate constructions, and a researcher-facing Scientific UX. The two theory documents are treated as two volumes of the **same theory**; when Volume 2 specifies or generalises a construction, it governs the implementation.
+Version `0.8.0` combines the scalar Theory of Agencity engine, stable computational API, scientific-validation battery, analysis layer, multiscale/discrete/multivariate constructions, researcher-facing Scientific UX, and a measured engineering/performance layer. Version 0.8 optimizes implementation details and packaging; it does not redefine the accepted theory.
 
 ```text
 u -> u* -> X* -> A* -> M, O -> D, S -> J, U -> beta -> b
@@ -29,29 +29,34 @@ beta = J U               for S > 0, else 0
 b(t) = P_c(t) beta(t)
 ```
 
-Volume 2 keeps `w` distinct from `tau` and often uses `w=tau` as a convenient convention. AgencityLab now follows that rule: omitting `w` uses `w=tau`; explicitly supplying a positive `w` preserves it. Historical `tanh` saturation, `tau / A_fact` CRM compression, signal-derived physical fallbacks, and epsilon-modified physical denominators are not used by the reference pipeline. An exactly constant sampled observable is still treated as the project null/rest-state convention and bypasses derivative/CRM evaluation exactly.
+Volume 2 keeps `w` distinct from `tau` and often uses `w=tau` as a convenient convention. AgencityLab follows that rule: omitting `w` uses `w=tau`; explicitly supplying a positive `w` preserves it. Historical `tanh` saturation, `tau / A_fact` CRM compression, signal-derived physical fallbacks, and epsilon-modified physical denominators are not used by the reference pipeline. An exactly constant sampled observable is treated as the project null/rest-state convention and bypasses derivative/CRM evaluation exactly.
 
 ## Installation
 
-Core package:
+The minimal package requires only NumPy:
 
 ```bash
 pip install agencitylab
 ```
 
-Scientific visualizations:
+Install only the optional capability needed by the study:
 
 ```bash
-pip install "agencitylab[viz]"
+pip install "agencitylab[scientific]"  # SciPy reference-system generators
+pip install "agencitylab[data]"        # pandas and xarray result adapters
+pip install "agencitylab[viz]"         # matplotlib figures
+pip install "agencitylab[export]"      # Excel and PDF exports
+pip install "agencitylab[numba]"       # experimental Numba primitives
+pip install "agencitylab[jax]"         # experimental JAX primitives
 ```
 
-From a source checkout for development:
+`ml` remains as a compatibility alias for the combined Numba/JAX extra. New environments should prefer the narrower `numba` or `jax` extra. Development installation is:
 
 ```bash
 python -m pip install -e ".[dev,viz]"
 ```
 
-Optional feature groups include `viz`, `app`, `ml`, `export`, and `docs`.
+The core import does not require SciPy, pandas, xarray, matplotlib, Numba, or JAX. CI builds both wheel and source distribution, installs each into a fresh virtual environment, runs a minimal canonical computation, and tests supported extras separately.
 
 ## Minimal example
 
@@ -79,15 +84,46 @@ print(result.b_unit)
 print(result.summary())
 ```
 
-`A_ref`, `tau`, `w`, and `P_c` are physical/contextual inputs to the computation. `compute_agencity()` does not infer them from standard deviation, MAD, range, z-score, or arbitrary signal statistics. Chapter 13 provides separate theory-defined procedures for selecting `w` from data when that is the scientific question.
+`A_ref`, `tau`, `w`, and `P_c` are physical/contextual inputs. `compute_agencity()` does not infer them from standard deviation, MAD, range, z-score, or arbitrary signal statistics. Chapter 13 provides separate theory-defined procedures for selecting `w` from data when that is the scientific question.
 
-The public API also accepts an externally specified sampled or callable `P_c(t)` when a time-dependent characteristic-power context is required. Such a profile must match the computation coordinate and is never derived from `u`.
+The public API also accepts an externally specified sampled or callable `P_c(t)`. Such a profile must match the computation coordinate and is never derived from `u`.
 
-Unit arguments are descriptive labels only: AgencityLab does not silently convert magnitudes between unit systems. `unit` applies to `u` and `A_ref`, `coordinate_unit` to `xi`, `tau`, and `w`, and `power_unit` to `P_c`. The observable `b` is labelled with the corresponding informational-power unit, e.g. `W·nat` when `P_c` is in watts.
+Unit arguments are descriptive labels only: AgencityLab does not silently convert magnitudes between unit systems. `unit` applies to `u` and `A_ref`, `coordinate_unit` to `xi`, `tau`, and `w`, and `power_unit` to `P_c`. The observable `b` is labelled with the corresponding informational-power unit, for example `W·nat` when `P_c` is in watts.
 
-## Scientific UX in 0.7
+## Engineering and performance in 0.8
 
-Version 0.7 provides the direct research workflow:
+The pre-v0.8 CRM recomputed two means, two variances, and one covariance for every sample in a Python loop, giving `O(N*w)` work. The reference NumPy implementation now uses rolling first and second moments for the ordinary path, reducing it to `O(N)` in signal length. Exactly constant windows are detected without a tolerance, short or numerically delicate windows use the direct centred Pearson formula, and no epsilon is inserted into a physical denominator.
+
+The repository includes:
+
+- direct before/after CRM and complete-pipeline benchmarks;
+- numerical-equivalence checks against the retained pre-v0.8 reference;
+- a 100,000-sample long-signal test;
+- per-item batch-physics and serial/thread equivalence tests;
+- full-history streaming versus one-shot equivalence;
+- multiscale rows versus independent canonical calculations;
+- approximate peak-memory observations;
+- isolated wheel, source-distribution, and optional-extra installation checks.
+
+Run the CI-sized benchmark with:
+
+```bash
+python benchmarks/performance/benchmark_v08.py --quick
+```
+
+Timing values are observations, not CI thresholds. Scientific equivalence is tested separately. See [`docs/engineering_performance.md`](docs/engineering_performance.md) and [`benchmarks/README.md`](benchmarks/README.md).
+
+### Backend status
+
+- **NumPy — stable:** reference numerical engine and the complete canonical public pipeline.
+- **Numba — experimental:** optional one-dimensional primitives; it does not silently replace the canonical pipeline.
+- **JAX — experimental:** optional autodiff/vectorisation primitives, normally float32 unless JAX x64 is enabled; it does not silently replace the canonical pipeline.
+
+`backend_capabilities()` reports availability, stability, scope, default precision, and whether a backend owns the canonical pipeline. A requested optional backend is recorded in result configuration, while `canonical_backend` remains `numpy`.
+
+## Scientific UX introduced in 0.7
+
+The direct research workflow is:
 
 ```text
 signal -> result -> diagnostic -> report -> figure -> export
@@ -118,24 +154,7 @@ print(study.exports)
 
 `ScientificStudy` keeps `result`, `analysis`, `report`, `figures`, and `exports` separate. The workflow is orchestration only: diagnostic thresholds never modify the computed theoretical arrays.
 
-Research-facing visualizations include:
-
-- `visualize_agencity(result, kind="overview")` for the signal-to-flux pipeline;
-- `kind="geometry"` for the intrinsic complex `beta` trajectory and signed curvature;
-- `kind="diagnostics"` for `S`, `Sigma_Theta`, `|b|`, and dynamic/structural diagnostics;
-- explicit complex time-series/component/frequency compatibility views;
-- `visualize_multiscale_spectrum()` for the theoretical `b(t,tau)` scale spectrum.
-
-CSV and JSON exports are designed for downstream research rather than presentation-only output:
-
-```python
-from agencitylab import export_result_csv, export_study_json
-
-export_result_csv(result, "result.csv")
-export_study_json(result, analysis, "study.json", text_report=report)
-```
-
-The CSV contains one row per sample with explicit real/imaginary/magnitude columns for complex quantities. The JSON bundle preserves the stable result serialization, structured analysis, and optional text report.
+Research-facing visualizations include `overview`, `geometry`, `diagnostics`, explicit complex time-series/component/frequency compatibility views, and the multiscale `b(t,tau)` spectrum. CSV contains one row per sample with explicit real, imaginary, and magnitude columns; JSON preserves the stable result serialization, structured analysis, and optional text report.
 
 See [`docs/scientific_ux.md`](docs/scientific_ux.md), [`docs/tutorials/quickstart.md`](docs/tutorials/quickstart.md), and [`docs/tutorials/full_pipeline.md`](docs/tutorials/full_pipeline.md).
 
@@ -145,32 +164,21 @@ See [`docs/scientific_ux.md`](docs/scientific_ux.md), [`docs/tutorials/quickstar
 
 `AgencityResult` validates its numerical payload, supports scalar or sampled `P_c`, keeps wrapped `theta = angle(U)` rather than silently unwrapping phase, uses the stable `0.3` serialization schema, and exposes unit metadata. `ExperimentMetadata` preserves unknown fields for forward compatibility and keeps physical/contextual parameters separate from signal-derived quantities.
 
-Batch items can carry per-item physical parameters and metadata. Streaming maintains monotonically increasing implicit coordinates across chunks and raises an explicit `StreamNotReadyError` when there is not yet enough CRM history.
+Batch items can carry independent `A_ref`, `tau`, `w`, `P_c`, configuration, and metadata. Results preserve input order in serial and parallel modes. Full-history streaming maintains monotonically increasing coordinates and produces the same final result as one-shot computation; an explicit finite `window_size` is an implementation choice that intentionally limits retained history and is never applied implicitly.
 
-See [`docs/stable_api.md`](docs/stable_api.md) for the computational API contract.
+See [`docs/stable_api.md`](docs/stable_api.md).
 
-## Scientific validation in 0.4
+## Scientific validation introduced in 0.4
 
-The v0.4 reference bench covers seven fixed systems: exact rest, sinusoid, underdamped oscillator, Van der Pol oscillator, negative-damping unstable oscillator, low-pass-filtered Ornstein-Uhlenbeck process, and the classical Lorenz system. The suite checks stated theory consequences without tuning the equations to the resulting numbers.
+The reference bench covers seven fixed systems: exact rest, sinusoid, underdamped oscillator, Van der Pol oscillator, negative-damping unstable oscillator, low-pass-filtered Ornstein-Uhlenbeck process, and the classical Lorenz system. It checks stated theory consequences without tuning equations to the resulting numbers.
 
 It also tests translation and sign-inversion invariance, temporal covariance when time and `tau` are scaled together, small- and large-amplitude limits, exact `P_c` linearity, uniform-grid convergence, and robustness to decreasing smooth perturbations.
 
-A green scientific-validation suite means that the implementation reproduces the tested mathematical/numerical consequences under the documented benchmark conditions. It is not empirical confirmation of the Theory of Agencity itself. See [`docs/scientific_validation.md`](docs/scientific_validation.md).
+A green scientific-validation suite means that the implementation reproduces the tested mathematical and numerical consequences under the documented benchmark conditions. It is not empirical confirmation of the Theory of Agencity itself. See [`docs/scientific_validation.md`](docs/scientific_validation.md).
 
-## Agencity Analysis in 0.5
+## Agencity Analysis introduced in 0.5
 
-The analysis layer transforms a computed result into scientific diagnostics without changing its arrays. It implements:
-
-- theoretical local angular variance `Sigma_Theta(t) = Var(Theta(s); s in [t-tau,t])` on complete structurally valid windows;
-- structural phase coherence based on theoretical `Theta`, not on `arg(beta)` or `arg(b)`;
-- the real-agencity criterion `S > 0`, low `Sigma_Theta`, significant `|b|`, with no universal numerical thresholds;
-- signed algebraic curvature of the **beta trajectory**, with no epsilon in the curvature denominator;
-- structural winding number diagnostics and explicit undefined handling across `S = 0`;
-- exact agencity zeros from `S = 0` or `J = 0`, and critical-surface crossings `D = S`;
-- explicit-threshold orientation jumps, local peaks of `D`, and explicit-threshold plateaus of `S`;
-- threshold-free finite-record regime signatures;
-- contextual classification into null, passive damped, active oscillating, unstable, stochastic, or chaotic regimes through explicit `RegimeCriteria`;
-- multiscale signature fits without epsilon substitution or hidden slope thresholds.
+The analysis layer transforms a computed result into diagnostics without changing canonical arrays. It implements structural angular variance and coherence, the contextual real-agencity diagnostic, signed curvature of the `beta` trajectory, winding diagnostics, zeros and critical-surface crossings, events and transitions, threshold-free finite-record signatures, contextual regime classification, and multiscale signature fits.
 
 Conservative defaults are intentional:
 
@@ -182,38 +190,37 @@ print(analysis["regime"])
 print(analysis["real_agencity"]["status"])
 ```
 
-For non-null data, these interpretations remain `undetermined` by default when the required contextual criteria are absent. A single intermittent sample in noise or chaos is not enough to make a whole-record real-agencity claim without an explicit persistence rule.
-
-See [`docs/agencity_analysis.md`](docs/agencity_analysis.md).
+For non-null data, interpretations remain `undetermined` by default when required contextual criteria are absent. A single intermittent sample in noise or chaos is not enough to make a whole-record real-agencity claim without an explicit persistence rule. See [`docs/agencity_analysis.md`](docs/agencity_analysis.md).
 
 ## Multiscale, window, discrete, and multivariate constructions
 
-- `compute_agencity_spectrum()` returns the time-resolved `b(t,tau)` spectrum plus scalar summaries. By default every scale uses the common `w=tau` convention; `windows=` keeps `w` explicit and independent.
+- `compute_agencity_spectrum()` returns the time-resolved `b(t,tau)` spectrum plus scalar summaries. By default every scale uses `w=tau`; `windows=` keeps `w` explicit and independent.
 - `optimize_agencity_window()` implements the Chapter 13 angular-stability criterion `Phi2`, searching discrete windows `w=N delta` without treating undefined structural orientation as artificial zero variance.
-- `compute_discrete_agencity()` is a convenience entry point for uniformly sampled sequences and delegates to the same scalar implementation.
+- `compute_discrete_agencity()` constructs a uniform coordinate and delegates to the scalar implementation.
 - `compute_multivariate_agencity()` computes scalar Agencity component by component, then forms the theory-specified pointwise `P_c`-weighted state and additive total flux.
-- `riemannian_extension_status()` reports the Riemannian construction as **experimental and not implemented** because Volume 2 explicitly defers the detailed analysis needed to fully specify and test a production pipeline.
+- `riemannian_extension_status()` reports the Riemannian construction as experimental and not implemented because Volume 2 defers the detailed analysis needed to fully specify and test it.
 
-`tau`, `w`, sampling interval `delta`, and a multiscale scan are different objects. A peak in a scale spectrum is a diagnostic result; it is not silently promoted to the physical characteristic time.
-
-See [`docs/multiscale_extensions.md`](docs/multiscale_extensions.md).
+`tau`, `w`, sampling interval `delta`, and a multiscale scan are different objects. A peak in a scale spectrum is a diagnostic result; it is not silently promoted to the physical characteristic time. See [`docs/multiscale_extensions.md`](docs/multiscale_extensions.md).
 
 ## Repository map
 
-- `agencitylab/core/`: deterministic mathematical operators and theory-defined computation tools. No plotting or regime interpretation belongs here.
-- `agencitylab/api/`: stable user-facing orchestration, including compute, analysis, extensions, exports, visualizations, and the v0.7 scientific workflow.
-- `agencitylab/analysis/`: derived indicators, diagnostics, geometry, coherence, events, transitions, signatures, classifications, and reports.
-- `agencitylab/visualization/`: scientific presentation of already-computed results and diagnostics.
+- `agencitylab/core/`: deterministic mathematical operators and theory-defined computation tools; no plotting or regime interpretation.
+- `agencitylab/api/`: stable user-facing orchestration for compute, analysis, extensions, exports, visualizations, batch, streaming, and scientific workflows.
+- `agencitylab/analysis/`: diagnostics, geometry, coherence, events, transitions, signatures, classifications, and reports.
+- `agencitylab/backends/`: reference NumPy primitives plus explicitly experimental optional primitives.
+- `agencitylab/visualization/`: presentation of already-computed results and diagnostics.
 - `agencitylab/models/`: reproducibility-oriented result and metadata containers.
-- `tests/`: analytical, API, scientific-validation, analysis, extension, visualization, integration, regression, and foundation tests.
-- `docs/`: theory mapping, stable API, validation, analysis, extensions, Scientific UX, examples, and tutorials.
+- `tests/`: analytical, API, scientific-validation, analysis, extension, visualization, integration, regression, packaging, and foundation tests.
+- `docs/`: theory mapping, API, validation, analysis, extensions, UX, engineering, examples, and tutorials.
 - `benchmarks/scientific/`: deterministic theory-facing reference systems.
+- `benchmarks/performance/`: reproducible implementation benchmarks and retained comparison reference.
 
 ## Documentation
 
 Start with:
 
-- [`docs/scientific_ux.md`](docs/scientific_ux.md) for v0.7 researcher workflows, figures, exports, and reproducibility.
+- [`docs/engineering_performance.md`](docs/engineering_performance.md) for the v0.8 audit, measured benchmarks, memory, packaging, and backend scope.
+- [`docs/scientific_ux.md`](docs/scientific_ux.md) for researcher workflows, figures, exports, and reproducibility.
 - [`docs/tutorials/quickstart.md`](docs/tutorials/quickstart.md) for a short signal-to-export example.
 - [`docs/tutorials/full_pipeline.md`](docs/tutorials/full_pipeline.md) for a complete staged workflow.
 - [`docs/examples/visualization_gallery.md`](docs/examples/visualization_gallery.md) for the figure API.
@@ -226,16 +233,17 @@ Start with:
 
 ## Development checks
 
-The repository supports Python 3.10 and 3.11. CI verifies both versions with visualization support installed:
+The repository supports Python 3.10, 3.11, and 3.12:
 
 ```bash
 python -c "import agencitylab; print(agencitylab.__version__)"
-ruff check agencitylab tests
+ruff check agencitylab tests benchmarks/performance
 pytest
 python -m build
+python benchmarks/performance/benchmark_v08.py --quick
 ```
 
-The Ruff policy remains a correctness-focused baseline (`E9`, `F63`, `F7`, `F82`) so scientific changes are not obscured by unrelated style churn.
+CI also performs clean wheel/sdist installation and isolated optional-extra smoke tests. The Ruff policy remains a correctness-focused baseline (`E9`, `F63`, `F7`, `F82`) so scientific changes are not obscured by unrelated style churn.
 
 ## Scientific caution
 
@@ -243,13 +251,15 @@ Agencity is an emerging theoretical framework. Implementation fidelity, API stab
 
 Analysis thresholds, peak filters, plateau tolerances, persistence fractions, regime criteria, and scale selections are diagnostics. When Chapter 13 selects an optimal `w` from data, the result should be recorded as a theory-defined signal-derived window selection rather than silently confused with `tau`.
 
-Experimental, heuristic, diagnostic, or legacy components remain labelled as such. The Riemannian pipeline is currently experimental specifically because the theory document itself defers its detailed analysis.
+Experimental, heuristic, diagnostic, or legacy components remain labelled as such. The Riemannian pipeline is experimental specifically because the theory document itself defers its detailed analysis.
 
-## Author and upstream
+## Author and repository lineage
 
 Theory and original project: **Gilbert BEMWIZ**.
 
-Canonical upstream repository: `Gilbert243/AgencityLab`.
+Active integration repository: `somafgroup/AgencityLab`.
+
+Original repository lineage: `Gilbert243/AgencityLab`.
 
 ## License
 

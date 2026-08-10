@@ -52,17 +52,10 @@ from .api.export import (
 from .api.visualize import visualize_agencity, visualize_multiscale_spectrum
 from .api.scientific import ScientificStudy, scientific_workflow
 from .api.shortcuts import run, inspect, plot, summarize as quick_summary
-from .backends.selector import get_backend
+from .backends.selector import available_backends, backend_capabilities, get_backend
 
 PipelineBuilder = AgencityPipeline
 pipeline_builder = pipeline
-
-try:
-    from .backends.selector import available_backends
-except Exception:  # pragma: no cover - optional backend discovery
-    def available_backends():
-        return ["numpy"]
-
 
 __all__ = [
     "__version__",
@@ -128,4 +121,5 @@ __all__ = [
     "quick_summary",
     "get_backend",
     "available_backends",
+    "backend_capabilities",
 ]

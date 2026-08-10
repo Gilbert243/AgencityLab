@@ -1,14 +1,13 @@
 """Event diagnostics for AgencityLab.
 
-Canonical quantities are never recomputed here.  The module detects features in
-already-computed outputs such as peaks of dynamic intensity D.  Thresholds used
+Canonical quantities are never recomputed here. The module detects features in
+already-computed outputs such as peaks of dynamic intensity D. Thresholds used
 for prominence or outlier selection are diagnostic choices, not physical laws.
 """
 
 from __future__ import annotations
 
 import numpy as np
-from scipy.signal import find_peaks
 
 
 def _real_1d(values, *, name: str) -> np.ndarray:
@@ -35,12 +34,47 @@ def _select_component(b, component: str = "magnitude") -> np.ndarray:
     raise ValueError("component must be one of: magnitude, real, imag, phase")
 
 
-def detect_dynamic_peaks(D, *, prominence: float | None = None, distance: int | None = None) -> np.ndarray:
+def _unfiltered_local_maxima(values: np.ndarray) -> np.ndarray:
+    """Return SciPy-compatible unfiltered one-dimensional local maxima.
+
+    Endpoints are excluded. For a flat maximum, the middle sample is returned,
+    rounded down for an even plateau. The implementation is O(N), requires only
+    NumPy, and is used only when no optional diagnostic filter is requested.
+    """
+    if values.size < 3:
+        return np.asarray([], dtype=int)
+
+    peaks: list[int] = []
+    index = 1
+    last = values.size - 1
+    while index < last:
+        if values[index] <= values[index - 1]:
+            index += 1
+            continue
+
+        plateau_end = index
+        while plateau_end < last and values[plateau_end + 1] == values[index]:
+            plateau_end += 1
+
+        if plateau_end < last and values[plateau_end] > values[plateau_end + 1]:
+            peaks.append((index + plateau_end) // 2)
+        index = plateau_end + 1
+
+    return np.asarray(peaks, dtype=int)
+
+
+def detect_dynamic_peaks(
+    D,
+    *,
+    prominence: float | None = None,
+    distance: int | None = None,
+) -> np.ndarray:
     """Return local maxima of canonical dynamic intensity ``D``.
 
-    With ``prominence=None`` every strict local maximum accepted by
-    :func:`scipy.signal.find_peaks` is returned.  Supplying a prominence or
-    sample distance is an explicit diagnostic filter.
+    With no filters, local maxima are found by the NumPy-only O(N) path and flat
+    peaks follow the historical SciPy midpoint convention. Explicit prominence
+    or distance filters retain the established :func:`scipy.signal.find_peaks`
+    semantics and therefore require the ``scientific`` optional dependency.
     """
     D = _real_1d(D, name="D")
     kwargs = {}
@@ -53,11 +87,29 @@ def detect_dynamic_peaks(D, *, prominence: float | None = None, distance: int | 
         if not isinstance(distance, (int, np.integer)) or int(distance) < 1:
             raise ValueError("distance must be an integer >= 1")
         kwargs["distance"] = int(distance)
+
+    if not kwargs:
+        return _unfiltered_local_maxima(D)
+
+    try:
+        from scipy.signal import find_peaks
+    except ImportError as exc:  # pragma: no cover - exercised by clean-install CI
+        raise ImportError(
+            "filtered dynamic peak detection requires SciPy; install "
+            "AgencityLab with the scientific extra"
+        ) from exc
+
     indices, _ = find_peaks(D, **kwargs)
     return np.asarray(indices, dtype=int)
 
 
-def dynamic_peak_summary(D, xi=None, *, prominence: float | None = None, distance: int | None = None) -> dict[str, object]:
+def dynamic_peak_summary(
+    D,
+    xi=None,
+    *,
+    prominence: float | None = None,
+    distance: int | None = None,
+) -> dict[str, object]:
     """Summarize peaks of D without assigning physical significance to them."""
     D = _real_1d(D, name="D")
     indices = detect_dynamic_peaks(D, prominence=prominence, distance=distance)

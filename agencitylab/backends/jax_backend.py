@@ -1,17 +1,12 @@
-"""
-JAX-backed accelerations for AgencityLab.
+"""Optional JAX-backed primitives for AgencityLab experiments.
 
-This module is optional and designed for research workflows where autodiff,
-vectorization or accelerator execution may be useful.
-
-JAX can run on GPU/TPU automatically when the proper backend is installed.
+These helpers support research on autodiff, vectorisation, and accelerator
+execution. They are not the canonical public pipeline, which remains the
+float64-oriented NumPy reference. Direct JAX users must therefore validate
+precision and device behaviour for their own workload.
 """
 
 from __future__ import annotations
-
-from typing import Any, Literal
-
-import numpy as np
 
 
 def _require_jax():
@@ -37,9 +32,7 @@ def has_jax() -> bool:
 
 
 def normalize_jax(u, method: str = "zscore", epsilon: float = 1e-12):
-    """
-    JAX-compatible normalization helper.
-    """
+    """Apply an optional diagnostic normalisation with JAX."""
     _, jnp, _ = _require_jax()
     u = jnp.asarray(u, dtype=jnp.float32)
 
@@ -63,9 +56,7 @@ def normalize_jax(u, method: str = "zscore", epsilon: float = 1e-12):
 
 
 def central_difference_jax(values, step: float):
-    """
-    JAX-compatible central difference for a 1D array.
-    """
+    """Compute a JAX-compatible central difference for a one-dimensional array."""
     _, jnp, _ = _require_jax()
     values = jnp.asarray(values, dtype=jnp.float32).reshape(-1)
 
@@ -82,9 +73,7 @@ def central_difference_jax(values, step: float):
 
 
 def apply_window_jax(values, kind: str = "hann"):
-    """
-    JAX-compatible windowing for a 1D array.
-    """
+    """Apply a JAX-compatible tapering window to one-dimensional data."""
     _, jnp, _ = _require_jax()
     values = jnp.asarray(values, dtype=jnp.float32).reshape(-1)
     kind = str(kind).lower().strip()
@@ -105,9 +94,12 @@ def apply_window_jax(values, kind: str = "hann"):
 
 
 def causal_moving_correlation_jax(values, window: int = 1, epsilon: float = 1e-12):
+    """Compute experimental JAX CRM with exact zero-variance branching.
+
+    ``epsilon`` remains in the signature for source compatibility but is not
+    inserted into the Pearson denominator and does not define physical zero.
     """
-    JAX-compatible causal moving correlation for a 1D signal.
-    """
+    del epsilon
     jax, jnp, lax = _require_jax()
     values = jnp.asarray(values, dtype=jnp.float32).reshape(-1)
     n = values.shape[0]
@@ -125,13 +117,18 @@ def causal_moving_correlation_jax(values, window: int = 1, epsilon: float = 1e-1
 
         a0 = a - jnp.mean(a)
         b0 = b - jnp.mean(b)
+        ss_a = jnp.dot(a0, a0)
+        ss_b = jnp.dot(b0, b0)
 
-        denom = jnp.linalg.norm(a0) * jnp.linalg.norm(b0)
-        corr = jnp.where(denom < epsilon, 0.0, jnp.dot(a0, b0) / (denom + epsilon))
-        return jnp.clip(corr, -1.0, 1.0)
+        def zero(_):
+            return jnp.asarray(0.0, dtype=values.dtype)
+
+        def nonzero(_):
+            corr = jnp.dot(a0, b0) / (jnp.sqrt(ss_a) * jnp.sqrt(ss_b))
+            return jnp.clip(corr, -1.0, 1.0)
+
+        return lax.cond((ss_a == 0.0) | (ss_b == 0.0), zero, nonzero, operand=None)
 
     vals = jax.vmap(corr_at)(idx)
-
     out = jnp.zeros(n, dtype=values.dtype)
-    out = out.at[idx].set(vals)
-    return out
+    return out.at[idx].set(vals)

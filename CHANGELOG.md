@@ -2,6 +2,26 @@
 
 All notable changes to AgencityLab are documented here.
 
+## 0.8.0 - 2026-08-10
+
+### Engineering & Performance
+
+- Replaced the ordinary canonical CRM Python loop, which recomputed adjacent-window means, variances, and covariance in `O(N*w)`, with an `O(N)` rolling-moment implementation. Exactly constant windows are detected without tolerance, very short and numerically delicate windows fall back to the direct centred Pearson definition, and the finite-record warm-up remains unchanged.
+- Retained the pre-v0.8 direct CRM inside a reproducible benchmark suite and added before/after measurements for CRM and the complete canonical pipeline, stage profiling, approximate peak-memory observations, and representative analysis, multiscale, batch, and streaming workloads. Runtime observations are archived by CI but are not fragile timing gates.
+- Added direct numerical-equivalence tests for auto- and cross-CRM, constant windows, extreme dynamic ranges, and the complete downstream pipeline. Added a 100,000-sample long-signal test and preserved the exact `S`, `U`, `beta`, and `b` identities.
+- Added batch tests for per-item `A_ref`, `tau`, `w`, and `P_c`, deterministic input order, and serial/thread equivalence. Added full-history streaming versus one-shot equality and multiscale-row versus independent-canonical-computation equality.
+- Audited the optional NumPy, Numba, and JAX primitives. Removed historical epsilon-based variance classification and denominator modification from their CRM helpers. NumPy is explicitly the stable canonical pipeline; Numba and JAX are explicitly experimental primitive layers and cannot silently replace the reference equations.
+- Added `backend_capabilities()` and result metadata recording the requested/resolved optional primitive backend separately from `canonical_backend="numpy"`.
+- Reduced the minimal runtime dependency set to NumPy. Moved SciPy validation generators, pandas/xarray adapters, visualization, export, Numba, and JAX support into explicit extras. Retained `ml` only as a compatibility alias for the narrower `numba` and `jax` extras.
+- Added Python 3.12 to the tested matrix, clean wheel and source-distribution installation tests, minimal-import/minimal-compute checks without optional dependencies, isolated smoke tests for `data`, `viz`, `export`, `numba`, and `jax`, and archived distribution artifacts.
+- Added engineering/performance documentation, updated repository URLs to `somafgroup/AgencityLab`, replaced the obsolete scaling script with the maintained v0.8 benchmark entry point, and bumped the package version to `0.8.0`.
+
+### Scientific boundary
+
+- Version 0.8 changes implementation complexity, dependency boundaries, tests, and observability; it does not redefine CRM, `M`, `O`, `D`, `S`, `J`, `Theta`, `beta`, `b`, `A_ref`, `tau`, `w`, or `P_c`.
+- Numerical fallbacks preserve the centred Pearson coefficient and the exact zero-denominator convention. Machine epsilon is used only to decide when a rolling-moment subtraction is numerically unsafe and must be recomputed directly; it is not inserted into a canonical equation or used as a physical zero threshold.
+- Performance measurements are implementation observations on recorded environments, not empirical evidence for the Theory of Agencity and not universal performance guarantees.
+
 ## 0.7.0 - 2026-08-10
 
 ### Scientific UX

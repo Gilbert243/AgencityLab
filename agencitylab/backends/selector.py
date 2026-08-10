@@ -1,10 +1,9 @@
-"""
-Backend selection utilities.
+"""Backend selection and capability metadata for AgencityLab.
 
-The selector provides a single entry point for choosing the computational
-backend used by optional layers.
-
-Default behavior is conservative: NumPy is always safe and never blocks users.
+NumPy is the stable reference numerical engine for the canonical public
+pipeline. Numba and JAX expose optional experimental primitives; selecting one
+does not silently replace the canonical equations or their float64 reference
+implementation.
 """
 
 from __future__ import annotations
@@ -21,14 +20,35 @@ from .numpy_backend import (
 
 BackendName = Literal["numpy", "numba", "jax"]
 
+_BACKEND_METADATA = {
+    "numpy": {
+        "status": "stable",
+        "scope": "reference numerical primitives and canonical public pipeline",
+        "canonical_pipeline": True,
+        "default_dtype": "float64",
+    },
+    "numba": {
+        "status": "experimental",
+        "scope": "optional one-dimensional numerical primitives",
+        "canonical_pipeline": False,
+        "default_dtype": "float64",
+    },
+    "jax": {
+        "status": "experimental",
+        "scope": "optional autodiff/vectorisation primitives",
+        "canonical_pipeline": False,
+        "default_dtype": "float32 unless JAX x64 is explicitly enabled",
+    },
+}
+
 
 class BackendUnavailableError(RuntimeError):
-    """Raised when a requested backend is not available."""
+    """Raised when a requested optional backend is not available."""
 
 
 @lru_cache(maxsize=None)
 def has_numba() -> bool:
-    """Return True if Numba is installed."""
+    """Return True if Numba is installed and importable."""
     try:
         from .numba_backend import has_numba as _has_numba
         return _has_numba()
@@ -38,7 +58,7 @@ def has_numba() -> bool:
 
 @lru_cache(maxsize=None)
 def has_jax() -> bool:
-    """Return True if JAX is installed."""
+    """Return True if JAX is installed and importable."""
     try:
         from .jax_backend import has_jax as _has_jax
         return _has_jax()
@@ -46,16 +66,43 @@ def has_jax() -> bool:
         return False
 
 
-def available_backends():
-    """
-    Return the list of available backends in order of preference.
-    """
-    backends = ["numpy"]
+def available_backends() -> tuple[BackendName, ...]:
+    """Return installed backends, always beginning with the NumPy reference."""
+    backends: list[BackendName] = ["numpy"]
     if has_numba():
         backends.append("numba")
     if has_jax():
         backends.append("jax")
     return tuple(backends)
+
+
+def backend_capabilities(name: Optional[str] = None):
+    """Return stability, scope, availability, and canonical-pipeline metadata.
+
+    With ``name=None`` a dictionary for every known backend is returned. An
+    explicit backend name returns one dictionary. This function reports
+    software support boundaries only; it does not select or execute a backend.
+    """
+
+    def one(backend_name: str):
+        if backend_name not in _BACKEND_METADATA:
+            raise ValueError("Unknown backend name.")
+        available = (
+            True
+            if backend_name == "numpy"
+            else has_numba()
+            if backend_name == "numba"
+            else has_jax()
+        )
+        return {
+            "name": backend_name,
+            **_BACKEND_METADATA[backend_name],
+            "available": bool(available),
+        }
+
+    if name is None:
+        return {backend_name: one(backend_name) for backend_name in _BACKEND_METADATA}
+    return one(str(name).lower().strip())
 
 
 def get_backend_name(
@@ -64,14 +111,11 @@ def get_backend_name(
     auto: bool = False,
     prefer_gpu: bool = False,
 ) -> BackendName:
-    """
-    Resolve the backend name from a preferred choice.
+    """Resolve an installed primitive backend without changing canonical scope.
 
-    Rules
-    -----
-    - None => numpy (safe default)
-    - auto/best => best available backend
-    - explicit backend name => strict request, raises if unavailable
+    ``None`` resolves to NumPy. ``auto``/``best`` chooses an installed optional
+    primitive backend according to the historical preference order. Explicit
+    unavailable requests fail rather than silently falling back.
     """
     if preferred is None and not auto:
         return "numpy"
@@ -102,18 +146,19 @@ def get_backend_name(
     return "numpy"
 
 
-def select_backend(preferred: Optional[str] = None, *, auto: bool = False, prefer_gpu: bool = False):
-    """
-    Return a backend module-like dictionary.
-
-    The result is intentionally lightweight and only guarantees the methods
-    used by the base framework.
-    """
+def select_backend(
+    preferred: Optional[str] = None,
+    *,
+    auto: bool = False,
+    prefer_gpu: bool = False,
+):
+    """Return one lightweight primitive-backend mapping with capability metadata."""
     name = get_backend_name(preferred, auto=auto, prefer_gpu=prefer_gpu)
+    metadata = backend_capabilities(name)
 
     if name == "numpy":
         return {
-            "name": "numpy",
+            **metadata,
             "normalize": normalize_numpy,
             "central_difference": central_difference_numpy,
             "apply_window": apply_window_numpy,
@@ -128,7 +173,7 @@ def select_backend(preferred: Optional[str] = None, *, auto: bool = False, prefe
             normalize_numba,
         )
         return {
-            "name": "numba",
+            **metadata,
             "normalize": normalize_numba,
             "central_difference": central_difference_numba,
             "apply_window": apply_window_numba,
@@ -143,7 +188,7 @@ def select_backend(preferred: Optional[str] = None, *, auto: bool = False, prefe
             normalize_jax,
         )
         return {
-            "name": "jax",
+            **metadata,
             "normalize": normalize_jax,
             "central_difference": central_difference_jax,
             "apply_window": apply_window_jax,
@@ -153,6 +198,11 @@ def select_backend(preferred: Optional[str] = None, *, auto: bool = False, prefe
     raise BackendUnavailableError(f"Unsupported backend: {name}")
 
 
-def get_backend(preferred: Optional[str] = None, *, auto: bool = False, prefer_gpu: bool = False):
-    """Alias for select_backend()."""
+def get_backend(
+    preferred: Optional[str] = None,
+    *,
+    auto: bool = False,
+    prefer_gpu: bool = False,
+):
+    """Compatibility alias for :func:`select_backend`."""
     return select_backend(preferred, auto=auto, prefer_gpu=prefer_gpu)

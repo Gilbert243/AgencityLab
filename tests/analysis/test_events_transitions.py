@@ -18,6 +18,12 @@ def test_dynamic_peaks_operate_on_D():
     )
 
 
+def test_unfiltered_dynamic_peaks_keep_flat_peak_midpoint_convention():
+    D = np.array([0.0, 2.0, 2.0, 0.0, 1.0, 1.0, 1.0, 0.0])
+
+    np.testing.assert_array_equal(detect_dynamic_peaks(D), np.array([1, 5]))
+
+
 def test_agencity_zeros_follow_S_or_J_condition_exactly():
     S = np.array([0.0, 1.0, 1.0, 2.0])
     J = np.array([3.0, 0.0, 1e-14, -1.0])

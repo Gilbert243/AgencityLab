@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "agencitylab"
-version = "0.7.0"
+version = "0.8.0"
 description = "Scientific framework for the theory of Agencity"
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.10"
@@ -31,31 +31,45 @@ classifiers = [
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
   "Topic :: Scientific/Engineering",
   "Topic :: Scientific/Engineering :: Information Analysis",
 ]
 
+# The canonical engine and stable public API require only NumPy. Heavier
+# scientific, tabular, visualization, export, and acceleration dependencies are
+# deliberately isolated below so a clean core install remains small and honest.
 dependencies = [
   "numpy>=1.22",
-  "scipy>=1.9",
-  "pandas>=1.5",
 ]
 
 [project.optional-dependencies]
+scientific = [
+  "scipy>=1.9",
+]
+data = [
+  "pandas>=1.5",
+  "xarray>=2023.1",
+]
 viz = [
   "matplotlib>=3.6",
-  "seaborn>=0.12",
-  "plotly>=5.0",
 ]
-app = [
-  "streamlit>=1.25",
+numba = [
+  "numba>=0.57",
 ]
+jax = [
+  "jax>=0.4",
+  "jaxlib>=0.4",
+]
+# Compatibility extra retained for pre-v0.8 environments. New installations
+# should prefer the narrower ``numba`` or ``jax`` extras.
 ml = [
   "jax>=0.4",
   "jaxlib>=0.4",
   "numba>=0.57",
 ]
 export = [
+  "pandas>=1.5",
   "openpyxl>=3.1",
   "reportlab>=4.0",
 ]
@@ -63,18 +77,26 @@ docs = [
   "sphinx>=7.0",
   "myst-parser>=2.0",
 ]
+# ``dev`` is intentionally the complete dependency set required by the full
+# repository test suite. Runtime users should install the narrower extras above.
 dev = [
   "pytest>=7.0",
   "pytest-cov>=4.0",
+  "scipy>=1.9",
+  "pandas>=1.5",
+  "xarray>=2023.1",
+  "matplotlib>=3.6",
+  "openpyxl>=3.1",
+  "reportlab>=4.0",
   "black",
   "ruff",
   "build>=1.2",
 ]
 all = [
+  "scipy>=1.9",
+  "pandas>=1.5",
+  "xarray>=2023.1",
   "matplotlib>=3.6",
-  "seaborn>=0.12",
-  "plotly>=5.0",
-  "streamlit>=1.25",
   "jax>=0.4",
   "jaxlib>=0.4",
   "numba>=0.57",
@@ -83,10 +105,10 @@ all = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/Gilbert243/AgencityLab"
+Homepage = "https://github.com/somafgroup/AgencityLab"
 Documentation = "https://agencitylab.readthedocs.io"
-Source = "https://github.com/Gilbert243/AgencityLab"
-Issues = "https://github.com/Gilbert243/AgencityLab/issues"
+Source = "https://github.com/somafgroup/AgencityLab"
+Issues = "https://github.com/somafgroup/AgencityLab/issues"
 
 [tool.black]
 line-length = 100

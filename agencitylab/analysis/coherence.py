@@ -101,6 +101,28 @@ def temporal_coherence(b) -> float:
     return float(np.corrcoef(x, y)[0, 1])
 
 
+def _prefix_sum(values: np.ndarray) -> np.ndarray:
+    """Return a zero-prefixed cumulative sum for interval differences."""
+    prefix = np.empty(values.size + 1, dtype=float)
+    prefix[0] = 0.0
+    np.cumsum(values, dtype=float, out=prefix[1:])
+    return prefix
+
+
+def _sigma_theta_direct(theta, axis, tau_value, valid) -> np.ndarray:
+    """Evaluate the accepted definition directly for numerical fallbacks/tests."""
+    out = np.full(theta.size, np.nan, dtype=float)
+    start_time = axis[0]
+    for index, time_value in enumerate(axis):
+        if time_value - start_time < tau_value:
+            continue
+        left = int(np.searchsorted(axis, time_value - tau_value, side="left"))
+        if index - left + 1 < 2 or not np.all(valid[left : index + 1]):
+            continue
+        out[index] = float(np.var(np.unwrap(theta[left : index + 1])))
+    return out
+
+
 def sigma_theta(theta, xi, tau, *, valid_mask=None) -> np.ndarray:
     """Compute the theoretical local angular variance ``Sigma_Theta``.
 
@@ -111,7 +133,13 @@ def sigma_theta(theta, xi, tau, *, valid_mask=None) -> np.ndarray:
     value is ``NaN``. This avoids silently computing the variance on a shortened
     subset of the theoretical time window.
 
-    No threshold is used to decide whether a variance is "low" or "high".
+    The ordinary path unwraps once and evaluates interval moments with prefix
+    sums, reducing repeated O(N*w_tau) work to O(N). Local unwrapping and global
+    unwrapping differ only by an integer multiple of 2*pi inside a structurally
+    valid interval, so their variances are identical. Windows whose moment
+    subtraction is numerically delicate are recomputed with the direct centred
+    definition. Machine epsilon selects a numerical algorithm only; it never
+    defines whether angular variance is physically low or high.
     """
     theta = _real_1d(theta, name="theta")
     axis = _validate_axis(xi, theta.size)
@@ -123,18 +151,68 @@ def sigma_theta(theta, xi, tau, *, valid_mask=None) -> np.ndarray:
         raise ValueError("tau must be a positive finite scalar")
 
     valid = _valid_mask(valid_mask, theta.size)
-    out = np.full(theta.size, np.nan, dtype=float)
-    start_time = axis[0]
+    size = theta.size
+    out = np.full(size, np.nan, dtype=float)
 
-    for i, t in enumerate(axis):
-        if t - start_time < tau_value:
-            continue
-        left = int(np.searchsorted(axis, t - tau_value, side="left"))
-        indices = np.arange(left, i + 1)
-        if indices.size < 2 or not np.all(valid[indices]):
-            continue
-        local_theta = np.unwrap(theta[indices])
-        out[i] = float(np.var(local_theta))
+    right = np.arange(size, dtype=int)
+    left = np.searchsorted(axis, axis - tau_value, side="left")
+    counts = right - left + 1
+    complete = axis - axis[0] >= tau_value
+
+    invalid_prefix = np.empty(size + 1, dtype=np.int64)
+    invalid_prefix[0] = 0
+    np.cumsum(~valid, dtype=np.int64, out=invalid_prefix[1:])
+    complete_valid = invalid_prefix[right + 1] == invalid_prefix[left]
+    eligible = complete & complete_valid & (counts >= 2)
+    if not np.any(eligible):
+        return out
+
+    # A global unwrap restricted to any valid local interval differs from that
+    # interval's local unwrap by a constant 2*pi*k, which leaves variance exact.
+    unwrapped = np.unwrap(theta)
+    centered = unwrapped - float(np.mean(unwrapped))
+    prefix = _prefix_sum(centered)
+    prefix_square = _prefix_sum(np.square(centered))
+
+    eligible_positions = np.flatnonzero(eligible)
+    left_eligible = left[eligible_positions]
+    count_eligible = counts[eligible_positions].astype(float)
+    sums = prefix[eligible_positions + 1] - prefix[left_eligible]
+    sums_square = prefix_square[eligible_positions + 1] - prefix_square[left_eligible]
+    means = sums / count_eligible
+    mean_squares = sums_square / count_eligible
+    variance = mean_squares - np.square(means)
+
+    edge_changes = np.not_equal(unwrapped[1:], unwrapped[:-1]).astype(np.int64, copy=False)
+    edge_prefix = np.empty(size, dtype=np.int64)
+    edge_prefix[0] = 0
+    np.cumsum(edge_changes, dtype=np.int64, out=edge_prefix[1:])
+    constant = edge_prefix[eligible_positions] == edge_prefix[left_eligible]
+
+    local = np.empty(eligible_positions.size, dtype=float)
+    local[constant] = 0.0
+
+    eps = np.finfo(float).eps
+    scale = np.maximum(mean_squares, np.square(means))
+    nonconstant = ~constant
+    stable = (
+        nonconstant
+        & np.isfinite(variance)
+        & (variance >= 0.0)
+        & (variance > 256.0 * eps * scale)
+        & (count_eligible > 4.0)
+    )
+    local[stable] = variance[stable]
+
+    fallback = np.flatnonzero(nonconstant & ~stable)
+    for local_position in fallback:
+        output_index = int(eligible_positions[local_position])
+        window_left = int(left_eligible[local_position])
+        local[local_position] = float(
+            np.var(np.unwrap(theta[window_left : output_index + 1]))
+        )
+
+    out[eligible_positions] = local
     return out
 
 

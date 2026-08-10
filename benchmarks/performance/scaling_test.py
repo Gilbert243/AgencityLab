@@ -1,22 +1,15 @@
-import numpy as np
-from agencitylab.api.compute import compute_agencity
-import time
+"""Compatibility entry point for the maintained v0.8 performance benchmark."""
 
-sizes = [100, 1000, 5000, 10000]
+try:
+    from .benchmark_v08 import main, run_benchmark
+except ImportError:  # Direct ``python benchmarks/performance/scaling_test.py`` use.
+    from benchmark_v08 import main, run_benchmark
+
 
 def run():
-    results = {}
-    for n in sizes:
-        xi = np.linspace(0, 100, n)
-        u = np.sin(xi)
+    """Run the CI-sized benchmark and return its structured report."""
+    return run_benchmark(quick=True)
 
-        t0 = time.time()
-        compute_agencity(xi, u)
-        dt = time.time() - t0
-
-        results[n] = dt
-        print(f"Size {n}: {dt:.4f}s")
-    return results
 
 if __name__ == "__main__":
-    run()
+    raise SystemExit(main())

@@ -7,6 +7,23 @@ from agencitylab.analysis.coherence import (
 )
 
 
+def _direct_sigma_theta(theta, xi, tau, valid_mask=None):
+    """Evaluate the accepted local-unwrapped variance definition directly."""
+    theta = np.asarray(theta, dtype=float)
+    xi = np.asarray(xi, dtype=float)
+    valid = np.ones(theta.size, dtype=bool) if valid_mask is None else valid_mask
+    out = np.full(theta.size, np.nan, dtype=float)
+
+    for index, time_value in enumerate(xi):
+        if time_value - xi[0] < tau:
+            continue
+        left = int(np.searchsorted(xi, time_value - tau, side="left"))
+        if index - left + 1 < 2 or not np.all(valid[left : index + 1]):
+            continue
+        out[index] = float(np.var(np.unwrap(theta[left : index + 1])))
+    return out
+
+
 def test_sigma_theta_uses_complete_tau_window_and_local_unwrap():
     xi = np.arange(5.0)
     theta = np.array([0.0, 0.1, 0.2, 0.3, 0.4])
@@ -41,6 +58,52 @@ def test_sigma_theta_handles_branch_cut_by_local_unwrap():
     unwrapped = np.unwrap(theta)
     np.testing.assert_allclose(sigma[2], np.var(unwrapped))
     assert sigma[2] < 0.02
+
+
+def test_optimized_sigma_theta_matches_direct_definition_on_irregular_axis():
+    rng = np.random.default_rng(7129)
+    xi = np.cumsum(rng.uniform(0.04, 0.12, size=2048))
+    unwrapped = 0.31 * xi + 0.8 * np.sin(0.17 * xi) + 0.03 * np.sin(1.7 * xi)
+    theta = np.angle(np.exp(1j * unwrapped))
+    valid = np.ones(theta.size, dtype=bool)
+    valid[311:315] = False
+    valid[1007] = False
+    valid[1700:1703] = False
+    tau = 2.25
+
+    actual = sigma_theta(theta, xi, tau, valid_mask=valid)
+    expected = _direct_sigma_theta(theta, xi, tau, valid_mask=valid)
+
+    np.testing.assert_array_equal(np.isnan(actual), np.isnan(expected))
+    finite = np.isfinite(expected)
+    # Prefix-moment subtraction accumulates a bounded floating-point difference
+    # while preserving the accepted interval, unwrap, and population variance.
+    np.testing.assert_allclose(actual[finite], expected[finite], rtol=1e-9, atol=2e-11)
+
+
+def test_sigma_theta_constant_orientation_is_exact_zero_after_complete_window():
+    xi = np.linspace(0.0, 10.0, 201)
+    theta = np.full(xi.size, 1.23456789)
+
+    sigma = sigma_theta(theta, xi, tau=1.0)
+    finite = np.isfinite(sigma)
+
+    assert np.any(finite)
+    np.testing.assert_array_equal(sigma[finite], 0.0)
+
+
+def test_sigma_theta_long_high_winding_signal_is_finite_and_nonnegative():
+    size = 100_000
+    xi = np.arange(size, dtype=float) * 0.05
+    unwrapped = 0.8 * xi + 0.1 * np.sin(0.11 * xi)
+    theta = np.angle(np.exp(1j * unwrapped))
+
+    sigma = sigma_theta(theta, xi, tau=2.0)
+    finite = np.isfinite(sigma)
+
+    assert sigma.shape == theta.shape
+    assert np.count_nonzero(finite) > size - 100
+    assert np.all(sigma[finite] >= 0.0)
 
 
 def test_real_agencity_requires_contextual_thresholds():
