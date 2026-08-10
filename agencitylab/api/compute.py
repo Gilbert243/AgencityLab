@@ -99,7 +99,7 @@ def compute_agencity(
     verbose: bool = False,
     **overrides,
 ) -> AgencityResult:
-    """Compute the canonical scalar-signal Theory of Agencity pipeline.
+    """Compute the scalar-signal Theory of Agencity pipeline.
 
     ``A_ref`` and ``tau`` are physical/contextual inputs. ``P_c`` may be a
     strictly positive scalar, a strictly positive sampled profile matching
@@ -107,20 +107,23 @@ def compute_agencity(
     metadata or a deliberately registered physical convention. No power profile
     is inferred from the observable signal.
 
-    The canonical CRM window is exactly ``w = tau``.
+    The CRM width ``w`` is a theory parameter distinct from ``tau`` in Volume 2.
+    When ``w`` is omitted, AgencityLab uses the common convention ``w = tau``;
+    an explicitly supplied positive ``w`` is preserved exactly and recorded in
+    the result metadata. No signal statistic is used to choose ``w`` here.
 
     Unit arguments are descriptive labels only. ``unit`` labels ``u`` and
-    ``A_ref``; ``coordinate_unit`` labels ``xi`` and ``tau``; ``power_unit``
-    labels ``P_c``. The result reports ``b`` with the corresponding
-    informational-power label (for example ``W·nat``). AgencityLab never silently
-    converts magnitudes.
+    ``A_ref``; ``coordinate_unit`` labels ``xi``, ``tau`` and ``w``;
+    ``power_unit`` labels ``P_c``. The result reports ``b`` with the
+    corresponding informational-power label (for example ``W·nat``).
+    AgencityLab never silently converts magnitudes.
 
     ``data`` remains a compatibility alias for ``u``. Supplying both is an error.
     Unknown keyword arguments are rejected instead of being silently ignored.
     """
     if activity_factor not in {None, "auto"}:
         raise PhysicalParameterError(
-            "activity_factor is legacy metadata and cannot alter the canonical CRM"
+            "activity_factor is legacy metadata and cannot alter the CRM"
         )
     if resolution_scale is not None:
         raise AgencityValidationError(
@@ -134,7 +137,7 @@ def compute_agencity(
         P_c = overrides.pop("Pc")
     if "A_fact" in overrides:
         raise PhysicalParameterError(
-            "A_fact/activity_factor no longer modifies canonical computation"
+            "A_fact/activity_factor no longer modifies the computation"
         )
 
     unknown = sorted(set(overrides) - _CONFIG_OVERRIDE_KEYS)
@@ -159,7 +162,7 @@ def compute_agencity(
     normalization_method = str(cfg.get("normalization_method", "A_ref")).strip().lower()
     if normalization_method not in {"a_ref", "canonical", "auto", "default"}:
         raise AgencityValidationError(
-            "canonical compute_agencity requires normalization_method='A_ref'"
+            "compute_agencity requires normalization_method='A_ref'"
         )
 
     backend_name = cfg.get("backend", "numpy")
@@ -232,12 +235,10 @@ def compute_agencity(
             memory_window = validate_positive_scalar(w, name="w")
         except ValueError as exc:
             raise PhysicalParameterError(str(exc)) from exc
-        if memory_window != tau_eff:
-            raise PhysicalParameterError("canonical CRM requires w = tau exactly")
     meta.memory_window = memory_window
-    # v0.2 exposed this value through ``metadata.extra``. Keep that read path
-    # stable while v0.3 also provides the typed ``metadata.memory_window`` field.
+    # Keep the historical metadata.extra read path while exposing the typed field.
     meta.extra["memory_window"] = memory_window
+    meta.extra["memory_window_mode"] = "w=tau default" if w is None else "explicit"
 
     profile = _power_profile(P_c, xi)
     if profile is not None:
@@ -299,7 +300,7 @@ def compute_agencity(
             J, U, beta = compute_beta(D, S, M, O, verbose=verbose)
             b = agencity(beta, P_eff, verbose=verbose)
         except ValueError as exc:
-            raise AgencityValidationError(f"canonical numerical pipeline failed: {exc}") from exc
+            raise AgencityValidationError(f"numerical pipeline failed: {exc}") from exc
 
     return AgencityResult(
         xi=xi,

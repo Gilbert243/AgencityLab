@@ -201,7 +201,14 @@ def test_constant_signal_bypasses_derivative_and_crm_stages(monkeypatch):
     np.testing.assert_array_equal(result.b, 0.0j)
 
 
-def test_canonical_api_rejects_non_tau_memory_window():
+def test_scalar_api_accepts_explicit_memory_window_distinct_from_tau():
     t = np.linspace(0.0, 4.0, 41)
-    with pytest.raises(ValueError, match="w = tau"):
-        compute_agencity(u=np.sin(t), xi=t, A_ref=1.0, tau=1.0, w=0.5, P_c=1.0)
+    u = np.sin(t)
+    explicit = compute_agencity(u=u, xi=t, A_ref=1.0, tau=1.0, w=0.5, P_c=1.0)
+    default = compute_agencity(u=u, xi=t, A_ref=1.0, tau=1.0, P_c=1.0)
+
+    assert explicit.tau == 1.0
+    assert explicit.memory_window == 0.5
+    assert explicit.metadata.extra["memory_window_mode"] == "explicit"
+    assert default.memory_window == default.tau
+    assert not np.allclose(explicit.M, default.M)

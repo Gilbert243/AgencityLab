@@ -1,12 +1,9 @@
-"""Multiscale and advanced discrete extensions for AgencityLab.
+"""Multiscale, window, discrete, and multivariate Theory of Agencity tools.
 
-The stable scalar API keeps the project convention ``w = tau``.  This module
-implements the advanced-theory extensions where the CRM window ``w`` may be
-studied independently, including the ``b(t, tau)`` spectrum, the Chapter 13
-window-selection criterion, and the Pc-weighted multivariate construction.
-
-Independent ``w`` is an extension of the canonical scalar reference path; it is
-never injected into :func:`agencitylab.compute_agencity` silently.
+Volume 2 keeps the CRM width ``w > 0`` distinct from the characteristic time
+``tau`` and often uses the convenient convention ``w = tau``. This module
+implements explicit ``b(t, tau)`` studies, Chapter 13 window selection, and the
+Pc-weighted multivariate construction without introducing a second theory.
 """
 
 from __future__ import annotations
@@ -81,11 +78,11 @@ def compute_scale_response(
     A_ref: float,
     P_c,
 ):
-    """Compute one scalar advanced-theory response at explicit ``tau`` and ``w``.
+    """Compute one scalar response at explicit theoretical ``tau`` and ``w``.
 
-    The canonical formulas for normalization, reduced derivatives, intensities,
-    contrast, orientation, beta and b are unchanged.  Only the CRM window is
-    explicitly allowed to differ from ``tau`` in this extension function.
+    Normalization, reduced derivatives, intensities, contrast, orientation,
+    ``beta`` and ``b`` follow the same scalar equations. ``tau`` and the CRM
+    width ``w`` remain separate parameters as specified in Volume 2.
     """
     xi = validate_axis(xi)
     u = validate_signal(u, name="u").ravel()
@@ -140,7 +137,7 @@ def compute_scale_response(
         "theta": np.angle(U),
         "beta": beta,
         "b": b,
-        "extension_status": "advanced-theory independent-w extension" if w != tau else "w=tau",
+        "window_mode": "explicit w" if w != tau else "w=tau convention",
     }
 
 
@@ -169,9 +166,8 @@ def agencity_spectrum(
 ):
     """Compute the time-resolved multiscale spectrum ``b(t, tau)``.
 
-    By default each scale uses ``w = tau``.  Passing ``windows`` explicitly
-    activates the advanced independent-window extension and keeps ``tau`` and
-    ``w`` visible as separate coordinates.
+    By default each scale uses the common convention ``w = tau``. Passing
+    ``windows`` keeps the two theoretical parameters explicit and independent.
     """
     taus = np.asarray(list(taus), dtype=float)
     if taus.ndim != 1 or taus.size == 0:
@@ -201,7 +197,7 @@ def agencity_spectrum(
         "S_mean": np.mean(S, axis=1),
         "window_mode": "w=tau" if np.array_equal(taus, windows_arr) else "explicit independent w",
         "scientific_boundary": (
-            "multiscale tau and independent-w studies are extensions; the stable scalar API keeps w=tau"
+            "tau, w, sampling interval, and multiscale scanning are distinct theoretical/numerical objects"
         ),
     }
     if return_full:
@@ -247,10 +243,10 @@ def optimize_memory_window(
     candidates=None,
     n_candidates: int = 24,
 ):
-    """Select ``w`` by the advanced theory's angular-stability criterion ``Phi2``.
+    """Select ``w`` by the theory's Chapter 13 angular-stability criterion ``Phi2``.
 
     Candidate widths are represented by integer sample counts as required by the
-    discrete CRM.  A candidate with no complete interval on which ``S > 0`` has
+    discrete CRM. A candidate with no complete interval on which ``S > 0`` has
     undefined structural orientation and receives an infinite operational score;
     this avoids manufacturing angular coherence from the ``S = 0`` convention.
     """
@@ -290,7 +286,7 @@ def optimize_memory_window(
         "eligible": eligible_arr,
         "best_index": best_index,
         "tau": float(tau),
-        "selection_status": "advanced-theory window optimisation",
+        "selection_status": "theory-defined Chapter 13 window optimisation",
         "numerical_note": (
             "candidates without defined structural orientation are excluded rather than treated as zero variance"
         ),
@@ -339,9 +335,9 @@ def multivariate_agencity(
     w=None,
     sample_axis: int = 0,
 ):
-    """Compute the advanced theory's Pc-weighted multivariate extension.
+    """Compute the theory's Pc-weighted multivariate construction.
 
-    Each observable component is processed by the scalar equations.  The total
+    Each observable component is processed by the scalar equations. The total
     flux is ``sum_k P_c,k beta_k`` and the aggregate state is the pointwise
     Pc-weighted mean ``beta_multi``.
     """
@@ -397,7 +393,7 @@ def multivariate_agencity(
         "b_total": b_total,
         "components": responses,
         "aggregation": "Pc-weighted beta; vector-additive total flux",
-        "scientific_boundary": "advanced multivariate extension; each component uses scalar Agencity",
+        "scientific_boundary": "Volume 2 multivariate construction; each component uses scalar Agencity",
     }
 
 

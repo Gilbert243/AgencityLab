@@ -57,10 +57,16 @@ def _portable(value):
     return value
 
 
+def _memory_window(result) -> float:
+    """Return the CRM width, falling back to the historical w=tau convention."""
+    window = getattr(result, "memory_window", None)
+    return float(result.tau) if window is None else float(window)
+
+
 def _analysis_start(result) -> int:
     """Return the finite-record index after two complete CRM windows."""
     xi = np.asarray(result.xi, dtype=float)
-    return int(np.searchsorted(xi, xi[0] + 2.0 * float(result.tau), side="left"))
+    return int(np.searchsorted(xi, xi[0] + 2.0 * _memory_window(result), side="left"))
 
 
 def _real_agencity(result, sigma, thresholds: Mapping[str, Any] | None):
@@ -80,7 +86,7 @@ def build_report_dict(
     plateau_min_duration: float | None = None,
     d_peak_prominence: float | None = None,
 ) -> Dict[str, Any]:
-    """Build a v0.5 analysis report from an already-computed canonical result.
+    """Build a scientific analysis report from an already-computed result.
 
     Nothing in this function recomputes or modifies ``X*``, ``A*``, CRM, ``M``,
     ``O``, ``D``, ``S``, ``J``, ``Theta``, ``beta`` or ``b``. Threshold-bearing
@@ -203,7 +209,7 @@ def build_report_dict(
     report: Dict[str, Any] = {
         "analysis_schema_version": ANALYSIS_SCHEMA_VERSION,
         "scientific_boundary": (
-            "analysis/diagnostics only; canonical computation is consumed without redefinition"
+            "analysis/diagnostics only; theoretical computation is consumed without redefinition"
         ),
         "metadata": metadata,
         "summary": summary,
@@ -255,10 +261,11 @@ def build_report_dict(
         "analysis_interval": {
             "finite_record_crm_start_index": int(start),
             "finite_record_crm_start_time": float(xi[start]) if start < xi.size else None,
-            "rule": "t >= t0 + 2*tau for CRM-dependent finite-record geometry/transitions",
+            "memory_window": _memory_window(result),
+            "rule": "t >= t0 + 2*w for CRM-dependent finite-record geometry/transitions",
         },
         # Compatibility diagnostics retained from earlier versions. They are not
-        # used to alter canonical outputs or the v0.5 theory-facing classifier.
+        # used to alter theoretical outputs or the theory-facing classifier.
         "stability": stability_summary(b),
         "information": {
             "entropy": agencity_information_index(b),
@@ -289,7 +296,7 @@ def build_text_report(
     multiscale: Optional[dict] = None,
     **analysis_kwargs,
 ) -> str:
-    """Build a concise human-readable report from the structured v0.5 analysis."""
+    """Build a concise researcher-facing report from the structured analysis."""
     report = build_report_dict(
         result,
         signature=signature,
@@ -302,14 +309,19 @@ def build_text_report(
     real_diag = report.get("real_agencity", {})
     geometry = report.get("geometry", {})
     winding = geometry.get("winding", {})
+    coordinate_unit = getattr(result, "coordinate_unit", "") or ""
+    b_unit = getattr(result, "b_unit", "") or ""
+    window = _memory_window(result)
 
     lines = [
         "AgencityLab Scientific Analysis",
         "=" * 45,
         "",
         f"Samples                  : {s.get('n_samples', len(result.xi))}",
-        f"Tau                      : {float(result.tau):.6g}",
-        f"Mean |b|                 : {m.get('mean_magnitude', float('nan')):.6g}",
+        f"Tau                      : {float(result.tau):.6g} {coordinate_unit}".rstrip(),
+        f"CRM window w             : {window:.6g} {coordinate_unit}".rstrip(),
+        f"A_ref                    : {float(result.A_ref):.6g} {getattr(result, 'unit', '')}".rstrip(),
+        f"Mean |b|                 : {m.get('mean_magnitude', float('nan')):.6g} {b_unit}".rstrip(),
         f"Mean J                   : {m.get('J_mean', float('nan')):.6g}",
         f"Sigma_Theta mean         : {coherence.get('sigma_theta_mean', float('nan')):.6g}",
         f"Mean |kappa|             : {geometry.get('curvature_mean_abs', float('nan')):.6g}",
@@ -318,7 +330,7 @@ def build_text_report(
         f"Real-agencity status     : {real_diag.get('status', 'undetermined')}",
         f"Real-agencity fraction   : {real_diag.get('real_agencity_fraction', float('nan'))}",
         "",
-        "Interpretation thresholds are contextual diagnostics, not canonical constants.",
+        "Interpretation thresholds are contextual diagnostics, not theory constants.",
     ]
 
     if "signature" in report:

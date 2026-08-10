@@ -1,9 +1,11 @@
-"""Causal moving correlation (CRM) for the Agencity canonical core.
+"""Causal moving correlation (CRM) for the Theory of Agencity.
 
-The canonical window is ``w = tau``. The discrete implementation compares the
-most recent block ``[t-w, t]`` with the immediately preceding block
-``[t-2w, t-w]``. A zero empirical variance gives correlation zero by definition.
-No epsilon is inserted into the Pearson denominator.
+The CRM width is ``w > 0``. Volume 2 often uses ``w = tau`` as a convenient
+choice but keeps the quantities distinct, especially for window optimisation.
+The discrete implementation compares the most recent block ``[t-w, t]`` with
+the immediately preceding block ``[t-2w, t-w]``. A zero empirical variance
+gives correlation zero by definition. No epsilon is inserted into the Pearson
+denominator.
 """
 
 from __future__ import annotations
@@ -19,7 +21,7 @@ def _uniform_step(axis):
     step = float(diffs[0])
     tolerance = np.finfo(float).eps * max(1.0, abs(step)) * 64.0
     if not np.allclose(diffs, step, rtol=1e-10, atol=tolerance):
-        raise ValueError("canonical discrete CRM requires uniformly sampled coordinates")
+        raise ValueError("discrete CRM requires uniformly sampled coordinates")
     return step
 
 
@@ -68,19 +70,19 @@ def causal_moving_correlation(
     force_compressed=False,
     verbose=False,
 ):
-    """Compute auto- or cross-CRM.
+    """Compute auto- or cross-CRM at explicit ``tau`` and optional ``w``.
 
     ``other=None`` computes ``CRM[signal]``. Supplying ``other`` computes the
     cross-CRM whose recent block comes from ``signal`` and whose preceding block
-    comes from ``other``. In the canonical pipeline ``window`` is omitted and is
-    therefore exactly ``tau``.
+    comes from ``other``. When ``window`` is omitted, this implementation uses
+    the common convention ``w=tau``; an explicit positive window is preserved.
 
-    Legacy compression arguments are accepted only to reject non-canonical use
-    explicitly; they never alter the CRM window.
+    Legacy compression/activity arguments are accepted only to reject their use;
+    they never alter the CRM width.
     """
     del mechanism, domain, system_type
     if force_compressed or activity_factor not in {None, "auto"}:
-        raise ValueError("CRM compression/activity factors are not part of the canonical theory")
+        raise ValueError("CRM compression/activity factors are not part of the accepted theory")
 
     x = validate_signal(signal, name="signal").ravel()
     axis = validate_axis(axis, expected_length=len(x), name="axis")
@@ -108,10 +110,10 @@ def causal_moving_correlation(
 
 
 def crm_tau(signal, tau, *, axis, other=None, verbose=False, **kwargs):
-    """Canonical CRM with the memory window fixed exactly to ``tau``."""
+    """Compatibility helper that deliberately applies the ``w=tau`` convention."""
     if "window" in kwargs and kwargs["window"] is not None:
         if float(kwargs["window"]) != float(tau):
-            raise ValueError("canonical crm_tau requires w = tau")
+            raise ValueError("crm_tau is specifically the w=tau convenience helper")
     return causal_moving_correlation(
         signal,
         tau,

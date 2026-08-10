@@ -39,8 +39,18 @@ from .api.pipeline_api import AgencityPipeline, pipeline
 from .api.streaming import AgencityStream, stream_agencity
 from .api.batch import run_batch, analyze_batch, summarize_batch, compare_batch
 from .api.report import build_report, build_text_report, summarize
-from .api.export import export_json, export_csv, export_excel, export_pdf, export_report
-from .api.visualize import visualize_agencity
+from .api.export import (
+    SCIENTIFIC_UX_SCHEMA_VERSION,
+    export_json,
+    export_csv,
+    export_result_csv,
+    export_study_json,
+    export_excel,
+    export_pdf,
+    export_report,
+)
+from .api.visualize import visualize_agencity, visualize_multiscale_spectrum
+from .api.scientific import ScientificStudy, scientific_workflow
 from .api.shortcuts import run, inspect, plot, summarize as quick_summary
 from .backends.selector import get_backend
 
@@ -58,9 +68,11 @@ __all__ = [
     "__version__",
     "RESULT_SCHEMA_VERSION",
     "ANALYSIS_SCHEMA_VERSION",
+    "SCIENTIFIC_UX_SCHEMA_VERSION",
     "RegimeCriteria",
     "AgencityResult",
     "ExperimentMetadata",
+    "ScientificStudy",
     "AgencityError",
     "AgencityValidationError",
     "PhysicalParameterError",
@@ -87,6 +99,7 @@ __all__ = [
     "analyze_transitions",
     "analyze_multiscale",
     "analyze_signature",
+    "scientific_workflow",
     "pipeline",
     "AgencityPipeline",
     "PipelineBuilder",
@@ -102,10 +115,13 @@ __all__ = [
     "summarize",
     "export_json",
     "export_csv",
+    "export_result_csv",
+    "export_study_json",
     "export_excel",
     "export_pdf",
     "export_report",
     "visualize_agencity",
+    "visualize_multiscale_spectrum",
     "run",
     "inspect",
     "plot",

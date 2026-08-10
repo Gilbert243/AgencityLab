@@ -35,7 +35,7 @@ def test_spectrum_default_w_equals_tau_and_matches_scalar_reference():
     np.testing.assert_allclose(spectrum["beta"][1], reference.beta)
 
 
-def test_spectrum_can_hold_w_fixed_without_changing_stable_scalar_api():
+def test_spectrum_can_hold_w_fixed_and_matches_scalar_theory_api():
     xi, u = _signal()
     spectrum = compute_agencity_spectrum(
         u,
@@ -48,8 +48,10 @@ def test_spectrum_can_hold_w_fixed_without_changing_stable_scalar_api():
     np.testing.assert_array_equal(spectrum["w"], np.ones(3))
     assert spectrum["window_mode"] == "explicit independent w"
 
-    with pytest.raises(ValueError, match="w = tau"):
-        compute_agencity(u=u, xi=xi, A_ref=1.0, tau=2.0, w=1.0, P_c=1.0)
+    reference = compute_agencity(u=u, xi=xi, A_ref=1.0, tau=2.0, w=1.0, P_c=1.0)
+    np.testing.assert_allclose(spectrum["b"][1], reference.b)
+    np.testing.assert_allclose(spectrum["beta"][1], reference.beta)
+    assert reference.memory_window == 1.0
 
 
 def test_analysis_multiscale_preserves_descriptive_compatibility_keys():

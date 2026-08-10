@@ -40,8 +40,18 @@ from .pipeline_api import AgencityPipeline, pipeline
 from .streaming import AgencityStream, stream_agencity
 from .batch import run_batch, analyze_batch, summarize_batch, compare_batch
 from .report import build_report, build_text_report, summarize, report_dict
-from .export import export_json, export_csv, export_excel, export_pdf, export_report
-from .visualize import visualize_agencity
+from .export import (
+    SCIENTIFIC_UX_SCHEMA_VERSION,
+    export_json,
+    export_csv,
+    export_result_csv,
+    export_study_json,
+    export_excel,
+    export_pdf,
+    export_report,
+)
+from .visualize import visualize_agencity, visualize_multiscale_spectrum
+from .scientific import ScientificStudy, scientific_workflow
 from .shortcuts import run, inspect, plot, summarize as quick_summary
 
 PipelineBuilder = AgencityPipeline
@@ -57,9 +67,11 @@ except Exception:  # pragma: no cover - optional backend discovery
 __all__ = [
     "RESULT_SCHEMA_VERSION",
     "ANALYSIS_SCHEMA_VERSION",
+    "SCIENTIFIC_UX_SCHEMA_VERSION",
     "RegimeCriteria",
     "AgencityResult",
     "ExperimentMetadata",
+    "ScientificStudy",
     "AgencityError",
     "AgencityValidationError",
     "PhysicalParameterError",
@@ -86,6 +98,7 @@ __all__ = [
     "analyze_transitions",
     "analyze_multiscale",
     "analyze_signature",
+    "scientific_workflow",
     "pipeline",
     "AgencityPipeline",
     "PipelineBuilder",
@@ -102,10 +115,13 @@ __all__ = [
     "report_dict",
     "export_json",
     "export_csv",
+    "export_result_csv",
+    "export_study_json",
     "export_excel",
     "export_pdf",
     "export_report",
     "visualize_agencity",
+    "visualize_multiscale_spectrum",
     "run",
     "inspect",
     "plot",

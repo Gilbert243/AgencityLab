@@ -1,4 +1,4 @@
-"""Public v0.6 multiscale, discrete, and multivariate extension APIs."""
+"""Public multiscale, discrete, multivariate, and geometric extension APIs."""
 
 from __future__ import annotations
 
@@ -28,9 +28,9 @@ def compute_agencity_spectrum(
 ):
     """Compute the time-resolved ``b(t, tau)`` spectrum.
 
-    With ``windows=None`` each scale uses ``w=tau``.  Supplying a scalar or a
-    sequence of windows activates the explicitly labelled independent-window
-    extension from the advanced theory.
+    With ``windows=None`` each scale uses the common convention ``w=tau``.
+    Supplying a scalar or sequence keeps ``w`` explicit and independent, as
+    defined by Volume 2 of the same Theory of Agencity.
     """
     return agencity_spectrum(
         xi,
@@ -53,7 +53,7 @@ def optimize_agencity_window(
     candidates=None,
     n_candidates: int = 24,
 ):
-    """Select an advanced-theory CRM window using the ``Phi2`` criterion."""
+    """Select the CRM width using the theory's Chapter 13 ``Phi2`` criterion."""
     return optimize_memory_window(
         xi,
         u,
@@ -75,7 +75,7 @@ def compute_multivariate_agencity(
     w=None,
     sample_axis: int = 0,
 ):
-    """Compute the Pc-weighted multivariate extension component by component."""
+    """Compute the theory's Pc-weighted multivariate construction componentwise."""
     return multivariate_agencity(
         xi,
         u,
@@ -99,10 +99,10 @@ def compute_discrete_agencity(
 ):
     """Convenience entry point for a uniformly sampled scalar sequence.
 
-    This is not a new physical equation.  It constructs ``xi_n=t0+n*delta`` and
-    delegates to the stable canonical :func:`compute_agencity`, which already
-    implements centred finite differences with one-sided endpoint formulas and
-    the discrete CRM.  Consequently its CRM window remains exactly ``w=tau``.
+    This is not a new physical equation. It constructs ``xi_n=t0+n*delta`` and
+    delegates to :func:`compute_agencity`, which already implements the sampled
+    derivatives and discrete CRM. The caller may supply ``w`` through ``kwargs``;
+    when omitted, the public compute API uses the common ``w=tau`` convention.
     """
     values = validate_signal(u, name="u").ravel()
     delta = validate_positive_scalar(delta, name="delta")
@@ -121,11 +121,11 @@ def compute_discrete_agencity(
 
 
 def riemannian_extension_status() -> dict:
-    """Report the implementation boundary of the Riemannian extension.
+    """Report the implementation boundary of the Riemannian construction.
 
-    The advanced volume defines covariant activation/activity and an intrinsic
-    dynamic intensity, but explicitly defers the detailed analysis.  v0.6 does
-    not invent the missing CRM/vector-state construction.
+    Volume 2 defines covariant activation/activity and an intrinsic dynamic
+    intensity, but explicitly defers the detailed analysis. AgencityLab therefore
+    does not invent the missing general CRM/vector-state construction.
     """
     return {
         "status": RIEMANNIAN_EXTENSION_STATUS,

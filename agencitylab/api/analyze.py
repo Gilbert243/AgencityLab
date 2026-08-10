@@ -1,8 +1,8 @@
 """Scientific analysis entry points for AgencityLab.
 
-The API consumes :class:`AgencityResult` objects produced by the canonical
-compute layer. Analysis may apply explicit diagnostic thresholds, but it never
-recomputes or changes the canonical equations.
+The API consumes :class:`AgencityResult` objects produced by the compute layer.
+Analysis may apply explicit diagnostic thresholds, but it never recomputes or
+changes the Theory of Agencity equations.
 """
 
 from __future__ import annotations
@@ -43,10 +43,14 @@ def _get_attr(obj, name, default=None):
     return getattr(obj, name, default)
 
 
+def _memory_window(result) -> float:
+    window = _get_attr(result, "memory_window", None)
+    return float(_get_attr(result, "tau")) if window is None else float(window)
+
+
 def _warmup_start(result) -> int:
     xi = np.asarray(_get_attr(result, "xi"), dtype=float)
-    tau = float(_get_attr(result, "tau"))
-    return int(np.searchsorted(xi, xi[0] + 2.0 * tau, side="left"))
+    return int(np.searchsorted(xi, xi[0] + 2.0 * _memory_window(result), side="left"))
 
 
 def analyze_agencity(
@@ -62,7 +66,7 @@ def analyze_agencity(
     d_peak_prominence: float | None = None,
     verbose: bool = False,
 ) -> Dict[str, Any]:
-    """Return the complete v0.5 scientific analysis dictionary.
+    """Return the complete scientific analysis dictionary.
 
     Threshold-bearing arguments are diagnostics. Omitting them leaves the
     corresponding interpretation unconfigured rather than inventing universal
@@ -91,7 +95,7 @@ def analyze_agencity(
         d_peak_prominence=d_peak_prominence,
     )
     if verbose:
-        print("[analysis] v0.5 structured report built")
+        print("[analysis] structured scientific report built")
         print(f"[analysis] regime = {report.get('regime', 'undetermined')}")
     return report
 
@@ -103,7 +107,7 @@ def textual_analysis(
     multiscale: Optional[dict] = None,
     **analysis_kwargs,
 ) -> str:
-    """Return a human-readable v0.5 analysis report."""
+    """Return a human-readable scientific analysis report."""
     return build_text_report(
         result,
         signature=signature,
@@ -152,7 +156,7 @@ def analyze_coherence(
     return {
         "orientation": orientation,
         "real_agencity": real_diag,
-        "scientific_boundary": "diagnostic layer; canonical Theta, S, and b are unchanged",
+        "scientific_boundary": "diagnostic layer; theoretical Theta, S, and b are unchanged",
     }
 
 
