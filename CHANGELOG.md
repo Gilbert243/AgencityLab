@@ -2,6 +2,56 @@
 
 All notable changes to AgencityLab are documented here.
 
+## 0.9.0 - 2026-08-10
+
+### Added
+
+- Added explicit candidate-v1.0 public API boundaries for stable, experimental, and legacy/compatibility interfaces.
+- Added `ExperimentMetadata.agencitylab_version`; every new `compute_agencity()` result records the producing software version for reproducibility.
+- Added release-candidate end-to-end tests covering input, canonical compute, diagnostics, JSON/CSV export, complex-value round-trip, batch ordering/per-item physics, full-history streaming equivalence, multiscale/scalar equivalence, and critical invalid-input/physical-parameter cases.
+- Added a v1.0 release-readiness checklist.
+- Added CI gates for Sphinx documentation and critical executable user examples.
+
+### Changed
+
+- Bumped the package and runtime version to `0.9.0` and moved the package classifier from Alpha to Beta for the Release Candidate.
+- Reframed the README and documentation around stabilization, reproducibility, and the candidate-v1.0 API contract rather than feature expansion.
+- Extended the metadata unit contract so `w` is explicitly labelled with the coordinate unit, alongside `xi` and `tau`.
+- Kept NumPy as the stable complete canonical backend; Numba and JAX remain experimental primitive layers.
+
+### Fixed
+
+- Fixed the Sphinx repository root and stale documentation version (`0.1.0`) so docs are built against the actual package and release version.
+- Fixed Sphinx 9 intersphinx inventory configuration.
+- Corrected stale stable-API documentation that incorrectly claimed an explicit `w != tau` was invalid; Volume 2 and the current implementation keep `w` distinct from `tau`, with `w=tau` only as the omission convention.
+- Fixed the quickstart dependency contract: the complete visualization/export walkthrough now declares the `viz` and `export` extras it actually uses.
+- Replaced the broken legacy multiscale example with an executable example using `compute_agencity()` and `compute_agencity_spectrum()` with explicit physical parameters.
+
+### Deprecated
+
+- No new stable API is removed in v0.9. Existing legacy compatibility paths such as `activity_factor`/`A_fact`, `resolution_scale`, historical `Pc=`, `data=`, and pipeline-builder aliases remain isolated from canonical physics; new code should use the canonical spellings and stable entry points documented in `docs/stable_api.md`.
+
+### Performance
+
+- No new performance formula or algorithm is introduced. The v0.8 before/after benchmark remains in CI as a scientific-equivalence regression gate; timing is still observational rather than a pass/fail threshold.
+
+### Documentation
+
+- Added warnings-as-errors Sphinx CI and release-readiness documentation.
+- Updated README, quickstart, stable API, documentation index, and examples for the 0.9 Release Candidate.
+
+### Compatibility
+
+- Python 3.10, 3.11, and 3.12 remain officially tested.
+- Minimal installation remains NumPy-only; supported extras remain isolated and independently smoke-tested.
+- Wheel and source-distribution clean-install checks remain required, including `pip check` and a minimal canonical computation.
+- The `AgencityResult` serialization schema remains `0.3`; the v0.9 metadata addition is backwards-compatible and older payloads without a producer version remain readable.
+
+### Scientific boundary
+
+- Version 0.9 stabilizes software contracts and does not redefine CRM, `M`, `O`, `D`, `S`, `J`, `Theta`, `beta`, `b`, `A_ref`, `tau`, `w`, or `P_c`.
+- Documentation/build/test success is implementation evidence, not empirical confirmation of the Theory of Agencity.
+
 ## 0.8.0 - 2026-08-10
 
 ### Engineering & Performance

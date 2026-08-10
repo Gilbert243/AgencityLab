@@ -43,12 +43,12 @@ jobs:
         run: |
           python - <<'PY'
           import agencitylab
-          assert agencitylab.__version__ == "0.8.0"
+          assert agencitylab.__version__ == "0.9.0"
           print(agencitylab.__version__)
           PY
 
       - name: Ruff
-        run: ruff check agencitylab tests benchmarks/performance
+        run: ruff check agencitylab tests benchmarks/performance examples
 
       - name: Pytest
         run: pytest
@@ -87,7 +87,7 @@ jobs:
           import numpy as np
           import agencitylab
 
-          assert agencitylab.__version__ == "0.8.0"
+          assert agencitylab.__version__ == "0.9.0"
           requirements = metadata.requires("agencitylab") or []
           assert any(requirement.lower().startswith("numpy") for requirement in requirements)
           for optional in ("scipy", "pandas", "matplotlib", "numba", "jax"):
@@ -99,17 +99,18 @@ jobs:
               xi=xi,
               A_ref=1.0,
               tau=16.0,
-              w=16.0,
+              w=12.0,
               P_c=2.0,
           )
           analysis = agencitylab.analyze_agencity(result)
           assert result.b.shape == xi.shape
           assert np.all(np.isfinite(result.b))
+          assert result.metadata.agencitylab_version == "0.9.0"
           assert analysis["events"]["dynamic_peaks"]["count"] >= 0
           print("minimal wheel install and analysis: PASS")
           PY
 
-      - name: Clean sdist install and minimal import
+      - name: Clean sdist install and minimal compute
         run: |
           python -m venv .venv-sdist
           .venv-sdist/bin/python -m pip install --upgrade pip
@@ -117,16 +118,27 @@ jobs:
           .venv-sdist/bin/python -m pip check
           cd /tmp
           "$GITHUB_WORKSPACE/.venv-sdist/bin/python" - <<'PY'
+          import numpy as np
           import agencitylab
-          assert agencitylab.__version__ == "0.8.0"
+          assert agencitylab.__version__ == "0.9.0"
           assert agencitylab.available_backends() == ("numpy",)
-          print("minimal sdist install: PASS")
+          xi = np.arange(64, dtype=float)
+          result = agencitylab.compute_agencity(
+              u=np.sin(0.2 * xi),
+              xi=xi,
+              A_ref=1.0,
+              tau=4.0,
+              w=3.0,
+              P_c=1.0,
+          )
+          assert result.b.shape == xi.shape
+          print("minimal sdist install and compute: PASS")
           PY
 
       - name: Upload distributions
         uses: actions/upload-artifact@v4
         with:
-          name: agencitylab-0.8.0-distributions
+          name: agencitylab-0.9.0-distributions
           path: dist/
           if-no-files-found: error
 
@@ -162,8 +174,66 @@ jobs:
           EXTRA: ${{ matrix.extra }}
         run: python tests/packaging/smoke_extra.py "${EXTRA}"
 
+  docs:
+    name: Docs / Sphinx warnings as errors
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install documentation dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[docs]"
+
+      - name: Build documentation
+        run: sphinx-build -W --keep-going -b html docs docs/_build/html
+
+  examples:
+    name: Examples / critical user workflows
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install documented example capabilities
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[viz,export]"
+          python -m pip check
+
+      - name: Run minimal example
+        env:
+          MPLBACKEND: Agg
+        run: python examples/basic/simple_compute.py
+
+      - name: Run scientific workflow example
+        env:
+          MPLBACKEND: Agg
+        run: |
+          python examples/basic/scientific_workflow.py
+          test -d agencity_output
+          rm -rf agencity_output
+
+      - name: Run multiscale example
+        run: python examples/advanced/agencity_spectrum.py
+
   benchmark:
-    name: Benchmark / reproducible quick suite
+    name: Benchmark / reproducible scientific equivalence
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -182,7 +252,7 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e .
 
-      - name: Run before-after benchmark
+      - name: Run retained v0.8 before-after benchmark
         run: |
           python benchmarks/performance/benchmark_v08.py \
             --quick \
@@ -208,6 +278,6 @@ jobs:
       - name: Upload benchmark report
         uses: actions/upload-artifact@v4
         with:
-          name: agencitylab-v0.8-benchmark
+          name: agencitylab-v0.9-retained-v08-benchmark
           path: benchmark-v08.json
           if-no-files-found: error

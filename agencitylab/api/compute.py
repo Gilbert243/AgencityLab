@@ -22,6 +22,7 @@ from agencitylab.core.tau import characteristic_time
 from agencitylab.core.validation import is_exactly_constant, validate_positive_scalar
 from agencitylab.exceptions import AgencityValidationError, PhysicalParameterError
 from agencitylab.models import AgencityResult, ExperimentMetadata
+from agencitylab.version import __version__
 
 from .presets import resolve_compute_config
 from .validation import prepare_inputs, validate_physical_context
@@ -217,6 +218,7 @@ def compute_agencity(
         meta = ExperimentMetadata.from_dict(meta_dict)
     except ValueError as exc:
         raise AgencityValidationError(f"invalid metadata: {exc}") from exc
+    meta.agencitylab_version = __version__
 
     try:
         u_star, A_ref_used = normalize_signal(

@@ -1,10 +1,12 @@
 # Quickstart: from signal to scientific result
 
-This tutorial uses explicit physical/contextual inputs and produces a result, diagnostics, figures, and machine-readable exports. Install the visualization extra first:
+This tutorial uses explicit physical/contextual inputs and produces a result, diagnostics, figures, and machine-readable exports. Install the optional capabilities used by the complete walkthrough:
 
 ```bash
-pip install "agencitylab[viz]"
+pip install "agencitylab[viz,export]"
 ```
+
+The canonical computation and default diagnostics themselves require only the base NumPy installation.
 
 ## 1. Create a reproducible signal
 
@@ -35,7 +37,7 @@ result = compute_agencity(
 )
 ```
 
-`tau` and `w` are distinct in Volume 2 of the theory. If `w` is omitted, AgencityLab uses the common convention `w=tau`; an explicit positive `w` is preserved.
+`A_ref`, `tau`, `w`, and `P_c` are physical/contextual inputs. `tau` and `w` are distinct in Volume 2 of the theory. If `w` is omitted, AgencityLab uses the common software convention `w=tau`; an explicit positive `w` is preserved. The compute API does not estimate these physical parameters from ordinary signal statistics.
 
 The result exposes the whole computational chain:
 
@@ -45,6 +47,7 @@ print(result.M.shape, result.O.shape)
 print(result.D.shape, result.S.shape)
 print(result.J.shape, result.theta.shape)
 print(result.beta.shape, result.b.shape)
+print(result.metadata.agencitylab_version)
 print(result.summary())
 ```
 
@@ -87,7 +90,7 @@ export_study_json(
 )
 ```
 
-The CSV has one row per sample and explicit real/imaginary columns for `beta` and `b`. The JSON bundle keeps the stable result serialization plus the structured diagnostic report.
+The CSV has one row per sample and explicit real/imaginary columns for `beta` and `b`. The JSON bundle keeps the stable result serialization plus the structured diagnostic report and reproducibility metadata.
 
 ## One-call workflow
 

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "agencitylab"
-version = "0.8.0"
+version = "0.9.0"
 description = "Scientific framework for the theory of Agencity"
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.10"
@@ -24,7 +24,7 @@ keywords = [
 ]
 
 classifiers = [
-  "Development Status :: 3 - Alpha",
+  "Development Status :: 4 - Beta",
   "Intended Audience :: Science/Research",
   "Intended Audience :: Developers",
   "License :: OSI Approved :: MIT License",

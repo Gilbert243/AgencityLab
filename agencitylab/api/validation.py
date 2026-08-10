@@ -10,7 +10,12 @@ from typing import Any, Dict, Iterable, Optional, Tuple
 
 import numpy as np
 
-from agencitylab.exceptions import AgencityValidationError, UnitValidationError
+from agencitylab.core.validation import validate_positive_scalar
+from agencitylab.exceptions import (
+    AgencityValidationError,
+    PhysicalParameterError,
+    UnitValidationError,
+)
 from agencitylab.models.metadata import ExperimentMetadata
 
 
@@ -141,7 +146,12 @@ def validate_physical_context(
     if domain is not None:
         meta["domain"] = str(domain).strip()
     if reference_amplitude is not None:
-        meta["reference_amplitude"] = reference_amplitude
+        try:
+            meta["reference_amplitude"] = validate_positive_scalar(
+                reference_amplitude, name="A_ref"
+            )
+        except ValueError as exc:
+            raise PhysicalParameterError(f"A_ref resolution failed: {exc}") from exc
 
     try:
         return ExperimentMetadata.from_dict(meta).to_dict()

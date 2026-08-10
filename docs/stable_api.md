@@ -1,6 +1,52 @@
-# Stable computational API — v0.3
+# Public API contract — v0.9 Release Candidate
 
-Version 0.3 stabilizes the user-facing scalar-signal computational interface without changing the canonical equations introduced in v0.2.
+Version 0.9 is the API-freeze candidate for AgencityLab 1.0. It does not redefine the Theory of Agencity. The stable contract is the public orchestration layer around the accepted canonical pipeline:
+
+```text
+u -> u* -> X* -> A* -> M,O -> D,S -> J,U,Theta -> beta -> b
+```
+
+## Stable candidate-v1.0 entry points
+
+The following user-facing interfaces are treated as stable candidates for v1.0 and should only receive backwards-compatible changes unless a scientific error is discovered:
+
+- `compute_agencity()` — canonical scalar computation.
+- `AgencityResult` and `ExperimentMetadata` — result and reproducibility models.
+- `analyze_agencity()` and the named `analyze_*` diagnostics — analysis of an already-computed result; diagnostics never modify canonical arrays.
+- `run_batch()` / `analyze_batch()` — ordered multi-signal orchestration with per-item physical context.
+- `AgencityStream` / `stream_agencity()` — retained-history streaming orchestration with the documented recomputation semantics.
+- `compute_agencity_spectrum()` — explicit multiscale computation.
+- `compute_discrete_agencity()` and `compute_multivariate_agencity()` — theory-defined sampled and multivariate constructions.
+- `export_json()`, `export_csv()`, `export_result_csv()`, `export_study_json()` and the optional Excel/PDF exporters.
+- `visualize_agencity()` / `visualize_multiscale_spectrum()` — optional presentation of computed results.
+- `ScientificStudy` / `scientific_workflow()` — convenience orchestration; they do not replace the canonical engine.
+- `AgencityPipeline` / `pipeline()` — fluent orchestration of the same public computation.
+
+Top-level convenience helpers such as `run`, `inspect`, `plot`, `quick_summary`, `generate_report`, `textual_analysis`, and batch summaries are supported conveniences around these stable objects. They are not alternate definitions of the theory.
+
+## Experimental interfaces
+
+The following remain explicitly experimental and are not promoted merely for the Release Candidate:
+
+- Numba backend primitives;
+- JAX backend primitives and their device/precision behavior;
+- `optimize_agencity_window()`, which performs an explicit signal-derived Chapter 13 window-selection study and must not be confused with a physically specified `w` or with `tau`;
+- the Riemannian extension, for which `riemannian_extension_status()` reports that a production pipeline is not implemented;
+- field, thermodynamic, and other speculative extension modules that are not part of the stable top-level computational contract.
+
+NumPy remains the stable canonical backend. Requesting Numba or JAX does not silently replace the complete NumPy reference pipeline.
+
+## Compatibility and legacy
+
+Compatibility behavior is deliberately isolated:
+
+- `data=` remains an alias for `u=`; supplying both is an error.
+- `Pc=` remains a legacy spelling for `P_c=` in `compute_agencity`; new code should use `P_c`.
+- `PipelineBuilder` and `pipeline_builder` remain compatibility aliases for `AgencityPipeline` and `pipeline`.
+- legacy result fields such as `A_fact`, `resolution_scale`, and older serialized physical-field names remain readable where documented, but they do not alter the canonical equations.
+- signal-derived `estimate_tau()` and statistical normalization helpers are explicitly experimental/preprocessing utilities, not canonical physical-parameter inference.
+
+Historical `tanh` saturation, `tau/A_fact` CRM compression, epsilon-modified physical denominators, and silent signal-statistical fallbacks are not part of the reference pipeline.
 
 ## Reference call
 
@@ -8,7 +54,7 @@ Version 0.3 stabilizes the user-facing scalar-signal computational interface wit
 import numpy as np
 from agencitylab import compute_agencity
 
-xi = np.arange(8.0)
+xi = np.linspace(0.0, 20.0, 801)
 u = np.sin(xi)
 
 result = compute_agencity(
@@ -16,6 +62,7 @@ result = compute_agencity(
     xi=xi,
     A_ref=1.0,
     tau=2.0,
+    w=1.5,
     P_c=5.0,
     unit="rad",
     coordinate_unit="s",
@@ -23,62 +70,45 @@ result = compute_agencity(
 )
 ```
 
-`u` and `xi` must be finite one-dimensional arrays with the same length and at least three samples. `xi` must be strictly increasing. The compatibility alias `data=` remains accepted, but `u=` and `data=` cannot be supplied together.
+`u` and `xi` must be finite one-dimensional arrays of equal length with at least three samples. `xi` must be strictly increasing.
 
-## Physical parameters
+## Physical parameter contract
 
-`A_ref`, `tau`, and `P_c` remain physical/contextual inputs. They are never silently inferred from signal statistics.
+`A_ref`, `tau`, `w`, and `P_c` are physical/contextual quantities and are not silently estimated from the observed signal.
 
-`A_ref` and `tau` may be passed explicitly, stored in `ExperimentMetadata`, or resolved by a deliberately registered physical convention. A scalar `P_c` may follow the same routes.
+- `A_ref > 0` is the reference amplitude used exactly by `u* = u / A_ref`.
+- `tau > 0` is the characteristic structural time.
+- `w > 0` is the CRM memory width. Volume 2 keeps `w` distinct from `tau`; omitting `w` uses the common software convention `w=tau`, while an explicit positive `w` is preserved.
+- `P_c > 0` may be a scalar, a sampled positive profile matching `xi`, or a callable evaluated on `xi`. It is external/contextual and is never inferred from `u`.
 
-The canonical observable is `b(t) = P_c(t) beta(t)`. Therefore the stable API also accepts an explicitly supplied time-varying `P_c(t)` as either:
+Unit labels are descriptive only. `unit` applies to `u` and `A_ref`; `coordinate_unit` applies to `xi`, `tau`, and `w`; `power_unit` applies to `P_c`. No hidden conversion is performed.
 
-```python
-P_c = np.linspace(10.0, 12.0, len(xi))
-result = compute_agencity(..., P_c=P_c)
-```
+## Result and reproducibility contract
 
-or:
-
-```python
-result = compute_agencity(..., P_c=lambda t: 10.0 + 0.2 * t)
-```
-
-A sampled power profile must be finite, strictly positive, one-dimensional, and match `xi`. It is contextual input; AgencityLab does not derive it from `u`. `ExperimentMetadata.characteristic_power` remains the scalar metadata field; a time-varying profile is preserved on `AgencityResult.P_c` and labelled as time-varying in metadata `extra`.
-
-The canonical CRM window is `w = tau`. Passing a different `w` is an explicit error.
-
-## Units
-
-AgencityLab 0.3 records unit labels; it does not perform hidden unit conversion.
-
-- `unit` labels `u` and `A_ref`.
-- `coordinate_unit` labels `xi` and `tau`.
-- `power_unit` labels `P_c`.
-- `b` carries the corresponding informational-power label `power_unit·nat`; for `power_unit="W"`, `result.b_unit == "W·nat"`.
-
-If `xi` is omitted, the API generates a sample index and records `coordinate_unit="sample"` unless the caller supplied another explicit label.
-
-`ExperimentMetadata.unit_contract()` returns the unit-label mapping used by a result.
-
-## Result model
-
-`AgencityResult` is the stable container returned by `compute_agencity`. It validates array lengths, finiteness, strictly positive physical scales, power-profile shape, and metadata consistency.
-
-The result exposes the canonical intermediate fields:
+`AgencityResult` exposes the canonical arrays:
 
 ```text
 xi, u, u_star, X_star, A_star, t_star,
 M, O, D, S, J, U, theta, beta, P_c, b
 ```
 
-`theta` is the canonical wrapped structural orientation represented by `angle(U)`. Phase unwrapping is an analysis operation and is not performed by the result model.
+`theta` is the wrapped canonical orientation. Unwrapping belongs to analysis.
 
-`result.to_dict()` emits schema version `0.3`; `AgencityResult.from_dict()` restores complex arrays, scalar or sampled `P_c`, and retains compatibility aliases for older serialized physical-field names. When older payloads stored the physical scales only in metadata, v0.3 resolves them from that metadata before using any compatibility default.
+The result preserves or exposes:
 
-Legacy summary keys such as `Pc_mean`, `A_fact`, and `resolution_scale` remain available. New fields indicate whether `P_c` is time-varying.
+- the input coordinate and observable;
+- `A_ref`, `tau`, `w`, and `P_c`;
+- unit/context labels;
+- backend request, resolved backend, backend status, and canonical backend in configuration;
+- the AgencityLab version that produced a new computation;
+- user/domain metadata;
+- canonical intermediate arrays needed for inspection and reproducibility.
 
-## Explicit errors
+Complex `beta` and `b` are preserved by the JSON serialization contract. CSV exports use explicit real/imaginary/magnitude columns and do not silently discard the imaginary component.
+
+## Validation and errors
+
+The stable API rejects empty/too-short or non-finite signals, non-numeric or multidimensional scalar inputs, inconsistent axes, non-increasing coordinates, invalid physical parameters, incompatible power-profile shapes, contradictory aliases, and unknown compute keywords before they can become cryptic NumPy failures.
 
 Applications may catch the public exception hierarchy:
 
@@ -94,55 +124,18 @@ from agencitylab import (
 )
 ```
 
-Validation errors remain subclasses of `ValueError`, preserving compatibility with code that previously caught `ValueError`, while providing more specific types for applications.
+## Batch
 
-Unknown `compute_agencity` keyword arguments are rejected instead of being silently stored or ignored. Legacy `A_fact` / `activity_factor` cannot modify canonical CRM, and `resolution_scale` cannot silently insert preprocessing into the canonical computation.
-
-## Batch computation
-
-`run_batch()` accepts raw signals, `(xi, u)` tuples, or item dictionaries. Item dictionaries may carry per-item physical parameters, metadata, config, or presets. Per-item values override batch-wide values, results preserve input order, and failures identify the zero-based item index through `BatchItemError`.
-
-```python
-from agencitylab import run_batch
-
-results = run_batch(
-    [
-        {"xi": xi, "u": u, "P_c": 1.0},
-        {"xi": xi, "u": u, "P_c": 2.0},
-    ],
-    A_ref=1.0,
-    tau=2.0,
-)
-```
+`run_batch()` accepts raw signals, `(xi, u)` tuples, or item dictionaries. Item dictionaries may carry independent `A_ref`, `tau`, `w`, `P_c`, metadata and configuration. Results preserve input order, and parallel execution must not alter numerical results.
 
 ## Streaming
 
-`AgencityStream` can retain physical parameters across updates. When coordinates are omitted, generated sample coordinates continue monotonically across chunks rather than restarting from zero.
+`AgencityStream` retains history and recomputes the retained record after updates. With full history, its final result is expected to match one-shot computation. An explicit finite `window_size` intentionally limits retained history and therefore defines a different retained-history problem. v0.9 does not claim an O(1)-memory online recurrence.
 
-```python
-from agencitylab import AgencityStream
+## Multiscale
 
-stream = AgencityStream(
-    analyze=False,
-    A_ref=1.0,
-    tau=1.0,
-    P_c=1.0,
-)
-
-result = stream.update([0.0, 1.0, 0.0, -1.0])
-result = stream.update([0.0, 1.0, 0.0, -1.0])
-```
-
-Explicit coordinate chunks must be finite, strictly increasing, and start after the previous coordinate. If the buffer does not yet contain enough history for two CRM windows, the stream raises `StreamNotReadyError` while retaining the buffered samples.
-
-For streaming, a persistent scalar or callable `P_c` is generally the clearest contract. A sampled profile may also be supplied when its length matches the current rolling computation buffer; mismatches are explicit errors.
-
-## Fluent pipeline compatibility
-
-`pipeline().set_tau(...)` and `set_power(...)` update the actual physical metadata used by computation. `set_resolution_scale(...)` remains observational metadata only and does not inject smoothing into canonical equations. `set_activity_factor(...)` is retained as a deprecated metadata compatibility method and does not alter canonical CRM.
+`compute_agencity_spectrum()` scans explicit `tau` values. By default each row uses the convention `w=tau`; `windows=` may supply independent positive widths. A multiscale scan is not automatic estimation of the physical `tau`.
 
 ## Scientific boundary
 
-Version 0.3 is an API-stability milestone. It does not change `beta`, `J`, CRM, `M`, `O`, `D`, `S`, `tau`, `w`, `P_c`, or `A_ref` merely for software convenience, and it does not constitute empirical validation of the Theory of Agencity.
-
-Supporting an externally specified `P_c(t)` is an API realization of the canonical relation `b(t) = P_c(t) beta(t)`, not a signal-derived extension.
+The stable software contract does not convert diagnostics into canonical physics. `beta != 0` does not establish coherent or real agencity, and analysis thresholds remain contextual. A Release Candidate validates implementation and usage contracts; it is not empirical confirmation of the Theory of Agencity.

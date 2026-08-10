@@ -44,7 +44,7 @@ class ExperimentMetadata:
     """Reproducibility metadata for one Agencity computation.
 
     ``unit`` labels the observable and therefore also ``A_ref``.
-    ``coordinate_unit`` labels ``xi`` and therefore also ``tau``.
+    ``coordinate_unit`` labels ``xi`` and therefore also ``tau`` and ``w``.
     ``power_unit`` labels ``P_c``. The observable agencity flux ``b`` carries the
     corresponding informational-power label ``power_unit · nat`` (for example,
     ``W·nat``). These labels are descriptive contracts; no automatic unit
@@ -55,9 +55,12 @@ class ExperimentMetadata:
     and is identified through metadata ``extra`` rather than being collapsed to a
     scalar.
 
+    ``agencitylab_version`` records the software version that produced a result.
+    It is populated by the public compute API and retained by serialization.
+
     ``activity_factor`` and ``resolution_scale`` remain serializable for legacy
     compatibility and observational metadata, but they do not modify the
-    canonical v0.3 computation path.
+    canonical computation path.
     """
 
     title: str = ""
@@ -87,6 +90,7 @@ class ExperimentMetadata:
     mechanism: str = ""
     environment: str = ""
     geometry: str = ""
+    agencitylab_version: str = ""
 
     component_units: list[str] = field(default_factory=list)
     component_kinds: list[str] = field(default_factory=list)
@@ -113,6 +117,7 @@ class ExperimentMetadata:
             "mechanism",
             "environment",
             "geometry",
+            "agencitylab_version",
             "created_at",
         ):
             setattr(self, name, _clean_text(getattr(self, name), name=name))
@@ -222,7 +227,7 @@ class ExperimentMetadata:
         }
 
     def unit_contract(self) -> Dict[str, str]:
-        """Describe unit labels attached to canonical physical quantities."""
+        """Describe the stable v0.3 unit-label contract."""
         return {
             "u": self.unit,
             "A_ref": self.unit,
@@ -234,6 +239,7 @@ class ExperimentMetadata:
 
     def summary(self) -> Dict[str, Any]:
         return {
+            "agencitylab_version": self.agencitylab_version,
             "domain": self.domain,
             "observable_kind": self.observable_kind,
             "unit": self.unit,

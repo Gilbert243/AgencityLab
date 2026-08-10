@@ -1,22 +1,21 @@
 # Configuration file for the Sphinx documentation builder.
-#
-# This configuration keeps dependencies light and works with the project
-# structure used by AgencityLab.
 
 from __future__ import annotations
 
-import os
 import sys
 from datetime import datetime
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+
+from agencitylab.version import __version__
 
 project = "AgencityLab"
 author = "AgencityLab Contributors"
 copyright = f"{datetime.now().year}, {author}"
-release = "0.1.0"
+release = __version__
+version = __version__
 
 extensions = [
     "myst_parser",
@@ -27,8 +26,8 @@ extensions = [
     "sphinx.ext.mathjax",
 ]
 
-templates_path = ["_templates"]
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+templates_path = []
+exclude_patterns = ["_build", "README.md", "Thumbs.db", ".DS_Store"]
 
 source_suffix = {
     ".rst": "restructuredtext",
@@ -36,11 +35,10 @@ source_suffix = {
 }
 
 master_doc = "index"
-
 language = "en"
 
 html_theme = "alabaster"
-html_static_path = ["_static"]
+html_static_path = []
 
 autodoc_typehints = "description"
 napoleon_google_docstring = True
@@ -54,8 +52,8 @@ myst_enable_extensions = [
 ]
 
 intersphinx_mapping = {
-    "python": ("https://docs.python.org/3", {}),
-    "numpy": ("https://numpy.org/doc/stable", {}),
+    "python": ("https://docs.python.org/3", None),
+    "numpy": ("https://numpy.org/doc/stable", None),
 }
 
 html_title = "AgencityLab Documentation"
