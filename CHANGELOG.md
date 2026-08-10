@@ -2,6 +2,31 @@
 
 All notable changes to AgencityLab are documented here.
 
+## 0.5.0 - 2026-08-10
+
+### Agencity Analysis
+
+- Established a strict analysis layer that consumes canonical `AgencityResult` outputs without recomputing or redefining `A_ref`, `tau`, CRM, `M`, `O`, `D`, `S`, `J`, `Theta`, `beta`, or `b`.
+- Implemented the theory-derived local angular variance `Sigma_Theta(t) = Var(Theta(s); s in [t-tau,t])` on complete structurally valid windows. Circular resultant variance remains a separately labelled diagnostic rather than a replacement for `Sigma_Theta`.
+- Reworked structural coherence to use canonical `Theta = atan2(O, M)` and to exclude `S = 0` points where orientation is physically undefined. `arg(beta)`/`arg(b)` is not substituted for structural orientation because the sign of `J` can add a pi phase shift.
+- Reworked the real-agencity criterion around `S > 0`, low `Sigma_Theta`, and significant `|b|` without universal thresholds. Local evaluation requires explicit contextual thresholds; a global Boolean additionally requires an explicit persistence fraction.
+- Replaced the legacy epsilon-modified trajectory curvature with the signed algebraic curvature of the intrinsic `beta(t)` curve, leaving curvature undefined when `beta_dot = 0` instead of inserting epsilon into the denominator.
+- Added structural winding diagnostics from canonical `Theta`, including explicit undefined handling across structural zeros and raw finite-interval winding without forced integer quantisation.
+- Added exact agencity-zero detection from `S = 0` or `J = 0`, critical-surface crossings `D = S`, and explicit-threshold wrapped `Theta` jump detection.
+- Added local peak diagnostics for canonical dynamic intensity `D` and explicit-threshold structural plateaus of `S`.
+- Added threshold-free regime signatures and contextual `RegimeCriteria` classification for the theory table (`null`, `passive_damped`, `active_oscillating`, `unstable`, `stochastic`, `chaotic`). Non-null classification defaults to `undetermined` when criteria are not supplied.
+- Made multiscale scaling signatures reject non-positive log inputs instead of replacing them by epsilon. Qualitative slope interpretation now requires an explicit diagnostic threshold.
+- Added `analyze_coherence()`, `analyze_geometry()`, and `analyze_regime_signature()` to the public analysis API while preserving existing analysis entry points.
+- Added `docs/agencity_analysis.md` and dedicated analysis tests for `Sigma_Theta`, real-agencity threshold policy, beta curvature, winding, exact zeros, transitions, D peaks, regime criteria, signatures, and non-mutation of canonical arrays.
+- Bumped the package version to `0.5.0`; the `AgencityResult` serialization schema remains `0.3` because the canonical result model is unchanged.
+
+### Scientific boundary
+
+- Version 0.5.0 creates scientific diagnostics from canonical outputs; it does not modify the v0.2 equations and is not empirical confirmation of the theory.
+- Numerical criteria for "low" angular variance, "significant" flow, peak prominence, structural plateaus, persistence fractions, and regime classification are contextual diagnostics, not universal constants.
+- Noise and chaos may contain local non-zero `beta` and may satisfy a local real-agencity criterion intermittently; the API does not convert such a local event into a whole-record claim without an explicit persistence rule.
+- Geometry is computed from intrinsic `beta`, not from `b`, so an externally varying `P_c(t)` cannot silently alter the state-trajectory curvature or winding analysis.
+
 ## 0.4.0 - 2026-08-10
 
 ### Scientific validation

@@ -11,12 +11,16 @@ from agencitylab.exceptions import (
     StreamNotReadyError,
 )
 from agencitylab.backends.selector import get_backend
+from agencitylab.analysis import ANALYSIS_SCHEMA_VERSION, RegimeCriteria
 
 from .compute import compute_agencity
 from .analyze import (
     analyze_agencity,
     textual_analysis,
     analyze_regime,
+    analyze_regime_signature,
+    analyze_coherence,
+    analyze_geometry,
     analyze_stability,
     analyze_information,
     analyze_events,
@@ -44,6 +48,8 @@ except Exception:  # pragma: no cover - optional backend discovery
 
 __all__ = [
     "RESULT_SCHEMA_VERSION",
+    "ANALYSIS_SCHEMA_VERSION",
+    "RegimeCriteria",
     "AgencityResult",
     "ExperimentMetadata",
     "AgencityError",
@@ -57,6 +63,9 @@ __all__ = [
     "analyze_agencity",
     "textual_analysis",
     "analyze_regime",
+    "analyze_regime_signature",
+    "analyze_coherence",
+    "analyze_geometry",
     "analyze_stability",
     "analyze_information",
     "analyze_events",
