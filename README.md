@@ -60,7 +60,7 @@ Where:
 - **A*** : activity  
 - **M** : memory (causal correlation)  
 - **O** : organization  
-- **β** : structured agency  
+- **β** : structured agencity  
 - **b** : Agencity (final observable)
 
 ---

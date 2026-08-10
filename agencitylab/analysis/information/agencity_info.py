@@ -1,32 +1,99 @@
 """
 Agencity-information bridge utilities.
 
-These helpers connect the Agencity observable with information-oriented
-descriptions.
+This module connects:
+    - agencity observable b(t)
+    - structural measures (J, beta, theta)
+    - information measures
 """
 
 from __future__ import annotations
-
 import numpy as np
 
-from .shannon import shannon_entropy
+from .shannon import shannon_entropy_from_signal
+
+EPS = 1e-12
 
 
-def agencity_information_index(b, epsilon: float = 1e-12) -> float:
+def agencity_information_index(b, *, verbose=False) -> float:
     """
-    Compute a synthetic index linking Agencity to information structure.
+    Information content of agencity signal.
 
-    The current version measures the entropy of the normalized absolute
-    observable. Low entropy means concentrated activity bursts.
+    Defined as entropy of normalized |b|.
     """
-    b = np.asarray(b, dtype=float)
-    if b.size == 0:
-        return 0.0
+    b = np.asarray(b)
+    mag = np.abs(b)
 
-    weights = np.abs(b)
-    total = float(np.sum(weights))
-    if total < epsilon:
-        return 0.0
+    H = shannon_entropy_from_signal(mag)
 
-    distribution = weights / total
-    return float(shannon_entropy(distribution, base=np.e))
+    if verbose:
+        print(f"[info] entropy(|b|) = {H:.6f}")
+
+    return H
+
+
+def agencity_information_density(b, *, verbose=False) -> float:
+    """
+    Information density:
+        entropy / variability
+    """
+    b = np.asarray(b)
+    mag = np.abs(b)
+
+    H = shannon_entropy_from_signal(mag)
+    std = np.std(mag)
+
+    density = H / (std + EPS)
+
+    if verbose:
+        print(f"[info] density = {density:.6f}")
+
+    return float(density)
+
+
+def agencity_structural_information(J, *, verbose=False):
+    """
+    Structural information via contrast J.
+
+    Measures asymmetry structure.
+    """
+    J = np.asarray(J, dtype=float)
+
+    info = np.mean(np.abs(J))
+
+    if verbose:
+        print(f"[info] structural J = {info:.6f}")
+
+    return float(info)
+
+
+def agencity_phase_information(theta, *, verbose=False):
+    """
+    Information contained in orientation dynamics.
+    """
+    theta = np.asarray(theta, dtype=float)
+
+    H = shannon_entropy_from_signal(theta)
+
+    if verbose:
+        print(f"[info] phase entropy = {H:.6f}")
+
+    return H
+
+
+def full_information_summary(b, J=None, theta=None):
+    """
+    Complete information description.
+    """
+    out = {
+        "entropy_b": agencity_information_index(b),
+        "density_b": agencity_information_density(b),
+    }
+
+    if J is not None:
+        out["structure_J"] = agencity_structural_information(J)
+
+    if theta is not None:
+        out["phase_entropy"] = agencity_phase_information(theta)
+
+    return out

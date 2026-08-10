@@ -1,0 +1,68 @@
+# ============================================================
+# AGENCITY FIELD CONFIGURATION
+# ============================================================
+
+field:
+  enabled: true
+
+  # ----------------------------------------------------------
+  # VECTOR DECOMPOSITION
+  # ----------------------------------------------------------
+  components:
+    bx: true
+    by: true
+    magnitude: true     # |b|
+    angle: true         # θ
+
+  # ----------------------------------------------------------
+  # ORIENTATION (U → θ)
+  # ----------------------------------------------------------
+  orientation:
+    method: complex      # complex | geometric
+    unwrap: true         # phase continuity
+    degrees: false       # radians vs degrees
+
+  # ----------------------------------------------------------
+  # GEOMETRY
+  # ----------------------------------------------------------
+  geometry:
+    compute_trajectory: true
+    compute_curvature: false
+    compute_torsion: false
+
+    smoothing:
+      enabled: false
+      window: 5
+
+  # ----------------------------------------------------------
+  # FIELD OPERATORS
+  # ----------------------------------------------------------
+  operators:
+    gradient: false
+    divergence: false
+    curl: false
+
+  # ----------------------------------------------------------
+  # RIEMANNIAN METRIC (ADVANCED 🔥)
+  # ----------------------------------------------------------
+  metric:
+    enabled: false
+    type: identity       # identity | diagonal | learned
+
+    diagonal:
+      gx: 1.0
+      gy: 1.0
+
+  # ----------------------------------------------------------
+  # NORMALIZATION
+  # ----------------------------------------------------------
+  normalization:
+    normalize_vector: false
+    normalize_magnitude: false
+
+  # ----------------------------------------------------------
+  # STABILITY / ROTATION
+  # ----------------------------------------------------------
+  dynamics:
+    angular_velocity: true
+    phase_diffusion: false

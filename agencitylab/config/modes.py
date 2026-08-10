@@ -23,11 +23,13 @@ class AgencityMode(str, Enum):
         """Parse a mode from a string or an existing enum value."""
         if isinstance(value, cls):
             return value
+
         if isinstance(value, str):
             normalized = value.strip().lower()
             for member in cls:
                 if member.value == normalized:
                     return member
+
         raise ValueError(
             "Unknown Agencity mode. Expected one of: canonical, experimental, fast, debug."
         )

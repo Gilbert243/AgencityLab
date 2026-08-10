@@ -1,56 +1,235 @@
-"""Characteristic power utilities.
+"""
+power.py
 
-The theory allows several practical conventions for P_c. The core exposes
-a small set of transparent helpers instead of imposing one physical model.
+Characteristic power utilities for AgencityLab.
+
+IMPORTANT
+---------
+In the stabilized Agencity theory:
+
+    Pc is a structural property
+    of the containing physical system.
+
+Pc should therefore come from:
+    - physical models,
+    - canonical registries,
+    - system metadata,
+    - energetic scales.
+
+It should NOT fundamentally depend on u(t).
 """
 
 from __future__ import annotations
 
 import numpy as np
 
-from .safeguards import ensure_positive
+from .safeguards import (
+    ensure_positive,
+)
 
+from agencitylab.constants.characteristic_powers import (
+    resolve_characteristic_power,
+)
+
+
+# ============================================================
+# CANONICAL API
+# ============================================================
 
 def characteristic_power(
     value=None,
     *,
+    system=None,
+    domain=None,
     reference_energy=None,
     tau=None,
+    A_ref=None,
     default: float = 1.0,
+    verbose: bool = False,
 ):
-    """Return a characteristic power value.
-
-    Supported conventions
-    ---------------------
-    - explicit value: returns the value as-is
-    - energy/time estimate: reference_energy / tau
-    - fallback default: 1.0 by default
     """
+    Resolve characteristic power Pc.
+
+    Priority
+    --------
+    1) explicit value
+    2) reference_energy / tau
+    3) canonical registry
+    4) A_ref^2 / tau
+    5) default
+    """
+
+    if verbose:
+        print("[power] resolving Pc")
+
+    # ========================================================
+    # explicit
+    # ========================================================
+
     if value is not None:
+
+        if verbose:
+            print("[power] explicit value")
+
         return ensure_positive(value)
-    if reference_energy is not None and tau is not None:
-        return ensure_positive(np.asarray(reference_energy, dtype=float) / np.asarray(tau, dtype=float))
+
+    # ========================================================
+    # energy / tau
+    # ========================================================
+
+    if (
+        reference_energy is not None
+        and tau is not None
+    ):
+
+        if verbose:
+            print("[power] using E_ref / tau")
+
+        return ensure_positive(
+            np.asarray(
+                reference_energy,
+                dtype=float,
+            )
+            / np.asarray(
+                tau,
+                dtype=float,
+            )
+        )
+
+    # ========================================================
+    # canonical registry
+    # ========================================================
+
+    Pc = resolve_characteristic_power(
+        system=system,
+        domain=domain,
+        Pc="auto",
+        default=default,
+    )
+
+    if Pc is not None:
+
+        Pc = ensure_positive(Pc)
+
+        if verbose:
+            print(f"[power] canonical Pc={Pc}")
+
+        return Pc
+
+    # ========================================================
+    # A_ref² / tau
+    # ========================================================
+
+    if (
+        A_ref is not None
+        and tau is not None
+    ):
+
+        if verbose:
+            print("[power] using A_ref² / tau")
+
+        A_ref = ensure_positive(A_ref)
+
+        tau = ensure_positive(tau)
+
+        return ensure_positive(
+            (A_ref ** 2) / tau
+        )
+
+    # ========================================================
+    # fallback
+    # ========================================================
+
+    if verbose:
+        print("[power] using default")
+
     return ensure_positive(default)
 
 
-def estimate_characteristic_power(signal, *, tau, method: str = "rms", scale=None):
-    """Heuristic power estimate for practical workflows.
+# ============================================================
+# OPTIONAL HEURISTIC ESTIMATION
+# ============================================================
 
-    This helper is intentionally simple and domain-agnostic. It can be
-    replaced by a physically grounded estimator at higher levels.
+def estimate_characteristic_power(
+    signal,
+    *,
+    tau,
+    method: str = "rms",
+    scale=None,
+    A_ref=None,
+    verbose: bool = False,
+):
     """
-    x = np.asarray(signal, dtype=float)
+    Experimental heuristic estimation of Pc.
+
+    WARNING
+    -------
+    This function is NOT part of the canonical theory.
+
+    It derives energetic scales from the observable signal.
+    """
+
+    x = np.asarray(
+        signal,
+        dtype=float,
+    )
+
     tau = ensure_positive(tau)
 
-    if scale is None:
+    if verbose:
+        print(
+            f"[power] heuristic estimation "
+            f"method={method}"
+        )
+
+    # ========================================================
+    # A_ref override
+    # ========================================================
+
+    if A_ref is not None:
+
+        scale = ensure_positive(A_ref)
+
+    # ========================================================
+    # derive scale
+    # ========================================================
+
+    elif scale is None:
+
         if method == "rms":
-            scale = np.sqrt(np.nanmean(np.square(x)))
+
+            scale = np.sqrt(
+                np.nanmean(
+                    np.square(x)
+                )
+            )
+
         elif method == "variance":
-            scale = np.sqrt(np.nanvar(x))
+
+            scale = np.sqrt(
+                np.nanvar(x)
+            )
+
         elif method == "amplitude":
-            scale = np.nanmax(x) - np.nanmin(x)
+
+            scale = (
+                np.nanmax(x)
+                - np.nanmin(x)
+            )
+
         else:
-            raise ValueError("Unknown power estimation method")
+
+            raise ValueError(
+                "Unknown power estimation method"
+            )
 
     scale = ensure_positive(scale)
-    return ensure_positive((scale ** 2) / tau)
+
+    P_c = ensure_positive(
+        (scale ** 2) / tau
+    )
+
+    if verbose:
+        print(f"[power] estimated Pc={P_c}")
+
+    return P_c

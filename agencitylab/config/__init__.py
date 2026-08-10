@@ -1,22 +1,31 @@
 """
-Global configuration utilities for AgencityLab.
+Configuration layer for AgencityLab.
 
-This package defines the canonical configuration objects and runtime helpers
-used by the rest of the framework.
+This package provides:
+- operational modes
+- validated configuration objects
+- runtime registry
 """
 
-from .defaults import AgencityConfig, DEFAULT_CONFIG
 from .modes import AgencityMode
-from .runtime import get_runtime_config, reset_runtime_config, set_runtime_config, use_config
+from .defaults import AgencityConfig, DEFAULT_CONFIG
 from .schema import validate_config
+from .runtime import (
+    get_runtime_config,
+    set_runtime_config,
+    update_runtime_config,
+    reset_runtime_config,
+    use_config,
+)
 
 __all__ = [
-    "AgencityConfig",
     "AgencityMode",
+    "AgencityConfig",
     "DEFAULT_CONFIG",
-    "get_runtime_config",
-    "reset_runtime_config",
-    "set_runtime_config",
-    "use_config",
     "validate_config",
+    "get_runtime_config",
+    "set_runtime_config",
+    "update_runtime_config",
+    "reset_runtime_config",
+    "use_config",
 ]

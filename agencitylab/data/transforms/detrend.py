@@ -7,29 +7,37 @@ from __future__ import annotations
 import numpy as np
 
 
-def detrend_signal(xi, u, method: str = "linear"):
-    """
-    Remove a slow trend from the signal values.
-
-    Supported methods
-    -----------------
-    - linear
-    - mean
-    """
+def detrend_signal(xi, u, method="linear"):
+    
     xi = np.asarray(xi, dtype=float)
     u = np.asarray(u, dtype=float)
 
-    if xi.ndim != 1 or u.ndim != 1:
-        raise ValueError("xi and u must be one-dimensional.")
+    if xi.ndim != 1:
+        raise ValueError("xi must be 1D.")
 
-    method = method.lower().strip()
+    # 🔥 1D
+    if u.ndim == 1:
+        if method == "mean":
+            return u - np.mean(u)
 
-    if method == "mean":
-        return u - np.mean(u)
+        if method == "linear":
+            coeffs = np.polyfit(xi, u, 1)
+            return u - np.polyval(coeffs, xi)
 
-    if method == "linear":
-        coeffs = np.polyfit(xi, u, deg=1)
-        trend = np.polyval(coeffs, xi)
-        return u - trend
+    # 🔥 ND
+    elif u.ndim == 2:
+        out = np.zeros_like(u)
 
-    raise ValueError("Unknown detrending method.")
+        for i in range(u.shape[1]):
+            col = u[:, i]
+
+            if method == "mean":
+                out[:, i] = col - np.mean(col)
+
+            elif method == "linear":
+                coeffs = np.polyfit(xi, col, 1)
+                out[:, i] = col - np.polyval(coeffs, xi)
+
+        return out
+
+    raise ValueError("Unsupported dimension")

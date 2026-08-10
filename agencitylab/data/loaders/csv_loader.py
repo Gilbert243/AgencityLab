@@ -1,37 +1,53 @@
 """
-CSV signal loader.
-
-This module supports standard CSV files with at least two columns.
+CSV signal loader (multi-dimensional support).
 """
 
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Tuple, Union
+from typing import Tuple, Union, List
 
 import numpy as np
 
 
 def _require_pandas():
-    """Import pandas lazily for CSV parsing."""
     try:
         import pandas as pd  # type: ignore
         return pd
-    except Exception as exc:  # pragma: no cover - optional dependency
+    except Exception as exc:
         raise ImportError(
-            "pandas is required for CSV loading. Install AgencityLab with the pandas extra."
+            "pandas is required for CSV loading."
         ) from exc
 
 
-def load_csv_signal(path: Union[str, Path], xi_col: str = "xi", u_col: str = "u") -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Load xi and u from a CSV file.
+def load_csv_signal(
+    path: Union[str, Path],
+    xi_col: str = "xi",
+    u_cols: Union[str, List[str]] = "u",
+) -> Tuple[np.ndarray, np.ndarray]:
 
-    The CSV is expected to contain at least the columns named xi_col and u_col.
-    """
     pd = _require_pandas()
-    path = Path(path)
-    df = pd.read_csv(path)
-    if xi_col not in df.columns or u_col not in df.columns:
-        raise ValueError(f"CSV file must contain '{xi_col}' and '{u_col}' columns.")
-    return df[xi_col].to_numpy(dtype=float), df[u_col].to_numpy(dtype=float)
+    df = pd.read_csv(Path(path))
+
+    if xi_col not in df.columns:
+        raise ValueError(f"Missing column '{xi_col}'")
+
+    xi = df[xi_col].to_numpy(dtype=float)
+
+    # 🔥 MULTI-D SUPPORT
+    if isinstance(u_cols, str):
+        if u_cols not in df.columns:
+            raise ValueError(f"Missing column '{u_cols}'")
+        u = df[u_cols].to_numpy(dtype=float)
+
+    else:
+        for col in u_cols:
+            if col not in df.columns:
+                raise ValueError(f"Missing column '{col}'")
+        u = df[u_cols].to_numpy(dtype=float)
+
+    # 🔥 normalisation shape
+    if u.ndim == 2 and u.shape[1] == 1:
+        u = u[:, 0]
+
+    return xi, u

@@ -30,7 +30,7 @@ def compare_signatures(xi, signals, taus):
 
     results = {}
 
-    print("\n=== MULTI-SYSTEM AGENCY SIGNATURES ===")
+    print("\n=== MULTI-SYSTEM AGENCITY SIGNATURES ===")
 
     for name, u in signals.items():
         sig = agencity_signature(xi, u, taus)

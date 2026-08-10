@@ -7,7 +7,7 @@ This module stores the active configuration used by the current process.
 from __future__ import annotations
 
 from contextlib import contextmanager
-from typing import Iterator, Optional
+from typing import Iterator
 
 from .defaults import AgencityConfig, DEFAULT_CONFIG
 from .schema import validate_config
@@ -29,6 +29,15 @@ def set_runtime_config(config: AgencityConfig) -> AgencityConfig:
     global _RUNTIME_CONFIG
     _RUNTIME_CONFIG = validate_config(config)
     return _RUNTIME_CONFIG
+
+
+def update_runtime_config(**kwargs) -> AgencityConfig:
+    """
+    Update the current runtime config without replacing it manually.
+    """
+    current = get_runtime_config()
+    updated = current.with_updates(**kwargs)
+    return set_runtime_config(updated)
 
 
 def reset_runtime_config() -> AgencityConfig:

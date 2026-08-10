@@ -4,49 +4,31 @@ Component visualization for AgencityLab.
 
 from __future__ import annotations
 
-from typing import Optional
-
-import numpy as np
-
-from .styles import apply_default_style
+import matplotlib.pyplot as plt
 
 
-def plot_components(result, show: bool = True, title: Optional[str] = None):
-    """
-    Plot the core components of the Agencity decomposition.
-    """
-    apply_default_style()
-    import matplotlib.pyplot as plt
+def plot_components(result, show: bool = True):
 
-    xi = np.asarray(result.xi, dtype=float)
+    xi = result.xi
 
-    fig, axes = plt.subplots(3, 1, figsize=(12, 9), sharex=True)
+    fig, ax = plt.subplots(4, 1, figsize=(10, 10), sharex=True)
 
-    axes[0].plot(xi, result.u, label="u")
-    axes[0].plot(xi, result.u_star, label="u*")
-    axes[0].set_ylabel("signal")
-    axes[0].legend()
+    ax[0].plot(xi, result.X_star)
+    ax[0].set_title("Activation X(t)")
 
-    axes[1].plot(xi, result.X_star, label="X*")
-    axes[1].plot(xi, result.A_star, label="A*")
-    axes[1].set_ylabel("activation")
-    axes[1].legend()
+    ax[1].plot(xi, result.A_star)
+    ax[1].set_title("Activity A(t)")
 
-    axes[2].plot(xi, result.M, label="M")
-    axes[2].plot(xi, result.O, label="O")
-    axes[2].plot(xi, result.beta, label="beta")
-    axes[2].plot(xi, result.b, label="b")
-    axes[2].set_ylabel("agencity")
-    axes[2].set_xlabel("xi")
-    axes[2].legend()
+    ax[2].plot(xi, result.M)
+    ax[2].set_title("Memory M(t)")
 
-    if title is None:
-        title = "AgencityLab components"
+    ax[3].plot(xi, result.O)
+    ax[3].set_title("Organization O(t)")
+    ax[3].set_xlabel("ξ")
 
-    fig.suptitle(title)
-    fig.tight_layout()
+    plt.tight_layout()
 
     if show:
         plt.show()
 
-    return fig, axes
+    return fig

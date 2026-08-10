@@ -24,7 +24,14 @@ def _to_jsonable(value: Any) -> Any:
         return _to_jsonable(asdict(value))
 
     if isinstance(value, np.ndarray):
-        return value.tolist()
+        return _to_jsonable(value.tolist())
+
+    if isinstance(value, complex):
+        return {"real": float(value.real), "imag": float(value.imag)}
+
+    if isinstance(value, np.complexfloating):
+        c = complex(value)
+        return {"real": float(c.real), "imag": float(c.imag)}
 
     if isinstance(value, (np.floating, np.integer)):
         return value.item()
@@ -38,31 +45,24 @@ def _to_jsonable(value: Any) -> Any:
     return value
 
 
-def dump_json(data: Any, path: Union[str, Path], *, indent: int = 2, sort_keys: bool = True) -> Path:
+def dump_json(
+    data: Any,
+    path: Union[str, Path],
+    *,
+    indent: int = 2,
+    sort_keys: bool = True,
+) -> Path:
     """
     Write an object to a JSON file.
-
-    Parameters
-    ----------
-    data:
-        Data to serialize.
-    path:
-        Output file path.
-    indent:
-        JSON indentation level.
-    sort_keys:
-        Whether to sort object keys.
-
-    Returns
-    -------
-    Path
-        The path of the written file.
     """
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
 
     payload = _to_jsonable(data)
-    path.write_text(json.dumps(payload, indent=indent, sort_keys=sort_keys), encoding="utf-8")
+    path.write_text(
+        json.dumps(payload, indent=indent, sort_keys=sort_keys, ensure_ascii=False),
+        encoding="utf-8",
+    )
     return path
 
 

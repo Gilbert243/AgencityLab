@@ -1,0 +1,36 @@
+validation:
+
+  enabled: true
+
+  criteria:
+
+    beta:
+      min: 0.01
+      max: null
+
+    contrast:
+      min: 0.0
+
+    orientation:
+      theta_std_max: 1.0
+      stability_required: true
+
+  statistical:
+
+    variance_max: null
+    noise_tolerance: 0.1
+
+  consistency:
+
+    energy_conservation: false
+    monotonicity: false
+
+  scoring:
+
+    method: weighted
+    weights:
+      beta: 0.4
+      contrast: 0.3
+      orientation: 0.3
+
+    threshold: 0.6

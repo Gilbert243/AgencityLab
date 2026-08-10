@@ -15,33 +15,22 @@ import numpy as np
 _WORD_RE = re.compile(r"\b\w+\b", re.UNICODE)
 
 
-def text_to_signal(text: str, mode: str = "sentence_length") -> np.ndarray:
-    """
-    Convert text into a simple one-dimensional signal.
+def text_to_signal(text, mode="embedding"):
+    
+    tokens = _WORD_RE.findall(text)
 
-    Supported modes
-    --------------
-    - sentence_length: number of tokens per sentence
-    - word_length: lengths of individual tokens
-    - character_count: cumulative character count per sentence
-    """
-    if not isinstance(text, str):
-        raise TypeError("text must be a string.")
+    if not tokens:
+        return np.zeros((0, 1))
 
     mode = mode.lower().strip()
 
-    if mode == "word_length":
-        tokens = _WORD_RE.findall(text)
-        return np.asarray([len(token) for token in tokens], dtype=float)
+    # 🔥 VECTORIAL REPRESENTATION
+    if mode == "embedding":
+        # fallback simple embedding (sans dépendance)
+        return np.array([[len(w), sum(map(ord, w)) % 100] for w in tokens], dtype=float)
 
-    sentences = [s.strip() for s in re.split(r"[.!?]+", text) if s.strip()]
-    if not sentences:
-        return np.asarray([], dtype=float)
+    # 🔥 SEQUENCE STRUCTURE
+    if mode == "sequence":
+        return np.array([len(w) for w in tokens])[:, None]
 
-    if mode == "sentence_length":
-        return np.asarray([len(_WORD_RE.findall(sentence)) for sentence in sentences], dtype=float)
-
-    if mode == "character_count":
-        return np.asarray([len(sentence) for sentence in sentences], dtype=float)
-
-    raise ValueError("Unknown text-to-signal mode.")
+    raise ValueError("Unknown mode")

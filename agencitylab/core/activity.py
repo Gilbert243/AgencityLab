@@ -1,49 +1,264 @@
 """
 activity.py
 
-Compute reduced activity A* from activation X*.
+Activity utilities for AgencityLab.
 
-Definition (canonical):
-A*(ξ*) = X*(ξ* + 1/2) - X*(ξ* - 1/2)
+Canonical theory
+----------------
+    A*(xi) = d(X*) / d(xi)
+
+IMPORTANT
+---------
+Modern Agencity theory separates:
+
+    - observable normalization,
+    - local activation dynamics,
+    - structural memory.
+
+Therefore:
+    tau does NOT directly scale activity.
+
+tau intervenes later through:
+    - CRM structural memory,
+    - multiscale organization,
+    - temporal structural analysis.
+
+Physical interpretation
+-----------------------
+Activity measures local variation of activation.
+
+Because activity is a second-order derivative quantity,
+it is highly sensitive to unresolved noise.
+
+The optional resolution_scale parameter therefore represents:
+
+    - instrumental bandwidth,
+    - observational resolution,
+    - finite physical perception scale,
+    - structural coarse-graining.
+
+This is NOT arbitrary denoising.
+
+It is a physical-resolution operator.
 """
+
+from __future__ import annotations
 
 import numpy as np
 
+from .validation import (
+    validate_axis,
+    validate_signal,
+)
 
-def activity(X_star: np.ndarray, window: int = 1) -> np.ndarray:
+from .safeguards import (
+    EPS,
+    replace_non_finite,
+)
+
+from .activation import (
+    _resolve_signal,
+    _safe_gradient,
+)
+
+
+# ============================================================
+# ACTIVITY
+# ============================================================
+
+def compute_activity(
+    X_star,
+    axis,
+    *,
+    resolution_scale=None,
+    replace_nan=True,
+    clip=None,
+    verbose=False,
+):
     """
-    Public canonical API for activity.
+    Compute activity field.
+
+    Canonical definition
+    --------------------
+        A* = d(X*) / d(xi)
+
+    Parameters
+    ----------
+    X_star :
+        Activation field.
+
+    axis :
+        Observation coordinate or constant step.
+
+    resolution_scale :
+        Physical observation scale.
+
+    replace_nan :
+        Replace invalid values.
+
+    clip :
+        Optional clipping magnitude.
+
+    Returns
+    -------
+    A : ndarray
+        Activity field.
     """
-    return compute_activity(X_star, window)
+
+    # ========================================================
+    # VALIDATION
+    # ========================================================
+
+    X_star = validate_signal(
+        X_star,
+        name="X_star",
+    ).ravel()
+
+    X_star = np.asarray(
+        X_star,
+        dtype=float,
+    )
+
+    # ========================================================
+    # CLEANUP
+    # ========================================================
+
+    if replace_nan:
+
+        X_star = replace_non_finite(
+            X_star,
+            default=0.0,
+        )
+
+    # ========================================================
+    # PHYSICAL RESOLUTION
+    # ========================================================
+
+    X_resolved = _resolve_signal(
+        X_star,
+        axis,
+        resolution_scale=resolution_scale,
+    )
+
+    # ========================================================
+    # DERIVATIVE
+    # ========================================================
+
+    A = _safe_gradient(
+        X_resolved,
+        axis,
+    )
+
+    # ========================================================
+    # OPTIONAL CLIPPING
+    # ========================================================
+
+    if clip is not None:
+
+        clip = abs(float(clip))
+
+        A = np.clip(
+            A,
+            -clip,
+            clip,
+        )
+
+    # ========================================================
+    # FINAL CLEANUP
+    # ========================================================
+
+    A = replace_non_finite(
+        A,
+        default=0.0,
+    )
+
+    A = np.asarray(
+        A,
+        dtype=float,
+    )
+
+    # ========================================================
+    # DIAGNOSTICS
+    # ========================================================
+
+    if verbose:
+
+        print(
+            "[activity] "
+            f"mean={np.nanmean(A):.6f}"
+        )
+
+        print(
+            "[activity] "
+            f"std={np.nanstd(A):.6f}"
+        )
+
+        print(
+            "[activity] "
+            f"min={np.nanmin(A):.6f}"
+        )
+
+        print(
+            "[activity] "
+            f"max={np.nanmax(A):.6f}"
+        )
+
+        if resolution_scale is not None:
+
+            print(
+                "[activity] "
+                f"resolution_scale="
+                f"{resolution_scale}"
+            )
+
+    return A
 
 
-def activity_from_signal(X_star: np.ndarray, window: int = 1) -> np.ndarray:
+# ============================================================
+# PUBLIC API
+# ============================================================
+
+def activity(
+    X_star,
+    axis,
+    *,
+    resolution_scale=None,
+    replace_nan=True,
+    clip=None,
+    verbose=False,
+):
+    """
+    Canonical public API.
+    """
+
+    return compute_activity(
+        X_star,
+        axis,
+        resolution_scale=resolution_scale,
+        replace_nan=replace_nan,
+        clip=clip,
+        verbose=verbose,
+    )
+
+
+def activity_from_signal(
+    X_star,
+    axis,
+    *,
+    resolution_scale=None,
+    replace_nan=True,
+    clip=None,
+    verbose=False,
+):
     """
     Alias for pipeline usage.
     """
-    return compute_activity(X_star, window)
 
-
-def compute_activity(X_star: np.ndarray, window: int = 1) -> np.ndarray:
-    """
-    Compute reduced activity A* using centered finite differences.
-    """
-
-    if window < 1:
-        raise ValueError("window must be >= 1")
-
-    X_star = np.asarray(X_star)
-
-    if X_star.ndim != 1:
-        raise ValueError("X_star must be a 1D array")
-
-    n = len(X_star)
-    A_star = np.zeros_like(X_star)
-
-    for i in range(n):
-        i_plus = min(i + window, n - 1)
-        i_minus = max(i - window, 0)
-
-        A_star[i] = X_star[i_plus] - X_star[i_minus]
-
-    return A_star
+    return compute_activity(
+        X_star,
+        axis,
+        resolution_scale=resolution_scale,
+        replace_nan=replace_nan,
+        clip=clip,
+        verbose=verbose,
+    )

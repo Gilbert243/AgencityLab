@@ -1,45 +1,65 @@
 """
-Normalization transforms for signals.
+Statistical normalization transforms (NON-CANONICAL).
+
+⚠️ WARNING:
+This module is for data preprocessing ONLY.
+
+It must NOT be used in canonical Agencity computations,
+which rely on fixed A_ref normalization:
+    u* = u / A_ref
 """
 
 from __future__ import annotations
-
 import numpy as np
 
 
-def normalize_signal(u, method: str = "zscore", epsilon: float = 1e-12):
+def normalize_signal(u, method="zscore", epsilon=1e-12):
     """
-    Normalize a signal array.
+    Statistical normalization (experimental).
 
-    Supported methods
-    -----------------
-    - zscore: (u - mean) / std
-    - minmax: scaled to [0, 1]
-    - centered: u - mean
+    Methods:
+        - zscore
+        - minmax
+        - centered
+
+    ⚠️ Not theory-compliant for Agencity core.
     """
+
     u = np.asarray(u, dtype=float)
-
-    if u.ndim != 1:
-        raise ValueError("u must be one-dimensional.")
-
     method = method.lower().strip()
 
-    if method == "zscore":
-        mean = float(np.mean(u))
-        std = float(np.std(u))
-        if std < epsilon:
-            return np.zeros_like(u)
-        return (u - mean) / std
+    # =========================================================
+    # 1D
+    # =========================================================
+    if u.ndim == 1:
 
-    if method == "minmax":
-        u_min = float(np.min(u))
-        u_max = float(np.max(u))
-        span = u_max - u_min
-        if span < epsilon:
-            return np.zeros_like(u)
-        return (u - u_min) / span
+        if method == "zscore":
+            mean = np.mean(u)
+            std = np.std(u)
+            return (u - mean) / (std + epsilon)
 
-    if method == "centered":
-        return u - float(np.mean(u))
+        elif method == "minmax":
+            return (u - u.min()) / (u.max() - u.min() + epsilon)
 
-    raise ValueError("Unknown normalization method.")
+        elif method == "centered":
+            return u - np.mean(u)
+
+    # =========================================================
+    # MULTI-D
+    # =========================================================
+    elif u.ndim == 2:
+
+        if method == "zscore":
+            mean = np.mean(u, axis=0, keepdims=True)
+            std = np.std(u, axis=0, keepdims=True)
+            return (u - mean) / (std + epsilon)
+
+        elif method == "minmax":
+            u_min = np.min(u, axis=0, keepdims=True)
+            u_max = np.max(u, axis=0, keepdims=True)
+            return (u - u_min) / (u_max - u_min + epsilon)
+
+        elif method == "centered":
+            return u - np.mean(u, axis=0, keepdims=True)
+
+    raise ValueError(f"Unsupported normalization method '{method}' or input shape")

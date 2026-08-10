@@ -1,80 +1,149 @@
 """
 signature.py
 
-Agencity signature (multi-scale fingerprint of a system).
+Agencity scaling signature analysis.
+
+This module extracts scale-invariant properties from the agencity
+multi-scale response using log-log regression.
+
+Core idea:
+    log(beta_mean) ~ alpha * log(tau)
+
+Where:
+    alpha = scaling exponent (signature of the system)
 """
 
 from __future__ import annotations
-
 import numpy as np
-from typing import Dict, Any, Iterable
 
-from .multi_scale import agencity_spectrum
+from agencitylab.core.safeguards import EPS, replace_non_finite
 
+
+# =========================================================
+# INTERNAL UTILITIES
+# =========================================================
+
+def _safe_log(x, eps=EPS):
+    """Safe logarithm avoiding zero/negative values."""
+    x = np.asarray(x, dtype=float)
+    x = replace_non_finite(x, eps)
+    x = np.maximum(x, eps)
+    return np.log(x)
+
+
+def _linear_regression(x, y):
+    """Least-squares linear regression."""
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
+
+    A = np.vstack([x, np.ones_like(x)]).T
+    slope, intercept = np.linalg.lstsq(A, y, rcond=None)[0]
+
+    return float(slope), float(intercept)
+
+
+def _compute_r2(x, y, slope, intercept):
+    """Coefficient of determination (R²)."""
+    y_pred = slope * x + intercept
+    ss_res = np.sum((y - y_pred) ** 2)
+    ss_tot = np.sum((y - np.mean(y)) ** 2)
+
+    if ss_tot < EPS:
+        return 0.0
+
+    return float(1 - ss_res / ss_tot)
+
+
+# =========================================================
+# MAIN API
+# =========================================================
 
 def agencity_signature(
-    xi: np.ndarray,
-    u: np.ndarray,
-    taus: Iterable[float],
-) -> Dict[str, Any]:
+    tau,
+    beta_mean,
+    *,
+    log_base=np.e,
+    return_fit=True,
+    verbose=False,
+):
     """
-    Compute the agencity signature of a system.
+    Compute the scaling signature of agencity.
+
+    Parameters
+    ----------
+    tau : array-like
+        Characteristic scales
+    beta_mean : array-like
+        Mean agencity magnitude per scale
+    log_base : float
+        Logarithm base (default: natural)
+    return_fit : bool
+        Whether to return fitted curve
+    verbose : bool
+        Print debug information
 
     Returns
     -------
     dict with:
-        - tau
-        - b_mean
-        - b_std
-        - peak_tau
-        - peak_value
-        - growth_trend
-        - signature_type
+        slope       : scaling exponent α
+        intercept   : regression intercept
+        r2          : goodness of fit
+        tau_log     : log(tau)
+        beta_log    : log(beta_mean)
+        fit         : optional fitted curve
+        regime      : qualitative interpretation
     """
 
-    spec = agencity_spectrum(xi, u, taus)
+    tau = np.asarray(tau, dtype=float)
+    beta_mean = np.asarray(beta_mean, dtype=float)
 
-    tau_vals = np.array([s["tau"] for s in spec])
-    b_mean = np.array([s["b_mean"] for s in spec])
-    b_std = np.array([s["b_std"] for s in spec])
+    # --- safety ---
+    tau = replace_non_finite(tau, EPS)
+    beta_mean = replace_non_finite(beta_mean, EPS)
 
-    # 🔹 Peak detection
-    peak_idx = int(np.argmax(b_std))
-    peak_tau = tau_vals[peak_idx]
-    peak_value = b_std[peak_idx]
+    tau = np.maximum(tau, EPS)
+    beta_mean = np.maximum(beta_mean, EPS)
 
-    # 🔹 Growth trend (simple slope)
-    slope = np.polyfit(tau_vals, b_std, 1)[0]
-
-    # 🔹 Classification
-    if np.allclose(b_std, 0):
-        signature_type = "inactive"
-    elif slope > 0 and peak_tau == tau_vals[-1]:
-        signature_type = "scale-expanding"
-    elif slope < 0:
-        signature_type = "scale-damped"
+    # --- logs ---
+    if log_base == np.e:
+        lt = _safe_log(tau)
+        lb = _safe_log(beta_mean)
     else:
-        signature_type = "structured"
+        lt = _safe_log(tau) / np.log(log_base)
+        lb = _safe_log(beta_mean) / np.log(log_base)
+
+    # --- regression ---
+    slope, intercept = _linear_regression(lt, lb)
+
+    # --- goodness ---
+    r2 = _compute_r2(lt, lb, slope, intercept)
+
+    # --- regime classification ---
+    if slope > 0.1:
+        regime = "amplifying"
+    elif slope < -0.1:
+        regime = "dissipative"
+    else:
+        regime = "scale-invariant"
+
+    # --- fit curve ---
+    fit = None
+    if return_fit:
+        fit = slope * lt + intercept
+
+    if verbose:
+        print("[signature] ---")
+        print(f"[signature] slope (alpha): {slope:.6f}")
+        print(f"[signature] intercept   : {intercept:.6f}")
+        print(f"[signature] R²          : {r2:.6f}")
+        print(f"[signature] regime      : {regime}")
 
     return {
-        "tau": tau_vals,
-        "b_mean": b_mean,
-        "b_std": b_std,
-        "peak_tau": float(peak_tau),
-        "peak_value": float(peak_value),
-        "growth_trend": float(slope),
-        "signature_type": signature_type,
+        "slope": slope,
+        "intercept": intercept,
+        "r2": r2,
+        "tau_log": lt,
+        "beta_log": lb,
+        "fit": fit,
+        "regime": regime,
     }
-
-
-def print_signature(sig: Dict[str, Any]) -> None:
-    """
-    Pretty print signature.
-    """
-
-    print("\n=== AGENCY SIGNATURE ===")
-
-    print(f"Type        : {sig['signature_type']}")
-    print(f"Peak tau    : {sig['peak_tau']:.3f}")
-    print(f"Peak b_std  : {sig['peak_value']:.4f}")
-    print(f"Trend       : {sig['growth_trend']:.4f}")

@@ -1,30 +1,27 @@
 """
-Vopson-inspired helpers for AgencityLab.
-
-This module provides lightweight information-mass estimators based on
-the idea that information may be assigned a physically meaningful mass
-equivalent in specific theoretical frameworks.
+Vopson information mass equivalence (advanced).
 """
 
 from __future__ import annotations
-
 import numpy as np
 
+C = 299792458  # speed of light
 
-def information_mass(bits: float, alpha: float = 1.0) -> float:
+
+def information_mass(bits: float, temperature: float) -> float:
     """
-    Return a simple information-mass proxy.
+    Information → mass equivalence (Vopson hypothesis)
 
-    The parameter alpha allows the user to scale the estimate.
+    m = (k_B * T * ln2 * bits) / c^2
     """
-    return float(alpha) * float(bits)
+    from agencitylab.constants.physics import BOLTZMANN_CONSTANT
+
+    return (BOLTZMANN_CONSTANT * temperature * np.log(2) * bits) / (C**2)
 
 
-def vopson_mass_equivalent(bits: float, mass_per_bit: float = 1e-38) -> float:
+def vopson_mass_equivalent(entropy_nats: float, temperature: float):
     """
-    Return a linear information-mass estimate.
-
-    This is a placeholder helper for research workflows; the coefficient can
-    be adjusted by the user.
+    Convert entropy (nats) → mass
     """
-    return float(bits) * float(mass_per_bit)
+    bits = entropy_nats / np.log(2)
+    return information_mass(bits, temperature)

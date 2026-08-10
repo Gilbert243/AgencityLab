@@ -1,8 +1,4 @@
-"""Numerical safeguards used across the core layer.
-
-These helpers keep the formulas stable in the presence of zero variance,
-non-finite values, and overly large intermediate values.
-"""
+"""Numerical safeguards used across the Agencity core."""
 
 from __future__ import annotations
 
@@ -15,6 +11,7 @@ def safe_divide(numerator, denominator, default=0.0):
     """Divide while protecting against near-zero denominators."""
     numerator = np.asarray(numerator, dtype=float)
     denominator = np.asarray(denominator, dtype=float)
+
     out = np.full(np.broadcast(numerator, denominator).shape, default, dtype=float)
     mask = np.abs(denominator) > EPS
     np.divide(numerator, denominator, out=out, where=mask)
@@ -27,14 +24,14 @@ def saturate(x, lower=-1.0, upper=1.0):
 
 
 def safe_tanh(x, clip=20.0):
-    """Evaluate tanh after clipping the input to avoid overflow in upstream logic."""
+    """Evaluate tanh after clipping the input to avoid overflow."""
     x = np.asarray(x, dtype=float)
     return np.tanh(np.clip(x, -clip, clip))
 
 
 def replace_non_finite(x, default=0.0):
-    """Replace NaN and infinite values by a finite fallback."""
-    x = np.asarray(x, dtype=float)
+    """Preserve dtype (including complex)."""
+    x = np.asarray(x)
     return np.where(np.isfinite(x), x, default)
 
 

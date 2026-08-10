@@ -1,0 +1,26 @@
+experiment:
+  name: "baseline_experiment"
+  description: "Test Agencity oscillatory signal"
+
+  reproducibility:
+    seed: 42
+    deterministic: true
+
+  dataset:
+    type: synthetic       # synthetic | real
+    generator: oscillatory
+    n_samples: 500
+
+  coordinate:
+    type: continuous
+    range: [0, 20]
+
+  signal:
+    type: sinusoidal
+    noise:
+      enabled: true
+      level: 0.05
+
+  runs:
+    n_runs: 1
+    parallel: false

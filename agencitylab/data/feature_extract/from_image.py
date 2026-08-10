@@ -25,41 +25,29 @@ def _require_pillow():
         ) from exc
 
 
-def image_to_signal(image: Any, mode: str = "row_mean") -> np.ndarray:
-    """
-    Convert an image-like object into a one-dimensional signal.
-
-    Parameters
-    ----------
-    image:
-        Either a NumPy array or a path to an image file.
-    mode:
-        Reduction strategy:
-        - row_mean
-        - col_mean
-        - flatten_mean
-    """
-    if isinstance(image, (str, Path)):
-        Image = _require_pillow()
-        img = Image.open(image).convert("L")
-        arr = np.asarray(img, dtype=float)
-    else:
-        arr = np.asarray(image, dtype=float)
+def image_to_signal(image, mode="raw"):
+    
+    arr = np.asarray(image, dtype=float)
 
     if arr.ndim == 3:
-        # Convert RGB-like tensors to grayscale by averaging channels.
         arr = np.mean(arr, axis=-1)
-
-    if arr.ndim != 2:
-        raise ValueError("image must be a 2D grayscale array or an RGB-like array.")
 
     mode = mode.lower().strip()
 
-    if mode == "row_mean":
-        return np.mean(arr, axis=1)
-    if mode == "col_mean":
-        return np.mean(arr, axis=0)
-    if mode == "flatten_mean":
-        return np.asarray([float(np.mean(arr))], dtype=float)
+    # 🔥 FULL IMAGE
+    if mode == "raw":
+        return arr  # (H, W)
 
-    raise ValueError("Unknown image-to-signal mode.")
+    # 🔥 PROJECTIONS
+    if mode == "row":
+        return np.mean(arr, axis=1, keepdims=True)
+
+    if mode == "col":
+        return np.mean(arr, axis=0, keepdims=True).T
+
+    # 🔥 GRADIENT (TRÈS IMPORTANT)
+    if mode == "gradient":
+        gx, gy = np.gradient(arr)
+        return np.stack([gx, gy], axis=-1)
+
+    raise ValueError("Unknown mode")

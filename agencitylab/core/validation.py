@@ -22,16 +22,21 @@ def validate_signal(signal, *, name: str = "signal", min_length: int = 3):
     samples to compute derivatives and correlations safely.
     """
     arr = as_float_array(signal)
+
     if arr.ndim == 0:
         raise ValueError(f"{name} must have at least one dimension")
     if arr.shape[0] < min_length:
         raise ValueError(f"{name} must contain at least {min_length} samples")
+    if not np.all(np.isfinite(np.where(np.isnan(arr), 0.0, arr))):
+        raise ValueError(f"{name} must contain only finite values or NaN placeholders")
+
     return arr
 
 
 def validate_axis(axis, *, expected_length: Optional[int] = None, name: str = "axis"):
     """Validate a coordinate array used as an evolution parameter."""
     arr = as_float_array(axis)
+
     if arr.ndim != 1:
         raise ValueError(f"{name} must be one-dimensional")
     if expected_length is not None and len(arr) != expected_length:
@@ -40,6 +45,11 @@ def validate_axis(axis, *, expected_length: Optional[int] = None, name: str = "a
         raise ValueError(f"{name} must contain at least two points")
     if not np.all(np.isfinite(arr)):
         raise ValueError(f"{name} must contain only finite values")
+
+    diffs = np.diff(arr)
+    if not np.any(np.abs(diffs) > EPS):
+        raise ValueError(f"{name} must not be constant")
+
     return arr
 
 
@@ -51,6 +61,19 @@ def validate_window_size(window_size, *, name: str = "window_size"):
         value = float(window_size)
     except Exception as exc:  # pragma: no cover - defensive
         raise ValueError(f"{name} must be numeric") from exc
+
     if not np.isfinite(value) or value <= EPS:
         raise ValueError(f"{name} must be strictly positive")
     return value
+
+
+def validate_positive_scalar(value, *, name: str = "value"):
+    """Validate a strictly positive scalar."""
+    try:
+        scalar = float(value)
+    except Exception as exc:  # pragma: no cover - defensive
+        raise ValueError(f"{name} must be numeric") from exc
+
+    if not np.isfinite(scalar) or scalar <= EPS:
+        raise ValueError(f"{name} must be strictly positive")
+    return scalar

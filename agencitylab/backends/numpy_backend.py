@@ -2,84 +2,85 @@
 NumPy backend for AgencityLab.
 
 This module provides pure-NumPy implementations of the computational
-primitives used by the core and dynamics layers.
+primitives used by the core and optional acceleration layers.
+
+It is the safe default backend and should never block users.
 """
 
 from __future__ import annotations
 
-from typing import Tuple
+from typing import Literal
 
 import numpy as np
 
+WindowKind = Literal["hann", "hamming", "blackman", "rectangular"]
 
-def normalize_numpy(u, method: str = "zscore", epsilon: float = 1e-12):
+
+def normalize_numpy(u, method: str = "zscore", epsilon: float = 1e-12, axis=None):
     """
-    Normalize a one-dimensional signal.
+    Normalize an array.
 
     Supported methods:
     - zscore
     - minmax
     - centered
+
+    Works on 1D or nD arrays.
     """
     u = np.asarray(u, dtype=float)
-
-    if u.ndim != 1:
-        raise ValueError("u must be one-dimensional.")
-
-    method = method.lower().strip()
+    method = str(method).lower().strip()
 
     if method == "zscore":
-        mean = float(np.mean(u))
-        std = float(np.std(u))
-        if std < epsilon:
-            return np.zeros_like(u)
-        return (u - mean) / std
+        mean = np.mean(u, axis=axis, keepdims=True)
+        std = np.std(u, axis=axis, keepdims=True)
+        return np.where(std < epsilon, np.zeros_like(u), (u - mean) / std)
 
     if method == "minmax":
-        u_min = float(np.min(u))
-        u_max = float(np.max(u))
+        u_min = np.min(u, axis=axis, keepdims=True)
+        u_max = np.max(u, axis=axis, keepdims=True)
         span = u_max - u_min
-        if span < epsilon:
-            return np.zeros_like(u)
-        return (u - u_min) / span
+        return np.where(span < epsilon, np.zeros_like(u), (u - u_min) / span)
 
     if method == "centered":
-        return u - float(np.mean(u))
+        mean = np.mean(u, axis=axis, keepdims=True)
+        return u - mean
 
     raise ValueError("Unknown normalization method.")
 
 
-def central_difference_numpy(values, step: float):
+def central_difference_numpy(values, step: float, axis: int = -1):
     """
-    Compute the first derivative using central differences on a 1D grid.
+    Compute the first derivative using central differences.
+
+    Supports nD arrays along the selected axis.
     """
     values = np.asarray(values, dtype=float)
 
-    if values.ndim != 1:
-        raise ValueError("values must be one-dimensional.")
     if step <= 0:
         raise ValueError("step must be positive.")
-    if values.size < 2:
+    if values.shape[axis] < 2:
         raise ValueError("values must contain at least two samples.")
 
-    derivative = np.zeros_like(values)
-    derivative[1:-1] = (values[2:] - values[:-2]) / (2.0 * step)
-    derivative[0] = (values[1] - values[0]) / step
-    derivative[-1] = (values[-1] - values[-2]) / step
-    return derivative
+    v = np.moveaxis(values, axis, -1)
+    out = np.empty_like(v)
+
+    out[..., 1:-1] = (v[..., 2:] - v[..., :-2]) / (2.0 * step)
+    out[..., 0] = (v[..., 1] - v[..., 0]) / step
+    out[..., -1] = (v[..., -1] - v[..., -2]) / step
+
+    return np.moveaxis(out, -1, axis)
 
 
-def apply_window_numpy(values, kind: str = "hann"):
+def apply_window_numpy(values, kind: WindowKind = "hann", axis: int = -1):
     """
-    Apply a tapering window to a 1D signal.
+    Apply a tapering window to an array along the selected axis.
     """
     values = np.asarray(values, dtype=float)
+    if values.shape[axis] < 1:
+        raise ValueError("values must contain at least one sample.")
 
-    if values.ndim != 1:
-        raise ValueError("values must be one-dimensional.")
-
-    kind = kind.lower().strip()
-    n = values.size
+    kind = str(kind).lower().strip()
+    n = values.shape[axis]
 
     if kind == "hann":
         window = np.hanning(n)
@@ -92,20 +93,19 @@ def apply_window_numpy(values, kind: str = "hann"):
     else:
         raise ValueError("Unknown window kind.")
 
-    return values * window
+    shape = [1] * values.ndim
+    shape[axis] = n
+    return values * window.reshape(shape)
 
 
 def causal_moving_correlation_numpy(values, window: int = 1, epsilon: float = 1e-12):
     """
-    Compute a causal moving correlation between adjacent windows.
+    Compute a causal moving Pearson-like correlation on a 1D signal.
 
-    This implementation returns an array of Pearson-like correlations in [-1, 1]
-    using two successive windows of length 'window'.
+    The output is aligned with the most recent sample. Early positions are set to 0.
     """
-    values = np.asarray(values, dtype=float)
+    values = np.asarray(values, dtype=float).ravel()
 
-    if values.ndim != 1:
-        raise ValueError("values must be one-dimensional.")
     if window < 1:
         raise ValueError("window must be >= 1.")
     if values.size < 2 * window:

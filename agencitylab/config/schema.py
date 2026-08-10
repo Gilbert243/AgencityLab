@@ -1,10 +1,3 @@
-"""
-Validation helpers for AgencityLab configuration objects.
-
-This module performs lightweight validation without introducing heavy
-dependencies such as Pydantic by default.
-"""
-
 from __future__ import annotations
 
 from dataclasses import is_dataclass
@@ -16,48 +9,59 @@ from .modes import AgencityMode
 
 def validate_config(config: Any) -> AgencityConfig:
     """
-    Validate and normalize a configuration object.
-
-    Parameters
-    ----------
-    config:
-        Either an AgencityConfig instance or a mapping compatible with it.
-
-    Returns
-    -------
-    AgencityConfig
-        Normalized validated configuration object.
+    Normalize any config-like object into a valid AgencityConfig.
     """
     if isinstance(config, AgencityConfig):
-        _validate_config_values(config)
+        _validate(config)
         return config
 
     if isinstance(config, Mapping):
-        normalized = AgencityConfig.from_dict(dict(config))
-        _validate_config_values(normalized)
-        return normalized
+        cfg = AgencityConfig.from_dict(dict(config))
+        _validate(cfg)
+        return cfg
 
     if is_dataclass(config):
-        normalized = AgencityConfig.from_dict(config.__dict__)
-        _validate_config_values(normalized)
-        return normalized
+        cfg = AgencityConfig.from_dict(config.__dict__)
+        _validate(cfg)
+        return cfg
 
-    raise TypeError("config must be an AgencityConfig or a mapping.")
+    raise TypeError("config must be AgencityConfig or mapping.")
 
 
-def _validate_config_values(config: AgencityConfig) -> None:
-    """Check all numeric and categorical configuration fields."""
-    if not isinstance(config.mode, AgencityMode):
-        raise TypeError("mode must be an AgencityMode instance.")
+def _validate(c: AgencityConfig) -> None:
+    """
+    Validate the configuration values.
+    """
+    if not isinstance(c.mode, AgencityMode):
+        raise TypeError("mode invalid")
 
-    if not (0.0 < float(config.tau_threshold) < 1.0):
-        raise ValueError("tau_threshold must lie strictly between 0 and 1.")
+    if not (0 < c.tau_threshold < 1):
+        raise ValueError("tau_threshold ∈ (0,1)")
 
-    if int(config.activity_window) < 1:
-        raise ValueError("activity_window must be >= 1.")
+    if c.activity_window < 1:
+        raise ValueError("activity_window ≥ 1")
 
-    if int(config.crm_window) < 1:
-        raise ValueError("crm_window must be >= 1.")
+    if c.crm_window < 1:
+        raise ValueError("crm_window ≥ 1")
 
-    if float(config.epsilon) <= 0.0:
-        raise ValueError("epsilon must be strictly positive.")
+    if c.epsilon <= 0:
+        raise ValueError("epsilon > 0")
+
+    if c.reduced_time_step <= 0:
+        raise ValueError("reduced_time_step > 0")
+
+    if c.agencity_scale <= 0:
+        raise ValueError("agencity_scale > 0")
+
+    if c.temperature <= 0:
+        raise ValueError("temperature > 0")
+
+    backend = str(c.backend).lower().strip()
+    if backend not in {"numpy", "numba", "jax", "auto"}:
+        raise ValueError("backend must be one of: numpy, numba, jax, auto")
+
+    if c.metric_type not in {"identity", "diagonal", "learned"}:
+        raise ValueError("metric_type must be one of: identity, diagonal, learned")
+
+    if c.report_language not in {"en", "fr"}:
+        raise ValueError("report_language must be one of: en, fr")

@@ -1,0 +1,29 @@
+simulation:
+
+  enabled: true
+
+  mode: forward       # forward | inverse | montecarlo
+
+  solver:
+    type: discrete
+    step: 0.01
+
+  noise:
+    enabled: true
+    type: gaussian
+    level: 0.02
+
+  perturbations:
+    enabled: false
+
+  montecarlo:
+    enabled: false
+    runs: 100
+
+  logging:
+    enabled: true
+    frequency: 10
+
+  outputs:
+    store_intermediate: true
+    store_final: true

@@ -6,8 +6,8 @@ This object represents the canonical input signal u(ξ) after preprocessing.
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field
-from typing import Any, Dict, Optional
+from dataclasses import dataclass, field
+from typing import Any, Dict
 
 import numpy as np
 
@@ -40,6 +40,17 @@ class AgencitySignal:
             raise ValueError("xi and u must be one-dimensional.")
         if self.xi.shape[0] != self.u.shape[0]:
             raise ValueError("xi and u must have the same length.")
+
+    @property
+    def n_samples(self) -> int:
+        return int(self.xi.size)
+
+    @property
+    def dx(self) -> float:
+        if self.xi.size < 2:
+            return 0.0
+        diffs = np.diff(self.xi)
+        return float(np.mean(diffs))
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize the signal into a dictionary."""

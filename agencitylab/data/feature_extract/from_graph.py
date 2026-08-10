@@ -12,28 +12,30 @@ from typing import Any
 import numpy as np
 
 
-def graph_to_signal(graph: Any, mode: str = "degree_sequence") -> np.ndarray:
-    """
-    Convert a graph-like object into a one-dimensional signal.
+def graph_to_signal(graph, mode="raw"):
+    
+    A = np.asarray(graph, dtype=float)
 
-    Accepted inputs
-    ---------------
-    - adjacency matrix
-    - array-like square matrix
-    """
-    arr = np.asarray(graph, dtype=float)
-    if arr.ndim != 2 or arr.shape[0] != arr.shape[1]:
-        raise ValueError("graph must be a square adjacency matrix or matrix-like object.")
+    if A.ndim != 2 or A.shape[0] != A.shape[1]:
+        raise ValueError("graph must be square adjacency matrix")
 
     mode = mode.lower().strip()
 
-    if mode == "degree_sequence":
-        return np.sum(arr, axis=1)
-    if mode == "column_sum":
-        return np.sum(arr, axis=0)
-    if mode == "laplacian_trace":
-        degree = np.diag(np.sum(arr, axis=1))
-        laplacian = degree - arr
-        return np.asarray([float(np.trace(laplacian))], dtype=float)
+    # 🔥 FULL STRUCTURE
+    if mode == "raw":
+        return A  # (n, n)
 
-    raise ValueError("Unknown graph-to-signal mode.")
+    # 🔥 NODE FEATURES
+    if mode == "degree":
+        return np.sum(A, axis=1, keepdims=True)
+
+    if mode == "laplacian":
+        D = np.diag(np.sum(A, axis=1))
+        return D - A
+
+    # 🔥 SPECTRAL (très puissant)
+    if mode == "spectrum":
+        eigvals = np.linalg.eigvalsh(A)
+        return eigvals[:, None]
+
+    raise ValueError("Unknown mode")

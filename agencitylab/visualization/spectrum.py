@@ -4,44 +4,33 @@ Spectrum visualization for AgencityLab.
 
 from __future__ import annotations
 
-from typing import Optional
-
 import numpy as np
-
-from agencitylab.analysis.spectrum import agencity_spectrum
-from .styles import apply_default_style
+import matplotlib.pyplot as plt
 
 
-def plot_spectrum(result, show: bool = True, title: Optional[str] = None):
-    """
-    Plot the amplitude spectrum of the Agencity observable b.
-    """
-    apply_default_style()
-    import matplotlib.pyplot as plt
+def plot_spectrum(result, show: bool = True):
 
-    spectrum = agencity_spectrum(result.b, xi=result.xi)
-    freq = spectrum["frequency"]
-    amp = spectrum["amplitude"]
+    xi = result.xi
+    b = result.b
 
-    fig, ax = plt.subplots(figsize=(10, 5))
-    ax.plot(freq, amp)
+    if len(b) < 2:
+        raise ValueError("Signal too short for spectrum.")
 
-    # 🔥 amélioration clé
-    ax.set_xscale("log")
+    dt = np.mean(np.diff(xi))
 
-    ax.set_xlabel("frequency")
-    ax.set_ylabel("amplitude")
+    freq = np.fft.rfftfreq(len(b), dt)
+    spectrum = np.abs(np.fft.rfft(b))
 
-    if title is None:
-        title = "AgencityLab spectrum"
+    fig, ax = plt.subplots(figsize=(8, 4))
 
-    ax.set_title(title)
-    fig.tight_layout()
+    ax.plot(freq, spectrum)
+    ax.set_title("Spectrum of b(t)")
+    ax.set_xlabel("Frequency")
+    ax.set_ylabel("|FFT(b)|")
+
+    plt.tight_layout()
 
     if show:
-        try:
-            plt.show()
-        except Exception:
-            pass
+        plt.show()
 
-    return fig, ax
+    return fig

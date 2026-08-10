@@ -7,42 +7,33 @@ from __future__ import annotations
 import numpy as np
 
 
-def smooth_signal(u, method: str = "moving_average", window_size: int = 5):
-    """
-    Smooth a one-dimensional signal.
-
-    Supported methods
-    -----------------
-    - moving_average
-    - gaussian (approximated with a simple discrete kernel)
-    """
+def smooth_signal(u, method="moving_average", window_size=5):
+    
     u = np.asarray(u, dtype=float)
-
-    if u.ndim != 1:
-        raise ValueError("u must be one-dimensional.")
-
-    if window_size < 1:
-        raise ValueError("window_size must be >= 1.")
-
-    method = method.lower().strip()
 
     if window_size == 1:
         return u.copy()
 
-    if method == "moving_average":
-        kernel = np.ones(window_size, dtype=float) / float(window_size)
+    def smooth_1d(x):
+        if method == "moving_average":
+            kernel = np.ones(window_size) / window_size
+        else:
+            center = (window_size - 1) / 2
+            sigma = window_size / 6
+            t = np.arange(window_size)
+            kernel = np.exp(-0.5 * ((t - center)/sigma)**2)
+            kernel /= kernel.sum()
 
-    elif method == "gaussian":
-        center = (window_size - 1) / 2.0
-        sigma = max(window_size / 6.0, 1e-12)
-        x = np.arange(window_size, dtype=float)
-        kernel = np.exp(-0.5 * ((x - center) / sigma) ** 2)
-        kernel /= np.sum(kernel)
+        pad = window_size // 2
+        padded = np.pad(x, pad, mode="edge")
+        return np.convolve(padded, kernel, mode="valid")[:len(x)]
 
-    else:
-        raise ValueError("Unknown smoothing method.")
+    # 🔥 1D
+    if u.ndim == 1:
+        return smooth_1d(u)
 
-    pad = window_size // 2
-    padded = np.pad(u, pad_width=pad, mode="edge")
-    smoothed = np.convolve(padded, kernel, mode="valid")
-    return smoothed[: u.shape[0]]
+    # 🔥 ND
+    elif u.ndim == 2:
+        return np.vstack([smooth_1d(u[:, i]) for i in range(u.shape[1])]).T
+
+    raise ValueError("Unsupported dimension")
