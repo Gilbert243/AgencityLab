@@ -35,13 +35,13 @@ from .validation import validate_axis
 
 from agencitylab.constants.characteristic_times import (
     resolve_characteristic_time,
+    tau_context_from_metadata,
 )
 
 
 # ============================================================
 # INTERNAL HELPERS
 # ============================================================
-
 def _median_step(axis):
 
     axis = validate_axis(axis)
@@ -93,12 +93,12 @@ def _interpolate_threshold_crossing(
 # ============================================================
 # CANONICAL API
 # ============================================================
-
 def characteristic_time(
     *,
     tau="auto",
     system=None,
     domain=None,
+    metadata=None,
     verbose=False,
 ):
     """
@@ -114,10 +114,22 @@ def characteristic_time(
     domain : str
         Physical domain.
 
+    metadata : mapping, optional
+        Structural context carrier. System and domain values are used only
+        when the corresponding explicit arguments are absent.
+
     Returns
     -------
     tau : float
     """
+
+    context = tau_context_from_metadata(metadata)
+
+    if system is None:
+        system = context.get("system")
+
+    if domain is None:
+        domain = context.get("domain")
 
     tau_value = resolve_characteristic_time(
         tau=tau,
@@ -138,7 +150,6 @@ def characteristic_time(
 # ============================================================
 # OPTIONAL HEURISTIC ESTIMATION
 # ============================================================
-
 def estimate_tau(
     activation_signal,
     *,

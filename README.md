@@ -1,243 +1,97 @@
 # AgencityLab
-<<<<<<< HEAD
 
-**AgencityLab** is a scientific Python framework dedicated to the study and quantification of **Agencity** — an observable designed to measure a system’s ability to actively structure its own evolution.
+AgencityLab is an alpha-stage scientific Python project for implementing and experimenting with the theory of **Agencity** developed by Gilbert BEMWIZ.
 
-Unlike classical metrics (variance, entropy, energy), Agencity captures **dynamic organization and decision-like behavior within a system**, independent of domain-specific assumptions.
+The project is research software. Its purpose is to make the theory inspectable, testable, reproducible, and progressively comparable with data. It is **not** currently evidence that Agencity is a universally validated physical observable, a classifier of agency, or a replacement for established statistical measures.
 
-Agencity can be analyzed:
-- at a **single scale**
-- across **multiple scales** via the **Agencity spectrum** \( b(\tau) \)
+## Status of the implementation
 
----
+The current `0.1.x` line establishes the software foundations: package metadata, test discovery, CI, public imports, documentation structure, and theory-to-code traceability.
 
-## 👤 Author
+The current theory target uses the conceptual chain:
 
-**Gilbert BEMWIZ**  
-Conceptor of the Agencity theory  
-Engineer and developer of the AgencityLab framework  
-
----
-
-## 🧠 Vision
-
-AgencityLab aims to provide:
-
-- a **rigorous computational implementation** of Agencity theory  
-- a **domain-independent analysis tool** applicable to:
-  - physical systems  
-  - biological signals  
-  - economic dynamics  
-  - computational processes  
-- an experimental platform to explore links with:
-  - **Shannon information theory**
-  - **Landauer’s principle**
-  - **informational physics hypotheses** (e.g. Vopson)
-
----
-
-## 🔬 Core Concept
-
-Agencity is not a measure of randomness or order.
-
-It quantifies:
-
-> **the capacity of a system to select and sustain a trajectory among those allowed by its underlying dynamics**
-
-This leads to a hierarchy of observables:
-
+```text
+u -> u* -> X* -> A* -> M, O -> D, S -> J, U -> beta -> b
 ```
 
-u → u* → X* → A* → M → O → β → b
+where the current theory sources define reduced derivatives, causal memory/organisation terms, dynamic and structural intensities, a logarithmic contrast, a complex orientation, structured Agencity `beta`, and the observable `b`.
 
-````
+**Important:** parts of the existing numerical implementation predate the current theoretical formulation. In particular, the operands used by `M` and `O`, the use of `tanh`, and CRM window compression are not yet fully reconciled with the current theory sources. These differences are documented in [`docs/theory_mapping.md`](docs/theory_mapping.md) and are intentionally deferred to the scientific reconciliation phase rather than being silently changed in a foundations release.
 
-Where:
+## Installation
 
-- **u** : raw signal  
-- **u*** : normalized signal  
-- **X*** : activation  
-- **A*** : activity  
-- **M** : memory (causal correlation)  
-- **O** : organization  
-- **β** : structured agencity  
-- **b** : Agencity (final observable)
-
----
-
-## ⚙️ Installation
+Core package:
 
 ```bash
 pip install agencitylab
-````
-
-Optional features:
-
-```bash
-pip install agencitylab[viz]
-pip install agencitylab[app]
-pip install agencitylab[ml]
-pip install agencitylab[all]
 ```
 
----
+From a source checkout for development:
 
-## 🚀 Quick Start
+```bash
+python -m pip install -e ".[dev]"
+```
+
+Optional feature groups include `viz`, `app`, `ml`, `export`, and `docs`.
+
+## Minimal example
 
 ```python
 import numpy as np
-from agencitylab.api import compute_agencity
+from agencitylab import compute_agencity
 
-xi = np.linspace(0, 10, 200)
+xi = np.linspace(0.0, 10.0, 200)
 u = np.sin(xi)
 
-result = compute_agencity(xi, u)
-
-print(result.summary())
+result = compute_agencity(u=u, xi=xi)
+print(result.b.shape)
 ```
 
----
+Use explicit keyword arguments for scientific inputs. Structural parameters such as `tau`, characteristic power, normalisation choices, and physical metadata should be supplied deliberately when they are known rather than inferred from a toy example.
 
-## 📊 Visualization
+## Repository map
 
-```python
-from agencitylab.api import visualize_agencity
+- `agencitylab/core/`: numerical operators and current computational pipeline primitives.
+- `agencitylab/api/`: user-facing compute, analysis, batch, streaming, reporting, and export interfaces.
+- `agencitylab/analysis/`: diagnostics and higher-level interpretation. These modules must not silently redefine canonical equations.
+- `agencitylab/models/`: structured result and metadata objects.
+- `tests/`: unit, integration, regression, and foundation checks.
+- `docs/`: project overview, theory mapping, tutorials, API documentation, and references.
+- `examples/` and `benchmarks/`: experimental material; coverage is still incomplete in the alpha series.
 
-visualize_agencity(result, kind="timeseries")
+## Documentation
+
+Start with:
+
+- [`docs/overview.md`](docs/overview.md) for the software architecture and project guarantees.
+- [`docs/theory_mapping.md`](docs/theory_mapping.md) for the current theory-to-code correspondence and known discrepancies.
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) for development and scientific-change rules.
+
+## Development checks
+
+The repository currently supports Python 3.10 and 3.11. CI verifies both versions with:
+
+```bash
+python -c "import agencitylab; print(agencitylab.__version__)"
+ruff check agencitylab tests
+pytest
+python -m build
 ```
 
-Available visualizations:
+The v0.1 Ruff policy is a correctness-focused baseline (`E9`, `F63`, `F7`, `F82`) applied across the package and tests. The existing repository has broader style debt; that cleanup is intentionally separated from scientific reconciliation so linting does not trigger large unrelated rewrites.
 
-* `timeseries` → full pipeline signals
-* `spectrum` → frequency structure of b
-* `phase` → dynamic trajectories
-* `components` → internal decomposition
+## Scientific caution
 
----
+Agencity is an emerging theoretical framework. Validation across domains remains a research programme. High dynamic intensity is not, by itself, evidence of agency; numerical outputs must be interpreted together with structural coherence, assumptions, scales, and uncertainty.
 
-## 📈 Multi-Scale Analysis
+Experimental, heuristic, diagnostic, or legacy components should be labelled as such. When code and theory conflict, the conflict should be documented and resolved explicitly with reference to the theory sources and tests rather than by silently adapting the theory to existing code.
 
-Agencity can be analyzed across scales:
+## Author and upstream
 
-```python
-from agencitylab.analysis.multi_scale import agencity_spectrum
+Theory and original project: **Gilbert BEMWIZ**.
 
-taus = [0.5, 1, 2, 5, 10]
-spec = agencity_spectrum(xi, u, taus)
-```
+Canonical upstream repository: `Gilbert243/AgencityLab`.
 
-This produces a **multi-scale signature** of the system.
+## License
 
----
-
-## 🧬 Agencity Signature
-
-Each system exhibits a characteristic **Agencity signature**:
-
-* constant → inactive
-* sinus → structured dynamics
-* noise → high variability, low organization
-* multi-scale → emergent organization
-
-This enables:
-
-* system classification
-* clustering
-* regime detection
-
----
-
-## 🧪 Example Systems
-
-AgencityLab can analyze:
-
-* periodic signals
-* stochastic processes
-* hybrid signals (signal + noise)
-* multi-scale dynamics
-
----
-
-## 📊 Comparison with Classical Metrics
-
-Agencity complements traditional measures:
-
-| Metric       | Captures                    | Limitation                     |
-| ------------ | --------------------------- | ------------------------------ |
-| Variance     | dispersion                  | ignores structure              |
-| Entropy      | randomness                  | ignores dynamics               |
-| Energy       | amplitude                   | ignores organization           |
-| Autocorr     | temporal dependence         | local only                     |
-| **Agencity** | dynamic structuring ability | multi-scale, causal, intrinsic |
-
----
-
-## 🧠 Interpretation
-
-* A **zigzag trajectory is not noise** if imposed by constraints
-* A system is not “ordered” or “disordered” absolutely
-* Agencity is **contextual and intrinsic to system dynamics**
-
----
-
-## 📁 Project Structure
-
-```
-agencitylab/
-├── core/            # mathematical operators
-├── analysis/        # spectrum, signatures, clustering
-├── api/             # user-facing interface
-├── visualization/   # plotting tools
-├── examples/        # usage examples
-```
-
----
-
-## 🔭 Roadmap
-
-* [ ] Advanced multi-scale theory
-* [ ] Real-world datasets integration
-* [ ] GPU acceleration
-* [ ] Interactive dashboards
-* [ ] Scientific publication support
-
----
-
-## 📜 License
-
-MIT License
-
----
-
-## 🤝 Contributions
-
-Contributions are welcome.
-
-You can:
-
-* open issues
-* propose improvements
-* extend analysis modules
-* test on new domains
-
----
-
-## ⚠️ Disclaimer
-
-Agencity is an emerging theoretical framework.
-This library provides a computational implementation intended for:
-
-* research
-* experimentation
-* conceptual exploration
-
----
-
-## 🌍 Perspective
-
-AgencityLab is part of a broader effort to build:
-
-> **a unified science of dynamic systems combining physics, information, and structure**
-=======
-gencityLab** is a scientific Python framework dedicated to the study and quantification of **Agencity** — an observable designed to measure a system’s ability to actively structure its own evolution.
->>>>>>> 7fdb362e5a99ca437937b5eb65e42c67b4ba6f62
+MIT. See [`LICENSE`](LICENSE).
