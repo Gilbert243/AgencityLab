@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "agencitylab"
-version = "0.1.12"
+version = "0.2.0"
 description = "Scientific framework for the theory of Agencity"
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.10"
@@ -96,8 +96,7 @@ line-length = 100
 target-version = "py310"
 
 [tool.ruff.lint]
-# v0.1 foundation baseline: correctness-critical checks across package and tests.
-# Broader style cleanup is intentionally decoupled from scientific reconciliation.
+# Correctness-focused baseline; scientific variables such as O remain canonical names.
 select = ["E9", "F63", "F7", "F82"]
 
 [tool.pytest.ini_options]

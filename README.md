@@ -1,22 +1,37 @@
 # AgencityLab
 
-AgencityLab is an alpha-stage scientific Python project for implementing and experimenting with the theory of **Agencity** developed by Gilbert BEMWIZ.
+AgencityLab is an alpha-stage scientific Python project for implementing and experimenting with the Theory of Agencity developed by Gilbert BEMWIZ.
 
-The project is research software. Its purpose is to make the theory inspectable, testable, reproducible, and progressively comparable with data. It is **not** currently evidence that Agencity is a universally validated physical observable, a classifier of agency, or a replacement for established statistical measures.
+The project is research software. Its purpose is to make the theory inspectable, testable, reproducible, and progressively comparable with data. It is not currently evidence that Agencity is a universally validated physical observable, a classifier of agency, or a replacement for established statistical measures.
 
 ## Status of the implementation
 
-The current `0.1.x` line establishes the software foundations: package metadata, test discovery, CI, public imports, documentation structure, and theory-to-code traceability.
-
-The current theory target uses the conceptual chain:
+Version `0.2.0` establishes the canonical scalar `u -> b` reference core against the current second-edition theory.
 
 ```text
 u -> u* -> X* -> A* -> M, O -> D, S -> J, U -> beta -> b
 ```
 
-where the current theory sources define reduced derivatives, causal memory/organisation terms, dynamic and structural intensities, a logarithmic contrast, a complex orientation, structured Agencity `beta`, and the observable `b`.
+The canonical path implements:
 
-**Important:** parts of the existing numerical implementation predate the current theoretical formulation. In particular, the operands used by `M` and `O`, the use of `tanh`, and CRM window compression are not yet fully reconciled with the current theory sources. These differences are documented in [`docs/theory_mapping.md`](docs/theory_mapping.md) and are intentionally deferred to the scientific reconciliation phase rather than being silently changed in a foundations release.
+```text
+u* = u / A_ref
+t* = t / tau
+X* = d(u*) / d(t*)
+A* = d^2(u*) / d(t*)^2
+M = CRM[u*]
+O = CRM[u*, X*]
+D = sqrt((X*)^2 + (A* X*)^2)
+S = sqrt(M^2 + O^2)
+J = ln((e + D) / (e + S))
+U = (M + i O) / S       for S > 0, else 0
+beta = J U               for S > 0, else 0
+b = P_c beta
+```
+
+Historical `tanh` saturation, `tau / A_fact` CRM compression, signal-derived physical fallbacks, and epsilon-modified canonical denominators are not used by the v0.2 reference path. See [`docs/theory_mapping.md`](docs/theory_mapping.md) for exact theory-to-code traceability.
+
+An exactly constant sampled observable is treated as the canonical null/rest-state postulate. The pipeline detects that state before numerical differentiation or CRM and returns `X*=A*=M=O=D=S=J=U=beta=b=0` exactly. This is an exact check, not a tolerance for near-constant signals.
 
 ## Installation
 
@@ -34,42 +49,49 @@ python -m pip install -e ".[dev]"
 
 Optional feature groups include `viz`, `app`, `ml`, `export`, and `docs`.
 
-## Minimal example
+## Minimal canonical example
 
 ```python
 import numpy as np
 from agencitylab import compute_agencity
 
-xi = np.linspace(0.0, 10.0, 200)
+xi = np.linspace(0.0, 10.0, 101)
 u = np.sin(xi)
 
-result = compute_agencity(u=u, xi=xi)
+result = compute_agencity(
+    u=u,
+    xi=xi,
+    A_ref=1.0,
+    tau=2.0,
+    P_c=1.0,
+)
+
 print(result.b.shape)
 ```
 
-Use explicit keyword arguments for scientific inputs. Structural parameters such as `tau`, characteristic power, normalisation choices, and physical metadata should be supplied deliberately when they are known rather than inferred from a toy example.
+`A_ref`, `tau`, and `P_c` are physical/contextual quantities. Supply them explicitly, carry them in metadata, or use a deliberately registered physical convention. The canonical pipeline does not infer them from signal standard deviation, MAD, range, z-score, or arbitrary defaults. The canonical CRM window is `w = tau`.
 
 ## Repository map
 
-- `agencitylab/core/`: numerical operators and current computational pipeline primitives.
-- `agencitylab/api/`: user-facing compute, analysis, batch, streaming, reporting, and export interfaces.
-- `agencitylab/analysis/`: diagnostics and higher-level interpretation. These modules must not silently redefine canonical equations.
-- `agencitylab/models/`: structured result and metadata objects.
-- `tests/`: unit, integration, regression, and foundation checks.
+- `agencitylab/core/`: deterministic canonical mathematical operators plus explicitly labelled helpers.
+- `agencitylab/api/`: stable user-facing orchestration; `compute_agencity` is the canonical reference entry point.
+- `agencitylab/analysis/`: diagnostics and interpretation. These modules must not silently redefine canonical equations.
+- `agencitylab/models/`: reproducibility-oriented result and metadata containers.
+- `tests/`: analytical unit tests, integration tests, regressions, and software-foundation checks.
 - `docs/`: project overview, theory mapping, tutorials, API documentation, and references.
-- `examples/` and `benchmarks/`: experimental material; coverage is still incomplete in the alpha series.
+- `examples/` and `benchmarks/`: experimental material; coverage remains incomplete in the alpha series.
 
 ## Documentation
 
 Start with:
 
-- [`docs/overview.md`](docs/overview.md) for the software architecture and project guarantees.
-- [`docs/theory_mapping.md`](docs/theory_mapping.md) for the current theory-to-code correspondence and known discrepancies.
+- [`docs/overview.md`](docs/overview.md) for architecture and v0.2 guarantees.
+- [`docs/theory_mapping.md`](docs/theory_mapping.md) for canonical definitions, parameter policy, null-state convention, and numerical boundaries.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) for development and scientific-change rules.
 
 ## Development checks
 
-The repository currently supports Python 3.10 and 3.11. CI verifies both versions with:
+The repository supports Python 3.10 and 3.11. CI verifies both versions with:
 
 ```bash
 python -c "import agencitylab; print(agencitylab.__version__)"
@@ -78,13 +100,13 @@ pytest
 python -m build
 ```
 
-The v0.1 Ruff policy is a correctness-focused baseline (`E9`, `F63`, `F7`, `F82`) applied across the package and tests. The existing repository has broader style debt; that cleanup is intentionally separated from scientific reconciliation so linting does not trigger large unrelated rewrites.
+The Ruff policy remains a correctness-focused baseline (`E9`, `F63`, `F7`, `F82`) so scientific changes are not obscured by unrelated style churn.
 
 ## Scientific caution
 
-Agencity is an emerging theoretical framework. Validation across domains remains a research programme. High dynamic intensity is not, by itself, evidence of agency; numerical outputs must be interpreted together with structural coherence, assumptions, scales, and uncertainty.
+Agencity is an emerging theoretical framework. Implementation fidelity is not empirical validation. High dynamic intensity is not, by itself, evidence of agency, and `beta != 0` does not establish coherent or "real" agencity. Interpretation should use a separate diagnostic layer involving structure, orientation stability, significant `|b|`, assumptions, scales, and uncertainty.
 
-Experimental, heuristic, diagnostic, or legacy components should be labelled as such. When code and theory conflict, the conflict should be documented and resolved explicitly with reference to the theory sources and tests rather than by silently adapting the theory to existing code.
+Experimental, heuristic, diagnostic, or legacy components must remain labelled as such. The current theory documents define the canonical physics; Git history only documents previous implementations.
 
 ## Author and upstream
 

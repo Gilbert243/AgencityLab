@@ -1,73 +1,38 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from .modes import AgencityMode
 
 
 @dataclass(slots=True)
 class AgencityConfig:
-    """
-    Main configuration object for AgencityLab.
+    """Lightweight runtime configuration.
 
-    This object is intentionally lightweight and serializable.
-    It controls:
-    - runtime mode
-    - numerical thresholds
-    - optional acceleration
-    - backend selection
-    - analysis behavior
-    - metadata
+    Numerical and analysis controls live here, but the canonical physical equations
+    do not read ``epsilon``, ``crm_window``, or similar settings as physical constants.
     """
-
-    # ============================================================
-    # CORE
-    # ============================================================
 
     mode: AgencityMode = AgencityMode.CANONICAL
-    normalization_method: str = "zscore"
-
-    # ============================================================
-    # DYNAMICS
-    # ============================================================
+    normalization_method: str = "A_ref"
 
     tau_threshold: float = 0.5
     activity_window: int = 1
     crm_window: int = 1
 
-    # ============================================================
-    # NUMERICAL
-    # ============================================================
-
     epsilon: float = 1e-12
     reduced_time_step: float = 1.0
 
-    # ============================================================
-    # PHYSICAL EXTENSIONS
-    # ============================================================
-
     use_riemann_metric: bool = False
-    metric_type: str = "identity"  # identity, diagonal, learned
-
-    # scaling Bemwiz ↔ nat
+    metric_type: str = "identity"
     agencity_scale: float = 1.0
+    temperature: float = 1.0
 
-    # thermodynamic coupling
-    temperature: float = 1.0  # normalized (or Kelvin if used physically)
-
-    # ============================================================
-    # BACKEND / PERFORMANCE
-    # ============================================================
-
-    backend: str = "numpy"  # numpy, numba, jax, auto
+    backend: str = "numpy"
     prefer_gpu: bool = False
     use_numba: bool = False
     use_jax: bool = False
-
-    # ============================================================
-    # ANALYSIS / UX
-    # ============================================================
 
     compute_signature: bool = True
     compute_multiscale: bool = True
@@ -75,31 +40,17 @@ class AgencityConfig:
     streaming_enabled: bool = False
     batch_parallel: bool = False
 
-    # ============================================================
-    # META
-    # ============================================================
-
     metadata: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
-        """
-        Convert the configuration to a serializable dictionary.
-        """
         payload = asdict(self)
         payload["mode"] = self.mode.value
         return payload
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "AgencityConfig":
-        """
-        Create a configuration from a dictionary.
-
-        Unknown keys are stored in metadata["extra"] so the config remains
-        forward-compatible.
-        """
         payload = dict(data or {})
         extra = dict(payload.get("metadata", {}))
-
         if "mode" in payload:
             payload["mode"] = AgencityMode.from_value(payload["mode"])
 
@@ -126,13 +77,10 @@ class AgencityConfig:
             "batch_parallel",
             "metadata",
         }
-
         known = {}
         for key in list(payload.keys()):
             if key in allowed:
                 known[key] = payload.pop(key)
-
-        # store unknown keys in metadata["extra"] so nothing is lost
         if payload:
             extra.setdefault("extra", {})
             if not isinstance(extra["extra"], dict):
@@ -140,12 +88,9 @@ class AgencityConfig:
             extra["extra"].update(payload)
 
         metadata = known.get("metadata", {})
-        if isinstance(metadata, dict):
-            merged_metadata = dict(metadata)
-            if extra:
-                merged_metadata = {**merged_metadata, **extra}
-        else:
-            merged_metadata = extra
+        merged_metadata = dict(metadata) if isinstance(metadata, dict) else {}
+        if extra:
+            merged_metadata = {**merged_metadata, **extra}
 
         return cls(
             mode=known.get("mode", cls.mode),
@@ -172,9 +117,6 @@ class AgencityConfig:
         )
 
     def with_updates(self, **kwargs) -> "AgencityConfig":
-        """
-        Return a new config with updated fields.
-        """
         payload = self.to_dict()
         payload.update(kwargs)
         return AgencityConfig.from_dict(payload)

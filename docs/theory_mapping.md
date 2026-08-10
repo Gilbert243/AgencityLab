@@ -1,20 +1,22 @@
 # Theory-to-code mapping
 
-This document records the current relationship between the Agencity theory sources used by the project and the Python implementation. It is a traceability document, not a claim that the code is already scientifically validated.
+This document records the relationship between the current Agencity theory and the Python reference implementation. The scientific source of truth is the current theory material, especially *Théorie de l’Agencité — Principes et fondements* (second edition, 10 August 2026). Git history is useful for migration context only; it does not define canonical physics.
 
 ## Status vocabulary
 
-- **canonical target**: the definition selected from the current main theory text for the reference implementation.
-- **experimental**: a deliberate extension or alternative formulation.
-- **heuristic**: a practical modelling or robustness rule not promoted to a theoretical axiom.
-- **diagnostic**: an analysis quantity used to interpret outputs.
-- **legacy**: behaviour inherited from an earlier or divergent formulation and awaiting reconciliation.
+- **canonical**: directly implements the selected current theory definition.
+- **mathematical consequence**: follows from canonical definitions without an additional physical assumption.
+- **numerical approximation**: discrete approximation of a canonical continuous operator.
+- **implementation convention**: software rule required to make the discrete implementation explicit without redefining the physics.
+- **diagnostic**: interpretation layer that does not redefine the observable.
+- **experimental**: deliberate extension or alternative formulation.
+- **legacy**: retained compatibility or historical behaviour outside the canonical path.
 
-## Canonical target pipeline
-
-The current main theory source gives the reduced pipeline, using reduced time `t*` and normalized observable `u*`:
+## Canonical pipeline implemented in 0.2.0
 
 ```text
+u* = u / A_ref
+t* = t / tau
 X* = d(u*) / d(t*)
 A* = d^2(u*) / d(t*)^2
 M  = CRM[u*]
@@ -22,78 +24,103 @@ O  = CRM[u*, X*]
 D  = sqrt((X*)^2 + (A* X*)^2)
 S  = sqrt(M^2 + O^2)
 J  = ln((e + D) / (e + S))
-U  = (M + i O) / S, for S > 0
-beta = J U
+Theta = atan2(O, M)
+U  = (M + i O) / S   if S > 0, else 0
+beta = J U            if S > 0, else 0
 b = P_c beta
 ```
 
-For `S = 0`, the selected theory formulation sets the structured complex contribution to zero rather than assigning an arbitrary orientation.
+Here `e = exp(1)`. No `tanh` saturation is part of the second-edition canonical construction.
 
-The main theory text also uses the characteristic scale `tau` in normalization/time reduction and in the causal memory construction. Validation across physical, biological, economic, or computational domains remains a research programme rather than an established package guarantee.
+## Canonical parameter policy
 
-## Current mapping
+`A_ref`, `tau`, `w`, and `P_c` are not signal statistics.
 
-| Theory stage | Canonical target | Current implementation | Status in 0.1.12 |
-| --- | --- | --- | --- |
-| observable | `u` | API input preparation in `agencitylab/api/compute.py` | canonical interface target |
-| normalization | `u -> u*` | `agencitylab/core/normalization.py` | under scientific review |
-| activation | `X* = d(u*)/d(t*)` | `agencitylab/core/activation.py` | under scientific review |
-| activity | `A* = d(X*)/d(t*)` | `agencitylab/core/activity.py` | under scientific review |
-| characteristic scale | `tau` | `agencitylab/core/tau.py` and API metadata resolution | mixed canonical/heuristic depending on auto-resolution |
-| memory | `M = CRM[u*]` | `compute.py` passes `A*` to `core.memory.memory`; `memory.py` applies `tanh(CRM(A*))` | **legacy/divergent** |
-| organisation | `O = CRM[u*, X*]` | `compute.py` passes `X*` to `core.organization.organization`; `organization.py` applies `tanh(CRM(X*))` | **legacy/divergent** |
-| dynamic intensity | `D = sqrt((X*)^2 + (A*X*)^2)` | `agencitylab/core/intensity.py` | canonical target, verify numerically in v0.2 |
-| structural intensity | `S = sqrt(M^2 + O^2)` | `agencitylab/core/intensity.py` | canonical target conditional on corrected `M`, `O` |
-| contrast/orientation | logarithmic `J`, complex direction `U` | `agencitylab/core/beta.py` and related core helpers | canonical target, verify edge cases in v0.2 |
-| structured Agencity | `beta = J U` | `agencitylab/core/beta.py` | canonical target conditional on upstream stages |
-| observable flow | `b = P_c beta` | `agencitylab/core/agencity.py`, characteristic power resolution in `core/power.py` | canonical target; `P_c="auto"` is a separate modelling/API concern |
-| interpretation | coherence, regimes, signatures, information diagnostics | `agencitylab/analysis/` | mostly diagnostic/experimental |
+- `A_ref` is a physical/contextual reference amplitude. It must be supplied explicitly, carried by metadata, or resolved from a deliberately registered physical convention. Canonical normalization never estimates it from standard deviation, MAD, range, or z-score.
+- `tau` is a structural characteristic time of the system. It must be supplied explicitly, carried by metadata, or resolved from a deliberately registered physical convention. Signal-derived `estimate_tau` remains an experimental helper and is not used by the canonical pipeline.
+- `w` is fixed to `tau` in the v0.2 canonical public pipeline. The advanced mathematical treatment of independently optimized `w` is an extension and does not silently replace this rule.
+- `P_c` is a characteristic physical power. It must be supplied explicitly, carried by metadata, derived from documented physical energetics, or resolved from a deliberately registered physical convention. Signal-derived power estimators remain experimental helpers.
 
-## Known discrepancies that must not be hidden
+Sampling interval, `tau`, CRM window `w`, and multiscale analysis are distinct concepts.
 
-### 1. Memory and organisation operands
+## Operator mapping
 
-The selected current main theory text uses `M = CRM[u*]` and `O = CRM[u*, X*]`. The current pipeline instead computes memory from `A*` and organisation from `X*` as separate single-signal CRM operations.
+| Theory stage | Implementation | v0.2.0 status |
+| --- | --- | --- |
+| `u -> u*` | `agencitylab/core/normalization.py` | canonical |
+| `t -> t*` | `agencitylab/core/activation.py::reduced_coordinate` | canonical |
+| `X*` | `agencitylab/core/activation.py` | canonical continuous definition, finite-difference numerical approximation |
+| `A*` | `agencitylab/core/activity.py` | canonical continuous definition, finite-difference numerical approximation |
+| CRM | `agencitylab/core/crm.py` | canonical adjacent causal windows; exact zero-variance convention |
+| `M = CRM[u*]` | `agencitylab/core/memory.py` | canonical |
+| `O = CRM[u*, X*]` | `agencitylab/core/organization.py` | canonical |
+| `D` and `S` | `agencitylab/core/intensity.py` | canonical |
+| `J` | `agencitylab/core/contrast.py` | canonical |
+| `Theta`, `U` | `agencitylab/core/coherence.py`, `orientation.py` | canonical |
+| `beta` | `agencitylab/core/beta.py` | canonical |
+| `b = P_c beta` | `agencitylab/core/agencity.py` | canonical |
+| public `u -> b` orchestration | `agencitylab/api/compute.py` | canonical reference path |
 
-This is a scientific difference, not a naming issue. Version `0.1.12` documents it but does not silently rewrite the numerical core. Reconciliation belongs in the v0.2 phase with focused tests and an explicit migration decision.
+## Exact null/rest-state postulate
 
-### 2. `tanh` compression
+For the reference implementation, an exactly constant sampled observable is treated as the canonical null/rest-state postulate rather than as something to be numerically proved by finite differences.
 
-`core/memory.py` and `core/organization.py` currently apply `tanh` to CRM outputs and describe that behaviour as canonical. The selected current main theory formulation used for this mapping does not include that saturation in the definitions of `M` and `O`.
+The pipeline therefore performs an exact preliminary check, with no tolerance or epsilon. If all sampled values of `u` are exactly identical, derivative and CRM stages are bypassed and the implementation sets
 
-Until reconciled, the `tanh` transform should be treated as legacy/experimental behaviour, not as an unquestioned canonical equation.
+```text
+X* = A* = M = O = D = S = J = 0
+U = beta = b = 0
+```
 
-### 3. CRM window versus `tau`
+exactly.
 
-The current main theory text uses a causal comparison over adjacent windows tied to `tau`. An advanced theory treatment also studies a more general window `w > 0` and its optimisation. The implementation in `core/crm.py` adds a short-observation rule that switches from `w = tau` to `w = tau / A_fact` when `T_obs < 2*tau` (or when compression is forced).
+This rule prevents floating-point derivative residue from being mistaken for physical dynamics. It is not a universal threshold for near-constant signals: arbitrarily small but non-zero structure is still processed by the canonical equations.
 
-That compression rule is an implementation modelling choice. It must not be conflated with the canonical main-text definition, with sampling resolution, or with multiscale analysis. The v0.2 reconciliation should decide whether it remains as a labelled heuristic/experimental mode.
+## Numerical safeguards versus physics
 
-### 4. Divergent source formulations
+The canonical operators do not insert machine epsilon into valid physical equations.
 
-The theory material contains at least one appendix/alternate presentation that uses raw-variable CRM inputs where the main text uses reduced quantities, and it presents a different-looking convention for the logarithmic regularisation constant. These differences should be arbitrated at the theory level before code is changed.
+- Pearson CRM returns zero only when an empirical variance is exactly zero.
+- `S = sqrt(M^2 + O^2)` uses the direct norm.
+- `U` branches explicitly on `S > 0`; when `S = 0`, `U = 0`.
+- `J = ln((e + D)/(e + S))` uses the fixed theoretical constant `e`, not a numerical epsilon.
+- tiny positive values are not reclassified as zero by a global threshold.
 
-The project therefore does not use "the newest Python implementation" as a source of truth when theory sources disagree.
+Generic safeguard utilities may still exist for non-canonical or legacy code, but the canonical `compute_agencity` path does not use them to alter `A_ref`, `tau`, CRM, `D`, `S`, `J`, `U`, `beta`, or `b`.
 
-## Interpretation boundaries
+## Historical migration resolved in v0.2
 
-The following cautions are part of the project contract:
+Version 0.1.12 documented several legacy divergences. Version 0.2.0 removes them from the canonical path:
 
-- high `D` is dynamic intensity, not proof of agency;
-- `S` is structural intensity, not a synonym for dynamic activity;
-- `U` is a structural direction/orientation when defined;
-- `beta` or `b` alone should not be advertised as a universal agency/noise classifier;
-- real-agencity diagnostics that combine structural intensity, orientation stability, and significant `|b|` belong to analysis/validation and do not redefine the core observable;
-- stochastic signals need not have `D = 0`.
+- historical `tanh` compression of `M` and `O` is no longer used;
+- `M` is no longer computed from `A*`;
+- `O` is no longer a single-signal CRM of `X*`;
+- short-observation `tau / A_fact` CRM compression no longer modifies the canonical window;
+- signal statistics are no longer used as silent fallbacks for `A_ref`, `tau`, or `P_c`;
+- smoothing, clipping, and saturation are rejected by canonical operators when requested through the canonical API.
 
-## v0.2 reconciliation checklist
+Legacy or experimental helpers may remain for comparison or research, but they are outside the canonical reference computation.
 
-The next phase should, in order:
+## Interpretation boundary
 
-1. select and cite the exact canonical definitions for `M` and `O`;
-2. add unit tests for those definitions on deterministic synthetic signals;
-3. decide the status of `tanh` and preserve it only if explicitly labelled and justified;
-4. separate canonical CRM windowing from optional/experimental window policies;
-5. verify `D`, `S`, `J`, `U`, `beta`, and `b`, including `S = 0` and numerical-stability cases;
-6. update API/docstrings that currently call divergent behaviour canonical;
-7. only then expand validation, multiscale optimisation, or classification claims.
+The core computes the observable. It does not decide whether a system has coherent or "real" agencity.
+
+`beta != 0` alone is not a classification criterion. Coherence, angular variance, significant `|b|`, regimes, geometry, events, transitions, and related interpretation belong to `agencitylab/analysis/` or clearly labelled diagnostic functions. Noise and chaos may produce local non-zero `beta`; high `D` is not proof of real agencity.
+
+## v0.2 analytical test contract
+
+The test suite checks the mathematical operators rather than preferred scientific outcomes. It includes:
+
+- exact physical normalization by `A_ref`;
+- reduced-time derivatives on an analytic polynomial;
+- exact rest-state short-circuit before derivative/CRM evaluation;
+- repeating, inverted, cross, zero-variance, and tiny-amplitude CRM cases;
+- `M` and `O` canonical operands;
+- exact `D` and `S` norms;
+- exact logarithmic contrast and `D = S => J = 0`;
+- explicit `S = 0` orientation/beta branch;
+- tiny positive `S` values below common epsilons to prove that numerical epsilon does not redefine physical zero;
+- linearity of `b` in `P_c`;
+- rejection of arbitrary physical-parameter fallbacks and non-canonical `w != tau`.
+
+These tests establish implementation fidelity to the selected formulas and conventions. They are not empirical validation of the Theory of Agencity across physical domains.

@@ -1,154 +1,69 @@
-"""
-power.py
-
-Characteristic power utilities for AgencityLab.
-
-IMPORTANT
----------
-In the stabilized Agencity theory:
-
-    Pc is a structural property
-    of the containing physical system.
-
-Pc should therefore come from:
-    - physical models,
-    - canonical registries,
-    - system metadata,
-    - energetic scales.
-
-It should NOT fundamentally depend on u(t).
-"""
+"""Characteristic-power utilities for AgencityLab."""
 
 from __future__ import annotations
 
 import numpy as np
 
-from .safeguards import (
-    ensure_positive,
-)
-
 from agencitylab.constants.characteristic_powers import (
+    power_context_from_metadata,
     resolve_characteristic_power,
 )
+from .validation import validate_positive_scalar
 
-
-# ============================================================
-# CANONICAL API
-# ============================================================
 
 def characteristic_power(
     value=None,
     *,
+    nominal_power=None,
     system=None,
     domain=None,
     reference_energy=None,
+    inertia=None,
     tau=None,
+    metadata=None,
     A_ref=None,
-    default: float = 1.0,
-    verbose: bool = False,
+    default=None,
+    verbose=False,
 ):
+    """Resolve canonical characteristic power ``P_c``.
+
+    Supported physical routes are, in order: an explicit ``value``; an already
+    specified metadata value; nominal sustainable power; documented reference
+    energy divided by its structural time; ``inertia * reference_energy / tau``;
+    or a deliberately registered physical convention. ``A_ref`` is accepted only
+    for backwards-compatible call signatures and is never used to derive power.
     """
-    Resolve characteristic power Pc.
+    del A_ref
+    context = power_context_from_metadata(metadata)
+    if system is None:
+        system = context.get("system")
+    if domain is None:
+        domain = context.get("domain")
 
-    Priority
-    --------
-    1) explicit value
-    2) reference_energy / tau
-    3) canonical registry
-    4) A_ref^2 / tau
-    5) default
-    """
-
-    if verbose:
-        print("[power] resolving Pc")
-
-    # ========================================================
-    # explicit
-    # ========================================================
-
-    if value is not None:
-
-        if verbose:
-            print("[power] explicit value")
-
-        return ensure_positive(value)
-
-    # ========================================================
-    # energy / tau
-    # ========================================================
-
-    if (
-        reference_energy is not None
-        and tau is not None
-    ):
-
-        if verbose:
-            print("[power] using E_ref / tau")
-
-        return ensure_positive(
-            np.asarray(
-                reference_energy,
-                dtype=float,
-            )
-            / np.asarray(
-                tau,
-                dtype=float,
-            )
+    if value is not None and str(value).strip().lower() not in {"auto", "canonical", "default"}:
+        out = validate_positive_scalar(value, name="P_c")
+    elif context.get("Pc") is not None:
+        out = validate_positive_scalar(context["Pc"], name="P_c")
+    elif nominal_power is not None:
+        out = validate_positive_scalar(nominal_power, name="nominal_power")
+    elif reference_energy is not None and tau is not None:
+        energy = validate_positive_scalar(reference_energy, name="reference_energy")
+        tau_value = validate_positive_scalar(tau, name="tau")
+        if inertia is not None:
+            energy *= validate_positive_scalar(inertia, name="inertia")
+        out = energy / tau_value
+    else:
+        out = resolve_characteristic_power(
+            system=system,
+            domain=domain,
+            Pc="auto",
+            default=default,
         )
 
-    # ========================================================
-    # canonical registry
-    # ========================================================
-
-    Pc = resolve_characteristic_power(
-        system=system,
-        domain=domain,
-        Pc="auto",
-        default=default,
-    )
-
-    if Pc is not None:
-
-        Pc = ensure_positive(Pc)
-
-        if verbose:
-            print(f"[power] canonical Pc={Pc}")
-
-        return Pc
-
-    # ========================================================
-    # A_ref² / tau
-    # ========================================================
-
-    if (
-        A_ref is not None
-        and tau is not None
-    ):
-
-        if verbose:
-            print("[power] using A_ref² / tau")
-
-        A_ref = ensure_positive(A_ref)
-
-        tau = ensure_positive(tau)
-
-        return ensure_positive(
-            (A_ref ** 2) / tau
-        )
-
-    # ========================================================
-    # fallback
-    # ========================================================
-
     if verbose:
-        print("[power] using default")
+        print(f"[power] resolved P_c={out}")
+    return float(out)
 
-    return ensure_positive(default)
-
-
-# ============================================================
-# OPTIONAL HEURISTIC ESTIMATION
-# ============================================================
 
 def estimate_characteristic_power(
     signal,
@@ -159,77 +74,25 @@ def estimate_characteristic_power(
     A_ref=None,
     verbose: bool = False,
 ):
-    """
-    Experimental heuristic estimation of Pc.
-
-    WARNING
-    -------
-    This function is NOT part of the canonical theory.
-
-    It derives energetic scales from the observable signal.
-    """
-
-    x = np.asarray(
-        signal,
-        dtype=float,
-    )
-
-    tau = ensure_positive(tau)
-
-    if verbose:
-        print(
-            f"[power] heuristic estimation "
-            f"method={method}"
-        )
-
-    # ========================================================
-    # A_ref override
-    # ========================================================
+    """Experimental signal-derived power estimate; not canonical physics."""
+    x = np.asarray(signal, dtype=float)
+    if not np.all(np.isfinite(x)):
+        raise ValueError("signal must contain only finite values")
+    tau = validate_positive_scalar(tau, name="tau")
 
     if A_ref is not None:
-
-        scale = ensure_positive(A_ref)
-
-    # ========================================================
-    # derive scale
-    # ========================================================
-
+        scale = validate_positive_scalar(A_ref, name="A_ref")
     elif scale is None:
-
         if method == "rms":
-
-            scale = np.sqrt(
-                np.nanmean(
-                    np.square(x)
-                )
-            )
-
+            scale = float(np.sqrt(np.mean(np.square(x))))
         elif method == "variance":
-
-            scale = np.sqrt(
-                np.nanvar(x)
-            )
-
+            scale = float(np.sqrt(np.var(x)))
         elif method == "amplitude":
-
-            scale = (
-                np.nanmax(x)
-                - np.nanmin(x)
-            )
-
+            scale = float(np.max(x) - np.min(x))
         else:
-
-            raise ValueError(
-                "Unknown power estimation method"
-            )
-
-    scale = ensure_positive(scale)
-
-    P_c = ensure_positive(
-        (scale ** 2) / tau
-    )
-
+            raise ValueError("Unknown power estimation method")
+    scale = validate_positive_scalar(scale, name="scale")
+    out = (scale**2) / tau
     if verbose:
-        print(f"[power] estimated Pc={P_c}")
-
-    return P_c
+        print(f"[power] experimental estimate P_c={out}")
+    return float(out)
