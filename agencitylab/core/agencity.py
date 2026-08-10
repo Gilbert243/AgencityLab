@@ -9,15 +9,38 @@ from .power import characteristic_power
 from .tau import characteristic_time
 from .validation import is_exactly_constant, validate_axis, validate_positive_scalar
 
+_AUTO_POWER = {"auto", "canonical", "default"}
+
+
+def _validate_power_input(P_c, *, expected_shape):
+    """Validate scalar or sampled characteristic power without altering its values."""
+    try:
+        power = np.asarray(P_c, dtype=float)
+    except Exception as exc:
+        raise ValueError("P_c must be numeric") from exc
+
+    if power.ndim == 0:
+        return validate_positive_scalar(float(power), name="P_c")
+    if power.ndim != 1 or power.shape != expected_shape:
+        raise ValueError("time-varying P_c must have the same one-dimensional shape as beta")
+    if not np.all(np.isfinite(power)) or np.any(power <= 0.0):
+        raise ValueError("P_c must contain only strictly positive finite values")
+    return power
+
 
 def agencity(beta_signal, P_c=1.0, *, smooth=False, resolution_scale=None, verbose=False):
-    """Compute the canonical observable flux ``b = P_c * beta`` exactly."""
+    """Compute the canonical observable flux ``b(t) = P_c(t) * beta(t)`` exactly.
+
+    ``P_c`` may be a strictly positive scalar or a strictly positive sampled
+    profile with the same shape as ``beta_signal``. No signal-derived power and
+    no epsilon replacement are introduced here.
+    """
     if smooth or resolution_scale is not None:
         raise ValueError("canonical b = P_c * beta cannot be smoothed")
     beta_signal = np.asarray(beta_signal, dtype=complex)
-    if beta_signal.size == 0 or not np.all(np.isfinite(beta_signal)):
-        raise ValueError("beta_signal must be non-empty and finite")
-    power = validate_positive_scalar(P_c, name="P_c")
+    if beta_signal.ndim != 1 or beta_signal.size == 0 or not np.all(np.isfinite(beta_signal)):
+        raise ValueError("beta_signal must be a non-empty finite one-dimensional array")
+    power = _validate_power_input(P_c, expected_shape=beta_signal.shape)
     b = power * beta_signal
     if verbose:
         print(f"[agencity] |b| mean={np.mean(np.abs(b)):.6g}")
@@ -95,6 +118,29 @@ def agencity_criteria(
     return out
 
 
+def _resolve_full_pipeline_power(P_c, t, *, system, domain, tau_value, verbose):
+    if callable(P_c):
+        return _validate_power_input(P_c(t), expected_shape=t.shape)
+
+    if P_c is not None and not isinstance(P_c, str):
+        candidate = np.asarray(P_c)
+        if candidate.ndim > 0:
+            return _validate_power_input(candidate, expected_shape=t.shape)
+
+    value = None
+    if P_c is not None and not (
+        isinstance(P_c, str) and P_c.strip().lower() in _AUTO_POWER
+    ):
+        value = P_c
+    return characteristic_power(
+        value=value,
+        system=system,
+        domain=domain,
+        tau=tau_value,
+        verbose=verbose,
+    )
+
+
 def compute_full_agencity(
     t,
     u,
@@ -139,11 +185,12 @@ def compute_full_agencity(
     if w is not None and float(w) != float(tau_value):
         raise ValueError("canonical memory window is fixed by w = tau")
     memory_window = tau_value
-    power = characteristic_power(
-        value=None if P_c in {None, "auto"} else P_c,
+    power = _resolve_full_pipeline_power(
+        P_c,
+        t,
         system=system,
         domain=domain,
-        tau=tau_value,
+        tau_value=tau_value,
         verbose=verbose,
     )
     t_star = reduced_coordinate(t, tau_value)

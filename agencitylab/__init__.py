@@ -1,36 +1,17 @@
-"""AgencityLab package.
-
-This package provides the scientific framework for the Agencity theory.
-The public API is intentionally lightweight at import time.
-"""
+"""High-level public API for AgencityLab."""
 
 from .version import __version__
-
-"""
-High-level public API for AgencityLab.
-
-This package exposes the simplest entry points for users.
-
-Includes:
-- compute
-- analysis
-- pipeline
-- streaming
-- batch processing
-- reporting & export
-- visualization
-- shortcuts
-- backend access (optional)
-"""
-
-# ============================================================
-# COMPUTE
-# ============================================================
-from .api.compute import compute_agencity, AgencityResult
-
-# ============================================================
-# ANALYSIS
-# ============================================================
+from .models import AgencityResult, ExperimentMetadata, RESULT_SCHEMA_VERSION
+from .exceptions import (
+    AgencityError,
+    AgencityValidationError,
+    PhysicalParameterError,
+    UnitValidationError,
+    BatchItemError,
+    StreamStateError,
+    StreamNotReadyError,
+)
+from .api.compute import compute_agencity
 from .api.analyze import (
     analyze_agencity,
     textual_analysis,
@@ -42,74 +23,38 @@ from .api.analyze import (
     analyze_multiscale,
     analyze_signature,
 )
-
-# ============================================================
-# PIPELINE
-# ============================================================
 from .api.pipeline_api import AgencityPipeline, pipeline
+from .api.streaming import AgencityStream, stream_agencity
+from .api.batch import run_batch, analyze_batch, summarize_batch, compare_batch
+from .api.report import build_report, build_text_report, summarize
+from .api.export import export_json, export_csv, export_excel, export_pdf, export_report
+from .api.visualize import visualize_agencity
+from .api.shortcuts import run, inspect, plot, summarize as quick_summary
+from .backends.selector import get_backend
 
-# Backward-compatible aliases
 PipelineBuilder = AgencityPipeline
 pipeline_builder = pipeline
 
-# ============================================================
-# STREAMING (REAL-TIME)
-# ============================================================
-from .api.streaming import AgencityStream, stream_agencity
-
-# ============================================================
-# BATCH (RESEARCH / MULTI SIGNALS)
-# ============================================================
-from .api.batch import (
-    run_batch,
-    analyze_batch,
-    summarize_batch,
-    compare_batch,
-)
-
-# ============================================================
-# REPORT / EXPORT
-# ============================================================
-from .api.report import build_report, build_text_report, summarize
-from .api.export import (
-    export_json,
-    export_csv,
-    export_excel,
-    export_pdf,
-    export_report,
-)
-
-# ============================================================
-# VISUALIZATION
-# ============================================================
-from .api.visualize import visualize_agencity
-
-# ============================================================
-# SHORTCUTS (ULTRA SIMPLE API)
-# ============================================================
-from .api.shortcuts import run, inspect, plot, summarize as quick_summary
-
-# ============================================================
-# BACKEND (OPTIONAL USER CONTROL)
-# ============================================================
-from agencitylab.backends.selector import get_backend
-
 try:
-    from agencitylab.backends.selector import available_backends
-except Exception:  # fallback safe
+    from .backends.selector import available_backends
+except Exception:  # pragma: no cover - optional backend discovery
     def available_backends():
         return ["numpy"]
 
-# ============================================================
-# PUBLIC EXPORT
-# ============================================================
+
 __all__ = [
     "__version__",
-    # ---- compute ----
-    "compute_agencity",
+    "RESULT_SCHEMA_VERSION",
     "AgencityResult",
-
-    # ---- analysis ----
+    "ExperimentMetadata",
+    "AgencityError",
+    "AgencityValidationError",
+    "PhysicalParameterError",
+    "UnitValidationError",
+    "BatchItemError",
+    "StreamStateError",
+    "StreamNotReadyError",
+    "compute_agencity",
     "analyze_agencity",
     "textual_analysis",
     "analyze_regime",
@@ -119,45 +64,29 @@ __all__ = [
     "analyze_transitions",
     "analyze_multiscale",
     "analyze_signature",
-
-    # ---- pipeline ----
     "pipeline",
     "AgencityPipeline",
     "PipelineBuilder",
     "pipeline_builder",
-
-    # ---- streaming ----
     "AgencityStream",
     "stream_agencity",
-
-    # ---- batch ----
     "run_batch",
     "analyze_batch",
     "summarize_batch",
     "compare_batch",
-
-    # ---- report ----
     "build_report",
     "build_text_report",
     "summarize",
-
-    # ---- export ----
     "export_json",
     "export_csv",
     "export_excel",
     "export_pdf",
     "export_report",
-
-    # ---- visualization ----
     "visualize_agencity",
-
-    # ---- shortcuts ----
     "run",
     "inspect",
     "plot",
     "quick_summary",
-
-    # ---- backend ----
     "get_backend",
     "available_backends",
 ]

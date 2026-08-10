@@ -2,6 +2,30 @@
 
 All notable changes to AgencityLab are documented here.
 
+## 0.3.0 - 2026-08-10
+
+### Stable computational API
+
+- Stabilized `compute_agencity()` as the scalar-signal canonical reference entry point without changing the v0.2 equations.
+- Added strict one-dimensional input validation, explicit ambiguity errors for `u` versus the compatibility alias `data`, and rejection of unknown compute keywords instead of silently ignoring them.
+- Added typed public exceptions for validation, physical-parameter, unit-label, batch, and streaming failures while keeping validation exceptions compatible with `ValueError` handling.
+- Added descriptive unit-label support: `unit` for `u`/`A_ref`, `coordinate_unit` for `xi`/`tau`, and `power_unit` for `P_c`; observable flux `b` is labelled as informational power (`power_unit·nat`, e.g. `W·nat`). No hidden unit conversion is performed.
+- Stabilized `ExperimentMetadata` with validation, unit contracts, canonical `memory_window`, forward-compatible unknown-field preservation, and explicit separation of legacy observational metadata from canonical modifiers.
+- Stabilized `AgencityResult` with schema version `0.3`, scalar or sampled strictly positive `P_c`, consistent metadata synchronization, complex round-tripping, canonical wrapped `theta = angle(U)`, and exact `eta = |b| / P_c` without epsilon substitution.
+- Restored explicit support for externally supplied time-varying `P_c(t)` as a sampled profile or callable, preserving the canonical `b(t) = P_c(t) beta(t)` relation without deriving power from the observed signal.
+- Preserved compatibility fields and aliases: `data=`, historical `Pc=`, legacy serialized physical-field names, legacy `metadata.extra["memory_window"]`, and summary keys including `Pc_mean`, `A_fact`, and `resolution_scale`.
+- Improved deserialization so legacy payloads may recover `A_ref`, `tau`, and scalar `P_c` from metadata before any compatibility default is considered.
+- Improved batch execution with per-item physical parameters, metadata/config overrides, deterministic ordering, and indexed `BatchItemError` failures.
+- Improved streaming with persistent physical context, continuous implicit coordinates across chunks, explicit coordinate-order validation, and `StreamNotReadyError` when two CRM windows are not yet available.
+- Repaired fluent-pipeline compatibility so `set_tau()` and `set_power()` affect the physical metadata actually used by computation. `set_resolution_scale()` remains observational metadata only, and `set_activity_factor()` is deprecated metadata that does not modify canonical CRM.
+- Added a dedicated v0.3 stable-API test suite and user documentation.
+
+### Scientific boundary
+
+- Version 0.3.0 is an API-stability milestone, not a change to canonical physics and not empirical validation of the Theory of Agencity.
+- `beta`, `J`, CRM, `M`, `O`, `D`, `S`, `tau`, `w`, `P_c`, and `A_ref` are not redefined for software convenience.
+- Time-varying `P_c(t)` support is an implementation of the canonical multiplicative flux relation, not a signal-derived power estimator.
+
 ## 0.2.0 - 2026-08-10
 
 ### Canonical Core
