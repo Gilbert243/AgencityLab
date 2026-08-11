@@ -1,6 +1,6 @@
 """Lightweight contracts for future dynamical Agencity field extensions.
 
-This module defines data models only.  It does not implement a beta-to-phi bridge,
+This module defines data models only. It does not implement a beta-to-phi bridge,
 physical potentials, spatial differential operators, PDEs, thermodynamics,
 gravity, quantisation, or cosmology.
 """
@@ -40,10 +40,16 @@ class ParameterProvenance:
 
     def __post_init__(self) -> None:
         try:
-            source = self.source if isinstance(self.source, ParameterSource) else ParameterSource(self.source)
+            source = (
+                self.source
+                if isinstance(self.source, ParameterSource)
+                else ParameterSource(self.source)
+            )
         except ValueError as exc:
             allowed = ", ".join(item.value for item in ParameterSource)
-            raise ValueError(f"unknown parameter provenance source; expected one of: {allowed}") from exc
+            raise ValueError(
+                f"unknown parameter provenance source; expected one of: {allowed}"
+            ) from exc
         object.__setattr__(self, "source", source)
         object.__setattr__(self, "note", str(self.note).strip())
         object.__setattr__(self, "reference", str(self.reference).strip())
@@ -68,7 +74,10 @@ def _contains_callable(value: Any) -> bool:
     if callable(value):
         return True
     if isinstance(value, Mapping):
-        return any(_contains_callable(key) or _contains_callable(item) for key, item in value.items())
+        return any(
+            _contains_callable(key) or _contains_callable(item)
+            for key, item in value.items()
+        )
     if isinstance(value, (list, tuple, set)):
         return any(_contains_callable(item) for item in value)
     return False
@@ -88,10 +97,16 @@ def _validate_units(value: str) -> str:
     return value
 
 
-def _validate_status(value: ScientificStatus | str) -> ScientificStatus:
-    status = value if isinstance(value, ScientificStatus) else ScientificStatus(value)
+def _coerce_status(value: ScientificStatus | str) -> ScientificStatus:
+    return value if isinstance(value, ScientificStatus) else ScientificStatus(value)
+
+
+def _validate_research_status(value: ScientificStatus | str) -> ScientificStatus:
+    status = _coerce_status(value)
     if status is not ScientificStatus.RESEARCH:
-        raise ValueError("dynamical Agencity field models must have scientific status 'research'")
+        raise ValueError(
+            "dynamical Agencity field models must have scientific status 'research'"
+        )
     return status
 
 
@@ -107,9 +122,13 @@ def _validate_axes(
     for index, (axis, size) in enumerate(zip(axes, spatial_shape)):
         arr = np.asarray(axis, dtype=float)
         if arr.ndim != 1 or arr.size != size:
-            raise ValueError(f"spatial_axes[{index}] must be one-dimensional with length {size}")
+            raise ValueError(
+                f"spatial_axes[{index}] must be one-dimensional with length {size}"
+            )
         if not np.all(np.isfinite(arr)):
-            raise ValueError(f"spatial_axes[{index}] must contain only finite values")
+            raise ValueError(
+                f"spatial_axes[{index}] must contain only finite values"
+            )
         validated.append(arr)
     return tuple(validated)
 
@@ -120,13 +139,17 @@ def _normalize_provenance(
     output: dict[str, ParameterProvenance] = {}
     for name, item in dict(value or {}).items():
         key = str(name)
-        output[key] = item if isinstance(item, ParameterProvenance) else ParameterProvenance.from_dict(item)
+        output[key] = (
+            item
+            if isinstance(item, ParameterProvenance)
+            else ParameterProvenance.from_dict(item)
+        )
     return output
 
 
 @dataclass(slots=True)
 class FieldModelMetadata:
-    """Serializable scientific metadata shared by future field layers."""
+    """Serializable scientific metadata shared by all future field layers."""
 
     model_name: str
     scientific_status: ScientificStatus | str = ScientificStatus.RESEARCH
@@ -144,7 +167,7 @@ class FieldModelMetadata:
         self.model_name = str(self.model_name).strip()
         if not self.model_name:
             raise ValueError("model_name must be non-empty")
-        self.scientific_status = _validate_status(self.scientific_status)
+        self.scientific_status = _coerce_status(self.scientific_status)
         self.units_convention = _validate_units(self.units_convention)
         self.theory_source = str(self.theory_source).strip()
         self.assumptions = tuple(str(item).strip() for item in self.assumptions)
@@ -166,7 +189,8 @@ class FieldModelMetadata:
             "assumptions": list(self.assumptions),
             "units_convention": self.units_convention,
             "parameter_provenance": {
-                key: item.to_dict() for key, item in self.parameter_provenance.items()
+                key: item.to_dict()
+                for key, item in self.parameter_provenance.items()
             },
             "software_version": self.software_version,
             "numerical_method": self.numerical_method,
@@ -182,9 +206,8 @@ class FieldModelMetadata:
 
 @dataclass(slots=True)
 class DynamicalAgencityFieldState:
-    """One autonomous ``phi(x,t)`` field state.
+    """One autonomous ``phi(x,t)`` spatial snapshot.
 
-    ``phi`` is a spatial snapshot, so its shape is exactly ``spatial_shape``.
     The object is a research data contract, not an observed field result.
     """
 
@@ -204,21 +227,30 @@ class DynamicalAgencityFieldState:
         self.phi = np.asarray(raw_phi, dtype=dtype)
         if self.phi.ndim < 1 or not np.all(np.isfinite(self.phi)):
             raise ValueError("phi must be a finite spatial array")
+
         self.spatial_shape = tuple(int(size) for size in self.spatial_shape)
-        if any(size <= 0 for size in self.spatial_shape) or self.phi.shape != self.spatial_shape:
+        if (
+            any(size <= 0 for size in self.spatial_shape)
+            or self.phi.shape != self.spatial_shape
+        ):
             raise ValueError("spatial_shape must match phi.shape")
+
         if self.phi_dot is not None:
             raw_dot = np.asarray(self.phi_dot)
             dot_dtype = complex if np.iscomplexobj(raw_dot) else float
             self.phi_dot = np.asarray(raw_dot, dtype=dot_dtype)
-            if self.phi_dot.shape != self.phi.shape or not np.all(np.isfinite(self.phi_dot)):
+            if (
+                self.phi_dot.shape != self.phi.shape
+                or not np.all(np.isfinite(self.phi_dot))
+            ):
                 raise ValueError("phi_dot must be finite and have the same shape as phi")
+
         self.time = float(self.time)
         if not np.isfinite(self.time):
             raise ValueError("time must be finite")
         self.spatial_axes = _validate_axes(self.spatial_axes, self.spatial_shape)
         self.metadata = _clean_mapping(self.metadata, name="metadata")
-        self.scientific_status = _validate_status(self.scientific_status)
+        self.scientific_status = _validate_research_status(self.scientific_status)
         self.model_name = str(self.model_name).strip()
         if self.model_name != "dynamical_agencity_field_state":
             raise ValueError("unexpected dynamical field state model_name")
@@ -230,7 +262,11 @@ class DynamicalAgencityFieldState:
             "phi_dot": None if self.phi_dot is None else self.phi_dot.copy(),
             "time": self.time,
             "spatial_shape": self.spatial_shape,
-            "spatial_axes": None if self.spatial_axes is None else tuple(axis.copy() for axis in self.spatial_axes),
+            "spatial_axes": (
+                None
+                if self.spatial_axes is None
+                else tuple(axis.copy() for axis in self.spatial_axes)
+            ),
             "metadata": dict(self.metadata),
             "scientific_status": self.scientific_status.value,
             "model_name": self.model_name,
@@ -246,7 +282,7 @@ class DynamicalAgencityFieldState:
 class DynamicalAgencityFieldSolution:
     """Numerical trajectory of an autonomous dynamical Agencity field.
 
-    Shape convention: ``phi.shape == (n_time, *spatial_shape)``.  The optional
+    Shape convention: ``phi.shape == (n_time, *spatial_shape)``. The optional
     ``phi_dot`` follows exactly the same convention.
     """
 
@@ -268,29 +304,44 @@ class DynamicalAgencityFieldSolution:
         self.times = np.asarray(self.times, dtype=float)
         if self.times.ndim != 1 or self.times.size < 1:
             raise ValueError("times must be a non-empty one-dimensional array")
-        if not np.all(np.isfinite(self.times)) or np.any(np.diff(self.times) <= 0.0):
+        if (
+            not np.all(np.isfinite(self.times))
+            or np.any(np.diff(self.times) <= 0.0)
+        ):
             raise ValueError("times must contain finite strictly increasing values")
+
         raw_phi = np.asarray(self.phi)
         dtype = complex if np.iscomplexobj(raw_phi) else float
         self.phi = np.asarray(raw_phi, dtype=dtype)
         self.spatial_shape = tuple(int(size) for size in self.spatial_shape)
+        if any(size <= 0 for size in self.spatial_shape):
+            raise ValueError("spatial_shape must contain strictly positive sizes")
         expected = (self.times.size, *self.spatial_shape)
         if self.phi.shape != expected or not np.all(np.isfinite(self.phi)):
             raise ValueError(f"phi must be finite and have shape {expected}")
+
         if self.phi_dot is not None:
             raw_dot = np.asarray(self.phi_dot)
             dot_dtype = complex if np.iscomplexobj(raw_dot) else float
             self.phi_dot = np.asarray(raw_dot, dtype=dot_dtype)
-            if self.phi_dot.shape != expected or not np.all(np.isfinite(self.phi_dot)):
+            if (
+                self.phi_dot.shape != expected
+                or not np.all(np.isfinite(self.phi_dot))
+            ):
                 raise ValueError(f"phi_dot must be finite and have shape {expected}")
+
         self.spatial_axes = _validate_axes(self.spatial_axes, self.spatial_shape)
         self.metadata = _clean_mapping(self.metadata, name="metadata")
         self.parameters = _clean_mapping(self.parameters, name="parameters")
-        self.parameter_provenance = _normalize_provenance(self.parameter_provenance)
-        self.solver_metadata = _clean_mapping(self.solver_metadata, name="solver_metadata")
+        self.parameter_provenance = _normalize_provenance(
+            self.parameter_provenance
+        )
+        self.solver_metadata = _clean_mapping(
+            self.solver_metadata, name="solver_metadata"
+        )
         self.dynamics_name = str(self.dynamics_name).strip()
         self.boundary_name = str(self.boundary_name).strip()
-        self.scientific_status = _validate_status(self.scientific_status)
+        self.scientific_status = _validate_research_status(self.scientific_status)
         self.units_convention = _validate_units(self.units_convention)
 
     def to_dict(self) -> dict[str, Any]:
@@ -299,11 +350,16 @@ class DynamicalAgencityFieldSolution:
             "phi": self.phi.copy(),
             "phi_dot": None if self.phi_dot is None else self.phi_dot.copy(),
             "spatial_shape": self.spatial_shape,
-            "spatial_axes": None if self.spatial_axes is None else tuple(axis.copy() for axis in self.spatial_axes),
+            "spatial_axes": (
+                None
+                if self.spatial_axes is None
+                else tuple(axis.copy() for axis in self.spatial_axes)
+            ),
             "metadata": dict(self.metadata),
             "parameters": dict(self.parameters),
             "parameter_provenance": {
-                key: item.to_dict() for key, item in self.parameter_provenance.items()
+                key: item.to_dict()
+                for key, item in self.parameter_provenance.items()
             },
             "dynamics_name": self.dynamics_name,
             "boundary_name": self.boundary_name,
