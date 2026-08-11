@@ -2,6 +2,62 @@
 
 All notable changes to AgencityLab are documented here.
 
+## 1.0.0 - 2026-08-11
+
+### Stable
+
+- Established the first stable public software contract around `compute_agencity()`, `AgencityResult`, `ExperimentMetadata`, documented diagnostics, batch, retained-history streaming, multiscale, discrete, multivariate, export, visualization, scientific-workflow, and fluent-pipeline entry points.
+- Froze the accepted scalar canonical equations without adding a new scientific feature or changing CRM, `M`, `O`, `D`, `S`, `J`, `Theta`, `beta`, `b`, `A_ref`, `tau`, `w`, or `P_c`.
+- Adopted Semantic Versioning for the stable public contract: patch releases for compatible fixes, minor releases for backwards-compatible additions, and major releases for intentional breaking changes.
+
+### Added
+
+- Added `CITATION.cff` using only author, repository, version, date, and licence metadata already supported by the project; no DOI or affiliation is invented.
+- Added explicit v1.0 release gates for stable package metadata, complete MIT licence text, citation metadata, and producer-version consistency.
+- Added a built-wheel public end-to-end CI workflow covering clean installation, import, canonical compute, diagnostics, JSON/CSV export, complex result restoration, and `pip check`.
+
+### Changed
+
+- Bumped package/runtime/documentation status from `0.9.0` Release Candidate to `1.0.0` Stable Scientific Release.
+- Updated the package classifier from Beta to `Development Status :: 5 - Production/Stable`.
+- Finalized the stable API, SemVer, parameter, reproducibility, diagnostic, streaming, multiscale, and research-boundary documentation.
+- Updated contribution guidance to the tested Python 3.10/3.11/3.12 matrix and the v1.0 stable-API evolution policy.
+
+### Fixed
+
+- Replaced the incomplete placeholder `LICENSE` body with the complete MIT License text already declared by package metadata and documentation.
+- Removed stale Release Candidate/current-version wording from the primary README and Sphinx documentation status pages.
+
+### Deprecated
+
+- No stable v1.0 API is newly removed. Existing legacy compatibility spellings and metadata remain isolated as documented; new code should use the stable canonical spellings and entry points.
+
+### Performance
+
+- No new performance algorithm is introduced in v1.0. The retained v0.8 benchmark remains a numerical-equivalence and regression-observation gate without fragile universal timing thresholds.
+
+### Documentation
+
+- Published the final stable/diagnostic/experimental/research distinction, scientific limitations, SemVer contract, citation guidance, and v1.0 readiness criteria.
+- Kept strict Sphinx warnings-as-errors and executable user examples as release gates.
+
+### Compatibility
+
+- Python 3.10, 3.11, and 3.12 remain officially tested.
+- Minimal installation remains NumPy-only; SciPy, pandas, Matplotlib, Numba, and JAX remain outside the minimal import path.
+- Supported optional extras remain independently installed/smoke-tested, while the `docs` extra is exercised by the strict documentation job.
+- Wheel and source-distribution clean installs remain required.
+
+### Scientific validation
+
+- The deterministic reference suite continues to cover exact rest, sinusoidal structure, passive damping, Van der Pol oscillation, negative-damping instability, filtered Ornstein-Uhlenbeck dynamics, and Lorenz dynamics.
+- Canonical identities, invariances/limits, CRM numerical equivalence, edge cases, batch/thread equivalence, full-history streaming/one-shot equivalence, and multiscale/scalar equivalence remain release gates.
+- Version 1.0 is a stable software release, not empirical confirmation of the Theory of Agencity. Diagnostic thresholds remain contextual, accelerated backends remain experimental, and fundamental extensions remain research/speculative.
+
+### 0.x path to stability
+
+- 0.2 reconciled the canonical scalar engine with the accepted theory; 0.3 stabilized computational results and validation; 0.4 added deterministic scientific validation; 0.5 separated diagnostics from canonical computation; 0.6–0.7 added and reconciled multiscale/extensions and scientific UX; 0.8 hardened engineering/performance and dependency boundaries; 0.9 froze the candidate v1.0 contract and release gates.
+
 ## 0.9.0 - 2026-08-10
 
 ### Added

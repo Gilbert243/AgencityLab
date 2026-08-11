@@ -1,8 +1,9 @@
-"""Release-candidate gates for the stable user workflow and critical contracts."""
+"""Stable-release gates for the public user workflow and critical contracts."""
 
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -23,6 +24,8 @@ from agencitylab import (
 )
 from agencitylab.core.beta import compute_beta
 
+ROOT = Path(__file__).resolve().parents[2]
+
 
 def _signal(n: int = 801):
     xi = np.linspace(0.0, 20.0, n)
@@ -36,6 +39,21 @@ def _compute(xi, u, **kwargs):
     return compute_agencity(u=u, xi=xi, **options)
 
 
+def test_v1_release_metadata_is_consistent():
+    pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    license_text = (ROOT / "LICENSE").read_text(encoding="utf-8")
+    citation = (ROOT / "CITATION.cff").read_text(encoding="utf-8")
+
+    assert __version__ == "1.0.0"
+    assert 'version = "1.0.0"' in pyproject
+    assert "Development Status :: 5 - Production/Stable" in pyproject
+    assert "Permission is hereby granted" in license_text
+    assert "placeholder license text" not in license_text
+    assert "version: 1.0.0" in citation
+    assert "date-released: 2026-08-11" in citation
+    assert "license: MIT" in citation
+
+
 def test_quickstart_compute_analyze_export_roundtrip(tmp_path):
     xi, u = _signal()
     result = _compute(
@@ -46,7 +64,7 @@ def test_quickstart_compute_analyze_export_roundtrip(tmp_path):
         power_unit="W",
     )
 
-    assert result.metadata.agencitylab_version == __version__ == "0.9.0"
+    assert result.metadata.agencitylab_version == __version__ == "1.0.0"
     assert result.metadata.reference_amplitude == 1.0
     assert result.metadata.characteristic_time == 2.0
     assert result.metadata.memory_window == 1.5
@@ -71,7 +89,7 @@ def test_quickstart_compute_analyze_export_roundtrip(tmp_path):
     restored = AgencityResult.from_dict(payload["result"])
     np.testing.assert_allclose(restored.beta, result.beta)
     np.testing.assert_allclose(restored.b, result.b)
-    assert restored.metadata.agencitylab_version == "0.9.0"
+    assert restored.metadata.agencitylab_version == "1.0.0"
 
     frame = pd.read_csv(csv_path)
     for column in ("beta_real", "beta_imag", "b_real", "b_imag"):
@@ -165,7 +183,7 @@ def test_batch_preserves_order_and_per_item_physics():
     assert [result.tau for result in results] == [2.0, 3.0]
     assert [result.memory_window for result in results] == [2.0, 2.0]
     assert [float(result.P_c) for result in results] == [1.0, 4.0]
-    assert all(result.metadata.agencitylab_version == "0.9.0" for result in results)
+    assert all(result.metadata.agencitylab_version == "1.0.0" for result in results)
 
 
 def test_full_history_stream_matches_one_shot():

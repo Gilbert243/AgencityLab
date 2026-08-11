@@ -1,35 +1,44 @@
 # AgencityLab
 
-AgencityLab is open-source scientific Python software for implementing, inspecting, testing, and falsifying the Theory of Agencity developed by Gilbert BEMWIZ.
+AgencityLab is an open-source Python framework implementing and testing the **Theory of Agencity**.
 
-**Current software status: `0.9.0` Release Candidate for the candidate-v1.0 public API.**
+**Current software status: 1.0.0 — Stable Scientific Release.** Version 1.0 freezes the documented public software contract. Software stability is distinct from empirical validation of the theory.
 
-AgencityLab is research software. A correct implementation, green reference tests, and a stable API are not empirical confirmation that Agencity is a universally validated physical observable or a replacement for established physical or statistical quantities.
+## Canonical observable
 
-## Canonical scalar pipeline
-
-The reference NumPy engine implements:
+The central observable is
 
 ```text
-u -> u* -> X* -> A* -> M,O -> D,S -> J,U,Theta -> beta -> b
+b(t) = P_c(t) * beta(t)
 ```
 
-with the accepted relations:
+with the canonical pipeline
 
 ```text
-u* = u / A_ref
+u -> u* -> X* -> A* -> M,O -> D,S -> J,Theta -> beta -> b
+```
+
+and
+
+```text
 S = sqrt(M^2 + O^2)
+Theta = atan2(O, M)
 J = ln((e + D) / (e + S))
-U = (M + i O) / S       for S > 0, else 0
-beta = J U               for S > 0, else 0
-b(t) = P_c(t) beta(t)
 ```
 
-The CRM memory width `w` and characteristic structural time `tau` are distinct parameters. Omitting `w` uses the common software convention `w=tau`; explicitly supplying a positive `w` preserves it. No epsilon is inserted into a valid canonical denominator.
+For `S > 0`:
+
+```text
+U = (M + i O) / S
+beta = J * U
+b = P_c * beta
+```
+
+For `S = 0`, the canonical convention is `U = 0` and `beta = 0`. Numerical epsilon is not inserted into these valid equations.
 
 ## Installation
 
-The minimal package requires only NumPy:
+The stable canonical engine and default public API require only NumPy:
 
 ```bash
 pip install agencitylab
@@ -38,142 +47,132 @@ pip install agencitylab
 Optional capabilities are isolated:
 
 ```bash
-pip install "agencitylab[scientific]"  # SciPy reference-system utilities
-pip install "agencitylab[data]"        # pandas/xarray adapters
-pip install "agencitylab[viz]"         # Matplotlib figures
-pip install "agencitylab[export]"      # CSV/DataFrame, Excel and PDF workflow dependencies
-pip install "agencitylab[numba]"       # experimental Numba primitives
-pip install "agencitylab[jax]"         # experimental JAX primitives
-pip install "agencitylab[docs]"        # Sphinx documentation build
+pip install "agencitylab[scientific]"
+pip install "agencitylab[data]"
+pip install "agencitylab[viz]"
+pip install "agencitylab[export]"
+pip install "agencitylab[docs]"
+pip install "agencitylab[numba]"  # experimental
+pip install "agencitylab[jax]"    # experimental
 ```
 
-NumPy is the stable complete canonical backend. Numba and JAX remain experimental primitive layers and do not silently replace the reference pipeline.
+Numba and JAX do not replace the complete stable NumPy reference pipeline in v1.0.
 
 ## Quickstart
 
 ```python
 import numpy as np
-from agencitylab import analyze_agencity, compute_agencity
+import agencitylab
 
 xi = np.linspace(0.0, 20.0, 801)
 u = np.sin(xi)
 
-result = compute_agencity(
+result = agencitylab.compute_agencity(
     u=u,
     xi=xi,
     A_ref=1.0,
     tau=2.0,
     w=1.5,
     P_c=5.0,
-    unit="rad",
     coordinate_unit="s",
     power_unit="W",
 )
 
-analysis = analyze_agencity(result)
-
-print(result.b.shape)
-print(result.beta[:3])
+print(result.b)
 print(result.metadata.agencitylab_version)
-print(analysis["regime"])
 ```
 
-The result exposes the complete inspectable computational state, including `X_star`, `A_star`, `M`, `O`, `D`, `S`, `J`, `U`, `theta`, `beta`, and `b`.
+`A_ref`, `tau`, `w`, and `P_c` are physical/contextual inputs. The stable compute path does not silently infer them from ordinary signal statistics. `tau` and CRM width `w` are distinct. If `w` is omitted, AgencityLab uses the documented software convention `w=tau`; this is not a universal identity.
 
-`A_ref`, `tau`, `w`, and `P_c` are physical/contextual quantities. The stable compute API does not estimate them silently from standard deviation, MAD, range, z-score, or other ordinary signal statistics. Explicit experimental/window-selection utilities are kept separate.
+Diagnostics are separate:
 
-## Canonical computation versus diagnostics
+```python
+analysis = agencitylab.analyze_agencity(result)
+print(analysis["real_agencity"]["status"])
+```
 
-`agencitylab/core/` contains the deterministic mathematical engine. `agencitylab/analysis/` consumes computed results to produce coherence, geometry, events, transitions, signatures, regime diagnostics, and contextual real-agencity assessments.
+For the complete visualisation/export walkthrough, install `agencitylab[viz,export]` and see `docs/tutorials/quickstart.md`.
 
-A non-zero `beta` is not by itself evidence of coherent or “real” agencity. Diagnostic thresholds and persistence rules remain contextual and never modify `M`, `O`, `D`, `S`, `J`, `Theta`, `beta`, or `b`.
+## Stable v1.0 API
 
-## Public API freeze candidate
+The principal stable interfaces are:
 
-The v0.9 candidate-v1.0 stable contract centers on:
+- `compute_agencity()`
+- `AgencityResult`, `ExperimentMetadata`
+- `analyze_agencity()` and documented named diagnostics
+- `run_batch()`, `analyze_batch()`
+- `AgencityStream`, `stream_agencity()`
+- `compute_agencity_spectrum()`
+- `compute_discrete_agencity()`
+- `compute_multivariate_agencity()`
+- documented exports and visualisations
+- `ScientificStudy`, `scientific_workflow()`
+- `AgencityPipeline`, `pipeline()`
 
-- `compute_agencity()`;
-- `AgencityResult` and `ExperimentMetadata`;
-- `analyze_agencity()` and named analysis functions;
-- `run_batch()` and batch analysis helpers;
-- `AgencityStream` / `stream_agencity()`;
-- `compute_agencity_spectrum()`;
-- `compute_discrete_agencity()` and `compute_multivariate_agencity()`;
-- result/study export helpers;
-- visualization and scientific-workflow orchestration;
-- `AgencityPipeline` / `pipeline()`.
+The exact boundary is documented in `docs/stable_api.md`.
 
-See [`docs/stable_api.md`](docs/stable_api.md) for the exact stable, experimental, and legacy boundaries.
+### Semantic Versioning
+
+Starting with 1.0.0:
+
+- `1.0.x`: bug fixes, documentation, compatible internal improvements;
+- `1.x.0`: backwards-compatible functionality and new APIs;
+- `2.0.0`: intentional breaking changes to the stable public contract.
+
+Experimental, research, speculative, and legacy-compatibility interfaces are not automatically covered by the same stability guarantee.
+
+## Canonical, diagnostic, experimental, research
+
+**Stable canonical computation.** `agencitylab/core/` contains the deterministic mathematical engine. NumPy is the stable complete backend. Normal user workflows should use the documented public API.
+
+**Diagnostic analysis.** `agencitylab/analysis/` consumes computed results. Coherence, angular variance, real-agencity criteria, curvature, winding, events, transitions, signatures, regimes, and reports do not redefine the canonical state. In particular, `beta != 0` is not the definition of coherent or real agencity. Contextual structural, angular-stability, and `|b|` criteria remain diagnostic inputs and never modify `beta`.
+
+**Experimental.** Numba/JAX primitive layers and signal-derived window optimisation may evolve outside the stable contract.
+
+**Research / speculative.** Riemannian, field, extended thermodynamic, quantum, gravitational, and cosmological extensions are outside the v1.0 stable scalar contract and are not presented as empirically established results.
 
 ## Reproducibility
 
-A newly computed `AgencityResult` preserves:
+`AgencityResult` preserves the coordinate, observable, canonical intermediate arrays, physical/contextual parameters, unit/context labels, backend information, and producing AgencityLab version. Complex `beta` and `b` are preserved by JSON serialization; stable CSV export exposes real and imaginary components explicitly.
 
-- input coordinate and observable;
-- `A_ref`, `tau`, `w`, and scalar or sampled `P_c`;
-- unit/domain/system metadata;
-- the AgencityLab version that produced the computation;
-- requested/resolved backend information and `canonical_backend="numpy"`;
-- canonical intermediate arrays;
-- complex `beta` and `b` without dropping their imaginary parts.
+This metadata supports traceability but does not make the inverse problem injective: the original observable cannot in general be reconstructed uniquely from `b` alone.
 
-JSON serialization round-trips complex arrays. Sample-wise CSV export uses explicit real, imaginary, and magnitude columns.
+## Batch, streaming and extensions
 
-## Batch, streaming and multiscale
+Batch computations preserve input order and allow independent physical parameters per item. Supported serial/threaded execution is tested for scientific equivalence.
 
-Batch items may carry independent physical parameters and metadata; serial and parallel execution must preserve input order and results.
+Streaming in v1.0 is retained-history recomputation. With full history its final result is tested against one-shot computation. A finite `window_size` intentionally changes the retained-history problem. v1.0 does not claim a constant-memory online recurrence.
 
-Full-history `AgencityStream` recomputes the retained history after updates. Under that contract, its final result is tested against one-shot computation. A finite `window_size` intentionally changes retained history; v0.9 does **not** claim an O(1)-memory online recurrence.
-
-`compute_agencity_spectrum()` scans explicit `tau` values. A multiscale scan is not automatic estimation of the physical characteristic time. `windows=` may keep CRM widths explicit and independent.
+Multiscale analysis scans explicit `tau` values and may use independent `w` values. It does not conflate characteristic time, CRM memory width, sampling interval, or physical parameter estimation. Discrete and multivariate constructions are part of the documented stable computational API; the incomplete Riemannian research extension is not promoted to stable status.
 
 ## Scientific validation
 
-The deterministic validation battery covers the reference cases available in the project:
+The deterministic regression suite covers exact rest, sinusoidal structure, passive damping, Van der Pol oscillation, negative-damping instability, filtered Ornstein-Uhlenbeck dynamics, and Lorenz dynamics. It also checks canonical identities, invariances/limits, CRM equivalence, edge cases, batch/streaming/multiscale consistency, packaging, and public workflows.
 
-- exact rest;
-- sinusoid;
-- underdamped oscillator;
-- Van der Pol oscillator;
-- negative-damping unstable oscillator;
-- low-pass-filtered Ornstein–Uhlenbeck process;
-- Lorenz system.
-
-It also tests mathematical properties and numerical convergence/robustness that have been accepted by the project. Unexpected results are treated as scientific information, not as a reason to alter the theory.
-
-See [`docs/scientific_validation.md`](docs/scientific_validation.md).
-
-## Release Candidate gates
-
-CI for v0.9 verifies:
-
-- Python 3.10, 3.11, and 3.12;
-- the complete pytest suite and Ruff correctness checks;
-- deterministic scientific-reference tests;
-- wheel and sdist builds plus clean installs and `pip check`;
-- NumPy-only minimal compute/analysis;
-- isolated supported extras;
-- Sphinx documentation with warnings treated as errors;
-- critical executable examples;
-- input -> compute -> diagnostics -> export -> restore end-to-end behavior;
-- retained v0.8 scientific-equivalence benchmarks.
-
-The v1.0 readiness checklist is maintained in [`docs/release_readiness.md`](docs/release_readiness.md).
+These checks validate implementation and numerical behaviour against accepted reference consequences; they are not universal empirical validation of the Theory of Agencity.
 
 ## Documentation
 
-Start here:
+- `docs/overview.md`
+- `docs/stable_api.md`
+- `docs/tutorials/quickstart.md`
+- `docs/tutorials/full_pipeline.md`
+- `docs/agencity_analysis.md`
+- `docs/multiscale_extensions.md`
+- `docs/theory_mapping.md`
+- `docs/scientific_validation.md`
+- `docs/engineering_performance.md`
+- `docs/release_readiness.md`
 
-- [`docs/tutorials/quickstart.md`](docs/tutorials/quickstart.md) — executable signal-to-export workflow;
-- [`docs/stable_api.md`](docs/stable_api.md) — candidate-v1.0 API contract;
-- [`docs/theory_mapping.md`](docs/theory_mapping.md) — theory to implementation mapping;
-- [`docs/agencity_analysis.md`](docs/agencity_analysis.md) — diagnostic layer;
-- [`docs/multiscale_extensions.md`](docs/multiscale_extensions.md) — multiscale/discrete/multivariate boundaries;
-- [`docs/engineering_performance.md`](docs/engineering_performance.md) — v0.8 engineering evidence and limits;
-- [`docs/release_readiness.md`](docs/release_readiness.md) — v1.0 readiness gate;
-- [`CONTRIBUTING.md`](CONTRIBUTING.md) — contribution and scientific-change rules.
+Documentation is built in CI with significant Sphinx warnings treated as errors.
 
-## Development
+## Limitations
+
+AgencityLab 1.0 remains research software. Results depend on the observable and physically/contextually justified parameters. Sampling and preprocessing decisions must be explicit. Sensitivity to `w` is scientifically meaningful. The inverse problem is non-injective. Current streaming is not constant-memory. Accelerated backends are experimental, and fundamental extensions remain research/speculative.
+
+## Development and contribution
+
+Supported Python versions are **3.10, 3.11, and 3.12**.
 
 ```bash
 python -m pip install -e ".[dev,docs]"
@@ -181,30 +180,14 @@ ruff check agencitylab tests benchmarks/performance examples
 pytest
 sphinx-build -W --keep-going -b html docs docs/_build/html
 python -m build
-python examples/basic/simple_compute.py
-python examples/advanced/agencity_spectrum.py
 ```
 
-The retained performance/equivalence benchmark can be run with:
+See `CONTRIBUTING.md` for scientific-change rules, branch/PR workflow, tests, and SemVer policy.
 
-```bash
-python benchmarks/performance/benchmark_v08.py --quick
-```
+## Citation
 
-Performance observations validate implementation behavior only; they are not physical evidence for the theory.
-
-## Scientific and experimental boundary
-
-Experimental or speculative extensions are not promoted merely to make the Release Candidate look broader. Numba/JAX, Riemannian work, field-theory, thermodynamic, quantum, gravitational, and cosmological extensions remain outside the stable scalar reference contract unless separately accepted and validated.
-
-## Repository lineage
-
-Theory and original project: **Gilbert BEMWIZ**.
-
-Active integration repository: `somafgroup/AgencityLab`.
-
-Original repository lineage: `Gilbert243/AgencityLab`.
+Scientific users should cite the software metadata in `CITATION.cff`. No DOI or affiliation is asserted unless it is provided by the project.
 
 ## License
 
-MIT. See [`LICENSE`](LICENSE).
+AgencityLab is distributed under the MIT License. See `LICENSE`.

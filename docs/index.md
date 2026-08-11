@@ -40,9 +40,9 @@ references/glossary
 
 ## Project status
 
-AgencityLab `0.9.0` is the Release Candidate for the candidate-v1.0 public software contract. It combines the canonical scalar pipeline, deterministic scientific-validation battery, separate diagnostic analysis layer, multiscale/discrete/multivariate constructions, researcher workflows, packaging checks, executable examples, and release-readiness gates.
+AgencityLab `1.0.0` is the first Stable Scientific Release. The stable software contract combines the canonical scalar pipeline, deterministic scientific-validation battery, separate diagnostic analysis layer, multiscale/discrete/multivariate constructions, researcher workflows, packaging checks, executable examples, and reproducibility metadata.
 
-Version 0.9 is a stabilization milestone. It does not redefine `CRM`, `M`, `O`, `D`, `S`, `J`, `Theta`, `beta`, `b`, `A_ref`, `tau`, `w`, or `P_c`, and it is not empirical confirmation of the theory.
+Version 1.0 freezes the documented public API under Semantic Versioning. It does not redefine `CRM`, `M`, `O`, `D`, `S`, `J`, `Theta`, `beta`, `b`, `A_ref`, `tau`, `w`, or `P_c`, and software stability is not empirical confirmation of the theory.
 
 Read [the stable API contract](stable_api.md), [the theory mapping](theory_mapping.md), [scientific validation](scientific_validation.md), and [v1.0 release readiness](release_readiness.md) before treating an implementation detail, diagnostic threshold, benchmark observation, or experimental extension as a scientific claim.
 

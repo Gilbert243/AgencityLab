@@ -43,7 +43,7 @@ jobs:
         run: |
           python - <<'PY'
           import agencitylab
-          assert agencitylab.__version__ == "0.9.0"
+          assert agencitylab.__version__ == "1.0.0"
           print(agencitylab.__version__)
           PY
 
@@ -87,7 +87,7 @@ jobs:
           import numpy as np
           import agencitylab
 
-          assert agencitylab.__version__ == "0.9.0"
+          assert agencitylab.__version__ == "1.0.0"
           requirements = metadata.requires("agencitylab") or []
           assert any(requirement.lower().startswith("numpy") for requirement in requirements)
           for optional in ("scipy", "pandas", "matplotlib", "numba", "jax"):
@@ -105,9 +105,50 @@ jobs:
           analysis = agencitylab.analyze_agencity(result)
           assert result.b.shape == xi.shape
           assert np.all(np.isfinite(result.b))
-          assert result.metadata.agencitylab_version == "0.9.0"
+          assert result.metadata.agencitylab_version == "1.0.0"
           assert analysis["events"]["dynamic_peaks"]["count"] >= 0
           print("minimal wheel install and analysis: PASS")
+          PY
+
+      - name: Built wheel public end-to-end workflow
+        run: |
+          python -m venv .venv-e2e
+          .venv-e2e/bin/python -m pip install --upgrade pip
+          WHEEL="$(find "$GITHUB_WORKSPACE/dist" -maxdepth 1 -name '*.whl' -print -quit)"
+          .venv-e2e/bin/python -m pip install "${WHEEL}[export]"
+          .venv-e2e/bin/python -m pip check
+          cd /tmp
+          "$GITHUB_WORKSPACE/.venv-e2e/bin/python" - <<'PY'
+          import json
+          from pathlib import Path
+          import tempfile
+
+          import numpy as np
+          import agencitylab
+
+          xi = np.linspace(0.0, 20.0, 801)
+          result = agencitylab.compute_agencity(
+              u=np.sin(xi) + 0.1 * np.sin(2.0 * xi),
+              xi=xi,
+              A_ref=1.0,
+              tau=2.0,
+              w=1.5,
+              P_c=5.0,
+              coordinate_unit="s",
+              power_unit="W",
+          )
+          analysis = agencitylab.analyze_agencity(result)
+          with tempfile.TemporaryDirectory() as directory:
+              root = Path(directory)
+              json_path = agencitylab.export_study_json(result, analysis, root / "study.json")
+              csv_path = agencitylab.export_result_csv(result, root / "result.csv")
+              payload = json.loads(json_path.read_text(encoding="utf-8"))
+              restored = agencitylab.AgencityResult.from_dict(payload["result"])
+              assert csv_path.exists()
+              np.testing.assert_allclose(restored.beta, result.beta)
+              np.testing.assert_allclose(restored.b, result.b)
+          assert result.metadata.agencitylab_version == "1.0.0"
+          print("built wheel public end-to-end workflow: PASS")
           PY
 
       - name: Clean sdist install and minimal compute
@@ -120,7 +161,7 @@ jobs:
           "$GITHUB_WORKSPACE/.venv-sdist/bin/python" - <<'PY'
           import numpy as np
           import agencitylab
-          assert agencitylab.__version__ == "0.9.0"
+          assert agencitylab.__version__ == "1.0.0"
           assert agencitylab.available_backends() == ("numpy",)
           xi = np.arange(64, dtype=float)
           result = agencitylab.compute_agencity(
@@ -138,7 +179,7 @@ jobs:
       - name: Upload distributions
         uses: actions/upload-artifact@v4
         with:
-          name: agencitylab-0.9.0-distributions
+          name: agencitylab-1.0.0-distributions
           path: dist/
           if-no-files-found: error
 
@@ -221,6 +262,11 @@ jobs:
           MPLBACKEND: Agg
         run: python examples/basic/simple_compute.py
 
+      - name: Run signal exploration example
+        env:
+          MPLBACKEND: Agg
+        run: python examples/basic/explore_signal.py
+
       - name: Run scientific workflow example
         env:
           MPLBACKEND: Agg
@@ -278,6 +324,6 @@ jobs:
       - name: Upload benchmark report
         uses: actions/upload-artifact@v4
         with:
-          name: agencitylab-v0.9-retained-v08-benchmark
+          name: agencitylab-v1.0-retained-v08-benchmark
           path: benchmark-v08.json
           if-no-files-found: error
