@@ -1,55 +1,45 @@
-# v0.6 — Multiscale & Extensions
+# Multiscale & Extensions
 
-Version 0.6 made scale studies, explicit memory-window handling, discrete data, and multivariate observables usable from the public API. These are not a second Theory of Agencity: they are definitions and constructions from Volume 2 of the same theory.
+These APIs expose scale studies, explicit CRM-window handling, discrete data, and multivariate observables from Volume 2. They do not create a second scalar reference theory.
 
-## Theoretical boundary
+## `tau` and `w`
 
-Volume 2 keeps the CRM width `w > 0` distinct from the characteristic structural time `tau`. It often uses the convenient convention `w = tau`, but Chapter 13 treats `w` as a parameter in its own right and defines objective window-selection criteria.
-
-Consequently the scalar public API supports both cases:
+Volume 2 keeps CRM width `w > 0` distinct from characteristic structural time `tau`. AgencityLab follows that distinction.
 
 ```python
-# Common convention
+# w omitted: implementation fallback w=tau
 result = compute_agencity(..., tau=2.0)
 
-# Explicit theory parameter
+# explicit independent width
 result = compute_agencity(..., tau=2.0, w=1.0)
 ```
 
-When `w` is omitted, AgencityLab sets `w=tau`. When it is supplied, the positive value is preserved exactly and recorded in metadata. No signal statistic is used by `compute_agencity()` to choose `A_ref`, `tau`, `w`, or `P_c`.
+When `w` is omitted, metadata records that the implementation fallback was used. When supplied, `w` is preserved exactly. No signal statistic is used by `compute_agencity()` to choose `A_ref`, `tau`, `w`, or `P_c`.
 
-## The b(t, tau) spectrum
+## The `b(t,tau)` spectrum
 
-`compute_agencity_spectrum()` evaluates the scalar equations at each supplied structural scale. By default:
+`compute_agencity_spectrum()` evaluates the scalar equations at each supplied structural scale. With `windows=None`, each row uses the explicit fallback convention `w_k=tau_k`. Passing `windows=` keeps the quantities independent.
 
-```text
-w_k = tau_k
-```
-
-and the returned matrix `b` has shape `(n_scales, n_samples)`. The result also contains `beta`, `b_mean`, `b_rms`, `beta_mean`, `J_mean`, and `S_mean`.
-
-Passing `windows=` keeps `w` independent from `tau`. A scalar keeps the same `w` at every `tau`; a sequence supplies one `w_k` per scale. This is a software API for a distinction already present in Volume 2, not an alternative theory.
+A multiscale grid is not an estimator of the physical `tau`; it is an explicit comparison across supplied scales.
 
 ## Memory-window optimisation
 
-Chapter 13 defines three objective criteria and an automatic selection procedure. AgencityLab currently implements the angular-stability criterion
+`optimize_agencity_window()` implements the Chapter-13 angular-stability study over explicit candidate widths. Because the discrete CRM requires `w=N delta`, candidates are represented by integer sample counts.
+
+A candidate with no complete interval on which `S>0` has undefined structural orientation and is excluded rather than using the stored `Theta=0` representation as artificial coherence. Window optimisation is an explicit signal-derived diagnostic/experimental procedure, not silent physical parameter inference.
+
+## Discrete signals: explicit Volume-2 formulation
+
+`compute_discrete_agencity()` implements the Volume-2 sampled construction. It is **not** an alias for `compute_agencity()` and does not silently use `gradient -> gradient` for the second derivative.
+
+For interior samples Volume 2 defines
 
 ```text
-Phi2(w) = time mean of Var(Theta_w(s); s in [t-w, t])
-w_opt = argmin Phi2(w)
+X_n = (u[n+1] - u[n-1]) / (2 delta)
+A_n = (u[n+1] - 2u[n] + u[n-1]) / delta^2
 ```
 
-through `optimize_agencity_window()`. Candidate widths are represented by integer sample counts for uniformly sampled discrete signals because the discrete construction uses `w=N delta`.
-
-A one-sample CRM, or any candidate for which no complete interval has `S > 0`, does not have a defined structural orientation. Such a candidate is marked ineligible rather than turning the `Theta=0` storage convention into an artificial zero angular variance. This is a documented numerical eligibility rule, not a modification of the theoretical functional.
-
-The default candidate search spans one sampling step to half the observation duration on a logarithmic grid, then quantises candidates to integer sample counts. The implementation does not claim uniqueness of the optimum.
-
-## Discrete signals
-
-The theory's discrete construction uses centered finite differences in the interior, one-sided endpoint formulas where needed, and a discrete CRM over adjacent `N`-sample blocks with `w=N delta`.
-
-`compute_discrete_agencity()` is a convenience entry point:
+AgencityLab applies these operators to the canonical normalized sequence `u_star` on reduced spacing `delta_star=delta/tau`. To preserve the stable full-length result contract, endpoints use explicit second-order one-sided finite differences. This endpoint rule is an implementation convention consistent with the source's allowance for one-sided boundary treatment.
 
 ```python
 result = compute_discrete_agencity(
@@ -62,44 +52,51 @@ result = compute_discrete_agencity(
 )
 ```
 
-It constructs `xi_n = t0 + n delta` and delegates to `compute_agencity()`. It does not introduce a second set of equations. If `w` is omitted, the common `w=tau` convention is used.
+After the explicit `X_star` and `A_star` stages, CRM, `M`, `O`, `D`, `S`, `J`, `U`, `beta`, and `b` use the same reference core operators.
+
+### Why this differs from successive gradients
+
+For a sinus `sin(omega t)` and `z=omega delta`, the direct Volume-2 interior operators have transfer factors
+
+```text
+X:  omega sin(z)/z
+A: -omega^2 4 sin^2(z/2)/z^2
+```
+
+with no interior phase shift. Two successive centered first differences instead give a second-derivative amplitude factor `-omega^2 (sin(z)/z)^2`. Both converge to the continuous derivative as `delta -> 0`, but they are distinct finite-resolution operators.
+
+The test suite therefore checks constant, linear, quadratic, sinusoidal, damped, Van der Pol, unstable, and filtered stochastic signals, as well as boundary behaviour and convergence.
 
 ## Multivariate construction
 
-For `u(t) in R^m`, Volume 2 specifies scalar Agencity per component and characteristic power `P_c,k`, followed by
+For `u(t) in R^m`, Volume 2 specifies scalar Agencity per component and characteristic power `P_c,k >= 0`, followed by
 
 ```text
-beta_multi(t) = sum_k P_c,k(t) beta_k(t) / sum_k P_c,k(t)
-b_total(t)    = sum_k b_k(t)
-              = sum_k P_c,k(t) beta_k(t)
+b_total(t) = sum_k P_c,k(t) beta_k(t)
 ```
 
-`compute_multivariate_agencity()` implements this aggregation. `A_ref`, `tau`, and optionally `w` may be scalar or supplied per component. `P_c` may be a scalar, one value per component, or a sampled matrix. Time-varying component power therefore produces pointwise power weighting.
+When total component power is positive,
 
-The discarded arithmetic average is not used.
+```text
+beta_multi(t) = b_total(t) / sum_k P_c,k(t)
+```
 
-## tau, w, sampling, and multiscale are different objects
+`P_c,k=0` is valid. If every component has zero power at one sample, then `b_total=0` exactly but the weighted mean is mathematically undefined. The stable array stores `beta_multi=0` at that sample and exposes `beta_multi_defined=False`; no epsilon is inserted into the denominator.
 
-- `tau` is the characteristic structural time and controls reduced time and reduced derivatives.
-- `w` is the CRM memory-window width.
-- sampling interval `delta` is numerical coordinate resolution.
-- a multiscale spectrum compares explicitly supplied `tau` values; it is not an estimator of the physical `tau`.
+`A_ref`, `tau`, and optionally `w` may be scalar or supplied per component. `P_c` may be scalar, one value per component, or a sampled matrix.
 
-The compatibility helper `find_optimal_tau()` remains a diagnostic selector over a user-supplied scale grid. It does not claim to infer the physical characteristic time.
+## `tau`, `w`, sampling and multiscale are different objects
 
-The finite-record CRM warm-up associated with memory/organisation is governed by `w`: two adjacent CRM windows require an interval of length `2w`. This is distinct from the derived indicator `Sigma_Theta`, whose definition in the complete formulary remains `Var(Theta(s); s in [t-tau,t])`.
+- `tau`: characteristic structural time and reduced-time scale;
+- `w`: CRM memory width;
+- `delta`: numerical sampling interval;
+- multiscale scan: comparison over explicit `tau` values.
+
+The finite-record CRM history requirement is governed by `w`, while `Sigma_Theta` remains a diagnostic whose time interval is defined separately.
 
 ## Riemannian construction
 
-Volume 2 defines an intrinsic direction for systems on a Riemannian manifold by replacing ordinary derivatives with covariant derivatives and defining
-
-```text
-D = sqrt(||X||_g^2 + g(A, X)^2)
-```
-
-It also says that scalar quantities such as speed or `g(A,X)` may feed the CRM, but explicitly defers the detailed analysis. The document therefore does not yet determine a complete production-grade CRM/vector-state construction, validation contract, and numerical discretisation for a general manifold.
-
-For that reason AgencityLab **does not invent the missing details**. `riemannian_extension_status()` reports this part as `experimental` and unimplemented because the source itself leaves the detailed analysis for future work.
+Volume 2 gives a geometric direction using covariant derivatives and an intrinsic dynamic intensity, but defers enough detail that a complete production CRM/vector-state implementation is not yet determined. AgencityLab therefore keeps `riemannian_extension_status()` experimental and does not invent the missing theory.
 
 ## Public entry points
 
@@ -114,6 +111,6 @@ from agencitylab import (
 )
 ```
 
-## What this layer does not claim
+## Scientific boundary
 
-A spectrum maximum is not automatically the physical `tau`. An optimised `w` is selected from the signal by a theory-defined criterion and should still be reported as such when the physical context does not independently specify a window. Pc-weighted multivariate aggregation applies the theory's componentwise construction; it does not invent a coupled-vector CRM beyond what the source defines. The Riemannian construction remains a documented research boundary until the missing details are sufficiently specified and testable.
+A spectrum maximum is not automatically physical `tau`. An optimised `w` remains a signal-derived selection unless independently justified by context. Pc-weighted multivariate aggregation does not invent a coupled-vector CRM. Riemannian and broader fundamental extensions remain research boundaries.

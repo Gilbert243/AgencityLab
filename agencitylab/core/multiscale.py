@@ -59,13 +59,13 @@ def _power_profile(P_c, xi: np.ndarray):
         raise ValueError("P_c must be numeric") from exc
     if arr.ndim == 0:
         value = float(arr)
-        if not np.isfinite(value) or value <= 0.0:
-            raise ValueError("P_c must be strictly positive and finite")
+        if not np.isfinite(value) or value < 0.0:
+            raise ValueError("P_c must be non-negative and finite")
         return value
     if arr.ndim != 1 or arr.shape != xi.shape:
         raise ValueError("sampled P_c must be one-dimensional and match xi")
-    if not np.all(np.isfinite(arr)) or np.any(arr <= 0.0):
-        raise ValueError("sampled P_c must contain strictly positive finite values")
+    if not np.all(np.isfinite(arr)) or np.any(arr < 0.0):
+        raise ValueError("sampled P_c must contain non-negative finite values")
     return arr
 
 
@@ -166,8 +166,8 @@ def agencity_spectrum(
 ):
     """Compute the time-resolved multiscale spectrum ``b(t, tau)``.
 
-    By default each scale uses the common convention ``w = tau``. Passing
-    ``windows`` keeps the two theoretical parameters explicit and independent.
+    By default each scale uses the implementation fallback convention ``w = tau``.
+    Passing ``windows`` keeps the two theoretical parameters explicit and independent.
     """
     taus = np.asarray(list(taus), dtype=float)
     if taus.ndim != 1 or taus.size == 0:
@@ -195,7 +195,7 @@ def agencity_spectrum(
         "beta_mean": np.mean(np.abs(beta), axis=1),
         "J_mean": np.mean(J, axis=1),
         "S_mean": np.mean(S, axis=1),
-        "window_mode": "w=tau" if np.array_equal(taus, windows_arr) else "explicit independent w",
+        "window_mode": "w=tau fallback convention" if np.array_equal(taus, windows_arr) else "explicit independent w",
         "scientific_boundary": (
             "tau, w, sampling interval, and multiscale scanning are distinct theoretical/numerical objects"
         ),
@@ -320,8 +320,8 @@ def _component_power(P_c, xi: np.ndarray, n_components: int) -> np.ndarray:
             raise ValueError("sampled multivariate P_c must have shape (components, samples) or transpose")
     else:
         raise ValueError("multivariate P_c must be scalar, component vector, or sampled matrix")
-    if not np.all(np.isfinite(arr)) or np.any(arr <= 0.0):
-        raise ValueError("multivariate P_c must contain strictly positive finite values")
+    if not np.all(np.isfinite(arr)) or np.any(arr < 0.0):
+        raise ValueError("multivariate P_c must contain non-negative finite values")
     return arr
 
 
@@ -338,8 +338,11 @@ def multivariate_agencity(
     """Compute the theory's Pc-weighted multivariate construction.
 
     Each observable component is processed by the scalar equations. The total
-    flux is ``sum_k P_c,k beta_k`` and the aggregate state is the pointwise
-    Pc-weighted mean ``beta_multi``.
+    flux is ``sum_k P_c,k beta_k``. The aggregate state ``beta_multi`` is the
+    pointwise Pc-weighted mean only where total power is positive. At points
+    with zero total power the weighted mean is mathematically undefined; the
+    stable array representation stores zero there and exposes
+    ``beta_multi_defined=False`` rather than adding epsilon.
     """
     xi = validate_axis(xi)
     data = np.asarray(u, dtype=float)
@@ -377,7 +380,14 @@ def multivariate_agencity(
     b_components = powers * beta_components
     total_power = np.sum(powers, axis=0)
     b_total = np.sum(b_components, axis=0)
-    beta_multi = b_total / total_power
+    beta_multi_defined = total_power > 0.0
+    beta_multi = np.zeros_like(b_total, dtype=complex)
+    np.divide(
+        b_total,
+        total_power,
+        out=beta_multi,
+        where=beta_multi_defined,
+    )
 
     return {
         "xi": xi,
@@ -390,10 +400,11 @@ def multivariate_agencity(
         "beta_components": beta_components,
         "b_components": b_components,
         "beta_multi": beta_multi,
+        "beta_multi_defined": beta_multi_defined,
         "b_total": b_total,
         "components": responses,
-        "aggregation": "Pc-weighted beta; vector-additive total flux",
-        "scientific_boundary": "Volume 2 multivariate construction; each component uses scalar Agencity",
+        "aggregation": "Pc-weighted beta where P_c_total > 0; vector-additive total flux",
+        "scientific_boundary": "Volume 2 multivariate construction; zero-total-power weighted mean is explicitly marked undefined",
     }
 
 

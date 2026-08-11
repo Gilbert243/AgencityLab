@@ -2,6 +2,7 @@
 
 ``P_c`` is a structural energetic capacity of the containing system. The canonical
 resolver never derives it from the observed signal and has no arbitrary generic fallback.
+The accepted domain is finite ``P_c >= 0``.
 """
 
 from __future__ import annotations
@@ -19,19 +20,19 @@ def _norm(value: Any) -> str:
     return "" if value is None else str(value).strip().lower()
 
 
-def _positive(value, *, name="P_c") -> float:
+def _nonnegative_power(value, *, name="P_c") -> float:
     try:
         out = float(value)
     except Exception as exc:  # pragma: no cover - defensive
         raise ValueError(f"{name} must be numeric") from exc
-    if not np.isfinite(out) or out <= 0.0:
-        raise ValueError(f"{name} must be strictly positive")
+    if not np.isfinite(out) or out < 0.0:
+        raise ValueError(f"{name} must be non-negative and finite")
     return out
 
 
 def register_characteristic_power(key, value, *, scope="system"):
     """Register an explicit physical characteristic-power convention."""
-    value = _positive(value)
+    value = _nonnegative_power(value)
     scope = _norm(scope)
     if scope == "system":
         CANONICAL_POWER_BY_SYSTEM[_norm(key)] = value
@@ -43,9 +44,9 @@ def register_characteristic_power(key, value, *, scope="system"):
 
 
 def resolve_characteristic_power(*, system=None, domain=None, Pc=None, default=None):
-    """Resolve ``P_c`` without signal-derived or epsilon fallback."""
+    """Resolve finite ``P_c >= 0`` without signal-derived or epsilon fallback."""
     if Pc is not None and _norm(Pc) not in {"auto", "canonical", "default"}:
-        return _positive(Pc)
+        return _nonnegative_power(Pc)
 
     system_key = _norm(system)
     domain_key = _norm(domain)
@@ -54,7 +55,7 @@ def resolve_characteristic_power(*, system=None, domain=None, Pc=None, default=N
     if domain_key and domain_key in CANONICAL_POWER_BY_DOMAIN:
         return CANONICAL_POWER_BY_DOMAIN[domain_key]
     if default is not None:
-        return _positive(default)
+        return _nonnegative_power(default)
 
     raise ValueError(
         "P_c is a structural physical parameter; provide it explicitly, derive it from "

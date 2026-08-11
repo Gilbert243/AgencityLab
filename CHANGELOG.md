@@ -2,6 +2,36 @@
 
 All notable changes to AgencityLab are documented here.
 
+## 1.0.1 - 2026-08-11
+
+### Fixed
+
+- Corrected the stable characteristic-power domain from strictly positive to finite non-negative: `P_c >= 0`. Exact zero is now accepted for scalar, sampled, and multivariate power inputs and preserves the canonical identity `P_c = 0 => b = 0` without epsilon substitution.
+- Removed the historical `compute_full_agencity()` duplicate physical orchestration. It remains as a deprecated compatibility wrapper delegating to the sole reference canonical pipeline, `compute_agencity()`, and no longer rejects explicit `w != tau`.
+- Reclassified historical coherence and real-agencity helpers under `agencitylab.core` as deprecated legacy diagnostics; `agencitylab.analysis` remains the reference interpretation layer.
+- Reworked `compute_discrete_agencity()` to implement the explicit Volume-2 centered first and direct centered second differences rather than silently using the successive `gradient -> gradient` approximation of the sampled continuous pipeline.
+
+### Scientific conformance
+
+- Locked the maintainer decision that `tau` and CRM width `w` are distinct; omission of `w` uses only the explicit software fallback `w=tau`, now recorded in result metadata.
+- Confirmed `A_ref` as a fixed physical/contextual reference amplitude with no signal-statistical fallback in the canonical path.
+- Confirmed `e = exp(1)` in `J = ln((e+D)/(e+S))`; historical `(1+D)/(1+S)` variants remain legacy divergences only.
+- Preserved the exact branch `S=0 => U=0 => beta=0` and kept numerical epsilon outside valid physical equations.
+- Documented source-layer historical tensions rather than changing theory to fit code.
+
+### Discrete validation
+
+- Added exact constant, linear, and quadratic stencil tests, including the `u(t)=t^2` constant-second-derivative case.
+- Added analytical sinus transfer tests showing the Volume-2 direct second difference has amplitude factor `4 sin^2(z/2)/z^2`, distinct from the successive-first-difference factor `(sin(z)/z)^2`.
+- Added second-order convergence and boundary checks plus downstream propagation through `D`, `S`, `J`, `U`, `beta`, and `b`.
+- Added deterministic discrete stress coverage for sinusoidal, damped, Van der Pol, unstable, and filtered stochastic signals.
+
+### Compatibility
+
+- The stable public API remains source-compatible; corrected scientific semantics are released as a SemVer patch.
+- `AgencityResult.eta` remains the inverse ratio `|b|/P_c` where `P_c>0`; at `P_c=0` it is explicitly undefined and represented as `NaN` instead of adding epsilon or reconstructing `beta` indirectly.
+- NumPy remains the complete stable reference backend; optional acceleration and research extensions are unchanged.
+
 ## 1.0.0 - 2026-08-11
 
 ### Stable

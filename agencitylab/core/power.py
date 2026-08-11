@@ -8,7 +8,7 @@ from agencitylab.constants.characteristic_powers import (
     power_context_from_metadata,
     resolve_characteristic_power,
 )
-from .validation import validate_positive_scalar
+from .validation import validate_nonnegative_scalar, validate_positive_scalar
 
 
 def characteristic_power(
@@ -27,11 +27,12 @@ def characteristic_power(
 ):
     """Resolve canonical characteristic power ``P_c``.
 
-    Supported physical routes are, in order: an explicit ``value``; an already
-    specified metadata value; nominal sustainable power; documented reference
-    energy divided by its structural time; ``inertia * reference_energy / tau``;
-    or a deliberately registered physical convention. ``A_ref`` is accepted only
-    for backwards-compatible call signatures and is never used to derive power.
+    The accepted numerical domain is finite ``P_c >= 0``. Supported physical
+    routes are, in order: an explicit ``value``; an already specified metadata
+    value; nominal sustainable power; documented reference energy divided by its
+    structural time; ``inertia * reference_energy / tau``; or a deliberately
+    registered physical convention. ``A_ref`` is accepted only for backwards-
+    compatible call signatures and is never used to derive power.
     """
     del A_ref
     context = power_context_from_metadata(metadata)
@@ -41,11 +42,11 @@ def characteristic_power(
         domain = context.get("domain")
 
     if value is not None and str(value).strip().lower() not in {"auto", "canonical", "default"}:
-        out = validate_positive_scalar(value, name="P_c")
+        out = validate_nonnegative_scalar(value, name="P_c")
     elif context.get("Pc") is not None:
-        out = validate_positive_scalar(context["Pc"], name="P_c")
+        out = validate_nonnegative_scalar(context["Pc"], name="P_c")
     elif nominal_power is not None:
-        out = validate_positive_scalar(nominal_power, name="nominal_power")
+        out = validate_nonnegative_scalar(nominal_power, name="nominal_power")
     elif reference_energy is not None and tau is not None:
         energy = validate_positive_scalar(reference_energy, name="reference_energy")
         tau_value = validate_positive_scalar(tau, name="tau")

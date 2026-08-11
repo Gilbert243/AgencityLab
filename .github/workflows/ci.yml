@@ -43,7 +43,7 @@ jobs:
         run: |
           python - <<'PY'
           import agencitylab
-          assert agencitylab.__version__ == "1.0.0"
+          assert agencitylab.__version__ == "1.0.1"
           print(agencitylab.__version__)
           PY
 
@@ -87,7 +87,7 @@ jobs:
           import numpy as np
           import agencitylab
 
-          assert agencitylab.__version__ == "1.0.0"
+          assert agencitylab.__version__ == "1.0.1"
           requirements = metadata.requires("agencitylab") or []
           assert any(requirement.lower().startswith("numpy") for requirement in requirements)
           for optional in ("scipy", "pandas", "matplotlib", "numba", "jax"):
@@ -105,7 +105,7 @@ jobs:
           analysis = agencitylab.analyze_agencity(result)
           assert result.b.shape == xi.shape
           assert np.all(np.isfinite(result.b))
-          assert result.metadata.agencitylab_version == "1.0.0"
+          assert result.metadata.agencitylab_version == "1.0.1"
           assert analysis["events"]["dynamic_peaks"]["count"] >= 0
           print("minimal wheel install and analysis: PASS")
           PY
@@ -147,7 +147,7 @@ jobs:
               assert csv_path.exists()
               np.testing.assert_allclose(restored.beta, result.beta)
               np.testing.assert_allclose(restored.b, result.b)
-          assert result.metadata.agencitylab_version == "1.0.0"
+          assert result.metadata.agencitylab_version == "1.0.1"
           print("built wheel public end-to-end workflow: PASS")
           PY
 
@@ -161,7 +161,7 @@ jobs:
           "$GITHUB_WORKSPACE/.venv-sdist/bin/python" - <<'PY'
           import numpy as np
           import agencitylab
-          assert agencitylab.__version__ == "1.0.0"
+          assert agencitylab.__version__ == "1.0.1"
           assert agencitylab.available_backends() == ("numpy",)
           xi = np.arange(64, dtype=float)
           result = agencitylab.compute_agencity(
@@ -179,7 +179,7 @@ jobs:
       - name: Upload distributions
         uses: actions/upload-artifact@v4
         with:
-          name: agencitylab-1.0.0-distributions
+          name: agencitylab-1.0.1-distributions
           path: dist/
           if-no-files-found: error
 

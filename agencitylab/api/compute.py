@@ -42,7 +42,7 @@ def _physical_error(name: str, exc: Exception) -> PhysicalParameterError:
 
 
 def _power_profile(P_c, xi):
-    """Return an explicitly supplied sampled power profile, or ``None``."""
+    """Return an explicitly supplied finite sampled ``P_c >= 0`` profile, or ``None``."""
     if callable(P_c):
         try:
             candidate = P_c(xi)
@@ -67,9 +67,9 @@ def _power_profile(P_c, xi):
         raise PhysicalParameterError(
             "time-varying P_c must be one-dimensional and have the same length as xi"
         )
-    if not np.all(np.isfinite(profile)) or np.any(profile <= 0.0):
+    if not np.all(np.isfinite(profile)) or np.any(profile < 0.0):
         raise PhysicalParameterError(
-            "time-varying P_c must contain only strictly positive finite values"
+            "time-varying P_c must contain only non-negative finite values"
         )
     return profile
 
@@ -100,18 +100,20 @@ def compute_agencity(
     verbose: bool = False,
     **overrides,
 ) -> AgencityResult:
-    """Compute the scalar-signal Theory of Agencity pipeline.
+    """Compute the reference canonical scalar-signal Theory of Agencity pipeline.
 
     ``A_ref`` and ``tau`` are physical/contextual inputs. ``P_c`` may be a
-    strictly positive scalar, a strictly positive sampled profile matching
+    finite non-negative scalar, a finite non-negative sampled profile matching
     ``xi``, or a callable evaluated on ``xi``. A scalar may also be carried by
     metadata or a deliberately registered physical convention. No power profile
-    is inferred from the observable signal.
+    is inferred from the observable signal. The exact value ``P_c = 0`` is valid
+    and gives ``b = 0`` without epsilon substitution.
 
     The CRM width ``w`` is a theory parameter distinct from ``tau`` in Volume 2.
-    When ``w`` is omitted, AgencityLab uses the common convention ``w = tau``;
-    an explicitly supplied positive ``w`` is preserved exactly and recorded in
-    the result metadata. No signal statistic is used to choose ``w`` here.
+    When ``w`` is omitted, AgencityLab uses an explicit implementation fallback
+    convention ``w = tau``; an explicitly supplied positive ``w`` is preserved
+    exactly and recorded in the result metadata. No signal statistic is used to
+    choose ``w`` here.
 
     NumPy remains the stable reference backend for the complete canonical
     pipeline. ``backend='numba'`` or ``backend='jax'`` validates availability of
@@ -258,6 +260,12 @@ def compute_agencity(
     # Keep the historical metadata.extra read path while exposing the typed field.
     meta.extra["memory_window"] = memory_window
     meta.extra["memory_window_mode"] = "w=tau default" if w is None else "explicit"
+    if w is None:
+        meta.extra[
+            "memory_window_convention"
+        ] = "w was unspecified; implementation convention w = tau was used"
+    else:
+        meta.extra["memory_window_convention"] = "w was supplied explicitly and preserved"
 
     profile = _power_profile(P_c, xi)
     if profile is not None:

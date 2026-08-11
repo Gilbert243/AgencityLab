@@ -80,3 +80,19 @@ def validate_positive_scalar(value, *, name: str = "value"):
     if not np.isfinite(scalar) or scalar <= 0.0:
         raise ValueError(f"{name} must be strictly positive")
     return scalar
+
+
+def validate_nonnegative_scalar(value, *, name: str = "value"):
+    """Validate a finite scalar greater than or equal to zero exactly.
+
+    This helper exists for quantities such as characteristic power ``P_c`` whose
+    accepted physical domain includes zero. It does not replace zero by epsilon.
+    """
+    try:
+        scalar = float(value)
+    except Exception as exc:  # pragma: no cover - defensive
+        raise ValueError(f"{name} must be numeric") from exc
+
+    if not np.isfinite(scalar) or scalar < 0.0:
+        raise ValueError(f"{name} must be non-negative and finite")
+    return scalar

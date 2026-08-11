@@ -1,39 +1,44 @@
-"""Observable agencity flux and canonical end-to-end core pipeline."""
+"""Observable agencity flux and legacy compatibility helpers.
+
+The canonical scalar operator defined here is ``b = P_c * beta``. The sole
+reference canonical end-to-end ``u -> b`` orchestration is
+:func:`agencitylab.api.compute.compute_agencity`. Historical full-pipeline and
+real-agencity helpers remain only for compatibility and are explicitly
+non-canonical diagnostics/wrappers.
+"""
 
 from __future__ import annotations
+
+import warnings
 
 import numpy as np
 
 from .coherence import circular_variance, compute_theta, directional_stability, phase_coherence
-from .power import characteristic_power
-from .tau import characteristic_time
-from .validation import is_exactly_constant, validate_axis, validate_positive_scalar
-
-_AUTO_POWER = {"auto", "canonical", "default"}
+from .validation import validate_axis, validate_nonnegative_scalar, validate_positive_scalar
 
 
 def _validate_power_input(P_c, *, expected_shape):
-    """Validate scalar or sampled characteristic power without altering its values."""
+    """Validate finite scalar or sampled ``P_c >= 0`` without altering values."""
     try:
         power = np.asarray(P_c, dtype=float)
     except Exception as exc:
         raise ValueError("P_c must be numeric") from exc
 
     if power.ndim == 0:
-        return validate_positive_scalar(float(power), name="P_c")
+        return validate_nonnegative_scalar(float(power), name="P_c")
     if power.ndim != 1 or power.shape != expected_shape:
         raise ValueError("time-varying P_c must have the same one-dimensional shape as beta")
-    if not np.all(np.isfinite(power)) or np.any(power <= 0.0):
-        raise ValueError("P_c must contain only strictly positive finite values")
+    if not np.all(np.isfinite(power)) or np.any(power < 0.0):
+        raise ValueError("P_c must contain only non-negative finite values")
     return power
 
 
 def agencity(beta_signal, P_c=1.0, *, smooth=False, resolution_scale=None, verbose=False):
     """Compute the canonical observable flux ``b(t) = P_c(t) * beta(t)`` exactly.
 
-    ``P_c`` may be a strictly positive scalar or a strictly positive sampled
-    profile with the same shape as ``beta_signal``. No signal-derived power and
-    no epsilon replacement are introduced here.
+    ``P_c`` may be a finite non-negative scalar or sampled profile with the same
+    shape as ``beta_signal``. In particular ``P_c = 0`` gives ``b = 0`` exactly.
+    No signal-derived power and no epsilon replacement are introduced here.
     """
     if smooth or resolution_scale is not None:
         raise ValueError("canonical b = P_c * beta cannot be smoothed")
@@ -74,7 +79,7 @@ def decompose_agencity(b, *, verbose=False):
     return bx, by, mag
 
 
-def agencity_criteria(
+def _legacy_agencity_criteria(
     M,
     O,
     S,
@@ -85,7 +90,6 @@ def agencity_criteria(
     b_threshold=0.0,
     verbose=False,
 ):
-    """Diagnostic real-agencity criterion; thresholds are analysis choices, not core physics."""
     M = np.asarray(M, dtype=float)
     O = np.asarray(O, dtype=float)
     S = np.asarray(S, dtype=float)
@@ -112,31 +116,44 @@ def agencity_criteria(
         "theta_coherence": theta_coherence,
         "theta_stability": theta_stability,
         "mean_abs_b": mean_b,
+        "status": "legacy diagnostic; thresholds are not canonical constants",
     }
     if verbose:
-        print(f"[agencity criteria] real_agencity={out['real_agencity']}")
+        print(f"[legacy agencity criteria] real_agencity={out['real_agencity']}")
     return out
 
 
-def _resolve_full_pipeline_power(P_c, t, *, system, domain, tau_value, verbose):
-    if callable(P_c):
-        return _validate_power_input(P_c(t), expected_shape=t.shape)
+def agencity_criteria(
+    M,
+    O,
+    S,
+    b,
+    *,
+    s_threshold=0.0,
+    theta_variance_threshold=0.5,
+    b_threshold=0.0,
+    verbose=False,
+):
+    """Legacy real-agencity diagnostic retained for compatibility.
 
-    if P_c is not None and not isinstance(P_c, str):
-        candidate = np.asarray(P_c)
-        if candidate.ndim > 0:
-            return _validate_power_input(candidate, expected_shape=t.shape)
-
-    value = None
-    if P_c is not None and not (
-        isinstance(P_c, str) and P_c.strip().lower() in _AUTO_POWER
-    ):
-        value = P_c
-    return characteristic_power(
-        value=value,
-        system=system,
-        domain=domain,
-        tau=tau_value,
+    This helper is not canonical physics. New code must use the modern
+    ``agencitylab.analysis`` diagnostics, whose contextual thresholds are
+    explicit and which do not invent universal real-agencity constants.
+    """
+    warnings.warn(
+        "agencitylab.core.agencity_criteria is a legacy diagnostic; use "
+        "agencitylab.analysis / analyze_coherence instead",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return _legacy_agencity_criteria(
+        M,
+        O,
+        S,
+        b,
+        s_threshold=s_threshold,
+        theta_variance_threshold=theta_variance_threshold,
+        b_threshold=b_threshold,
         verbose=verbose,
     )
 
@@ -157,84 +174,64 @@ def compute_full_agencity(
     smooth=False,
     verbose=False,
 ):
-    """Run the canonical ``u -> b`` construction and return all intermediate fields.
+    """Legacy compatibility wrapper around the reference public pipeline.
 
-    An exactly constant sampled observable is treated as the canonical null-state
-    postulate. The derivative and CRM stages are bypassed and all dynamical,
-    structural, and agencity fields are set exactly to zero.
+    This function no longer owns or duplicates an end-to-end physical
+    interpretation. It delegates to :func:`agencitylab.api.compute.compute_agencity`,
+    which is the sole reference canonical ``u -> b`` pipeline. An explicitly
+    supplied ``w`` is preserved even when ``w != tau``; omission uses the public
+    implementation fallback ``w = tau``.
+
+    The historical ``criteria`` field is retained only as a legacy diagnostic
+    payload. It is not part of the canonical computation and new code should run
+    diagnostics through :mod:`agencitylab.analysis`.
     """
-    del mechanism
-    if activity_factor not in {None, "auto"}:
-        raise ValueError("activity_factor is not part of the canonical CRM")
-    if resolution_scale is not None or smooth:
-        raise ValueError("preprocessing/smoothing is outside the canonical core")
-
-    from .activation import activation, reduced_coordinate
-    from .activity import activity
-    from .beta import compute_beta
-    from .intensity import compute_intensities
-    from .memory import memory
-    from .normalization import normalize_signal
-    from .organization import organization
-
-    t = validate_axis(t, name="t")
-    u_star, A_ref_resolved = normalize_signal(
-        u, A_ref=A_ref, domain=domain, method="canonical", verbose=verbose
+    warnings.warn(
+        "compute_full_agencity is a legacy compatibility wrapper; use "
+        "agencitylab.compute_agencity for the reference canonical pipeline",
+        DeprecationWarning,
+        stacklevel=2,
     )
-    tau_value = characteristic_time(tau=tau, system=system, domain=domain, verbose=verbose)
-    if w is not None and float(w) != float(tau_value):
-        raise ValueError("canonical memory window is fixed by w = tau")
-    memory_window = tau_value
-    power = _resolve_full_pipeline_power(
-        P_c,
-        t,
-        system=system,
+    if smooth:
+        raise ValueError("legacy compute_full_agencity cannot smooth the canonical pipeline")
+
+    # Lazy import avoids an import cycle while ensuring this historical entry
+    # point delegates to, rather than reimplements, the reference orchestration.
+    from agencitylab.api.compute import compute_agencity
+
+    result = compute_agencity(
+        u=u,
+        xi=t,
+        tau=tau,
+        P_c=P_c,
+        A_ref=A_ref,
+        w=w,
+        activity_factor=activity_factor,
         domain=domain,
-        tau_value=tau_value,
+        mechanism=mechanism,
+        system_type=system,
+        resolution_scale=resolution_scale,
         verbose=verbose,
     )
-    t_star = reduced_coordinate(t, tau_value)
-
-    if is_exactly_constant(u_star):
-        if verbose:
-            print("[canonical] exact rest state detected; derivative/CRM stages bypassed")
-        zeros = np.zeros_like(u_star, dtype=float)
-        complex_zeros = np.zeros_like(u_star, dtype=complex)
-        X_star = zeros.copy()
-        A_star = zeros.copy()
-        M = zeros.copy()
-        O = zeros.copy()
-        D = zeros.copy()
-        S = zeros.copy()
-        J = zeros.copy()
-        U = complex_zeros.copy()
-        beta_signal = complex_zeros.copy()
-        b = complex_zeros.copy()
-    else:
-        X_star = activation(u_star, axis=t_star, verbose=verbose)
-        A_star = activity(X_star, axis=t_star, verbose=verbose)
-        M = memory(u_star, tau_value, axis=t, window=memory_window, verbose=verbose)
-        O = organization(u_star, X_star, tau_value, axis=t, window=memory_window, verbose=verbose)
-        D, S = compute_intensities(X_star, A_star, M, O, verbose=verbose)
-        J, U, beta_signal = compute_beta(D, S, M, O, verbose=verbose)
-        b = agencity(beta_signal, power, verbose=verbose)
 
     return {
-        "u_star": u_star,
-        "A_ref": A_ref_resolved,
-        "tau": tau_value,
-        "w": memory_window,
-        "t_star": t_star,
-        "P_c": power,
-        "X": X_star,
-        "A": A_star,
-        "M": M,
-        "O": O,
-        "D": D,
-        "S": S,
-        "J": J,
-        "U": U,
-        "beta": beta_signal,
-        "b": b,
-        "criteria": agencity_criteria(M, O, S, b, verbose=verbose),
+        "u_star": result.u_star,
+        "A_ref": result.A_ref,
+        "tau": result.tau,
+        "w": result.memory_window,
+        "t_star": result.t_star,
+        "P_c": result.P_c,
+        "X": result.X_star,
+        "A": result.A_star,
+        "M": result.M,
+        "O": result.O,
+        "D": result.D,
+        "S": result.S,
+        "J": result.J,
+        "U": result.U,
+        "beta": result.beta,
+        "b": result.b,
+        "criteria": _legacy_agencity_criteria(result.M, result.O, result.S, result.b),
+        "canonical_reference": "agencitylab.compute_agencity",
+        "status": "legacy compatibility wrapper; not an independent canonical pipeline",
     }

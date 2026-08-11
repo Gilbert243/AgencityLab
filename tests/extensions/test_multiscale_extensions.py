@@ -10,6 +10,7 @@ from agencitylab.api.extensions import (
     optimize_agencity_window,
     riemannian_extension_status,
 )
+from agencitylab.core.discrete import volume2_first_difference, volume2_second_difference
 
 
 def _signal():
@@ -29,6 +30,7 @@ def test_spectrum_default_w_equals_tau_and_matches_scalar_reference():
     )
 
     np.testing.assert_array_equal(spectrum["w"], taus)
+    assert "fallback convention" in spectrum["window_mode"]
     assert spectrum["b"].shape == (3, xi.size)
     reference = compute_agencity(u=u, xi=xi, A_ref=1.0, tau=2.0, P_c=2.0)
     np.testing.assert_allclose(spectrum["b"][1], reference.b)
@@ -86,30 +88,34 @@ def test_window_optimisation_uses_explicit_discrete_candidates():
     assert result["w_opt"] in result["candidate_w"]
     assert result["eligible"].dtype == bool
     assert np.isfinite(result["phi2"][result["best_index"]])
-    # One-sample CRM has zero empirical variance, hence no defined structural
-    # orientation and must not win by an artificial zero angular variance.
     assert not result["eligible"][0]
 
 
-def test_discrete_convenience_matches_explicit_coordinate_api():
+def test_discrete_api_uses_volume2_stencils_not_continuous_gradient_chain():
     delta = 0.1
     u = np.sin(np.arange(301) * delta)
-    direct = compute_discrete_agencity(
+    result = compute_discrete_agencity(
         u,
         delta=delta,
         A_ref=1.0,
         tau=2.0,
+        w=1.0,
         P_c=3.0,
     )
-    explicit = compute_agencity(
+    delta_star = delta / 2.0
+    np.testing.assert_allclose(result.X_star, volume2_first_difference(u, delta_star))
+    np.testing.assert_allclose(result.A_star, volume2_second_difference(u, delta_star))
+
+    continuous_sampled = compute_agencity(
         u=u,
         xi=np.arange(u.size) * delta,
         A_ref=1.0,
         tau=2.0,
+        w=1.0,
         P_c=3.0,
     )
-    np.testing.assert_allclose(direct.b, explicit.b)
-    np.testing.assert_allclose(direct.beta, explicit.beta)
+    assert not np.allclose(result.A_star, continuous_sampled.A_star)
+    assert result.config["formulation"] == "volume2_discrete"
 
 
 def test_multivariate_aggregation_is_pc_weighted_and_flux_additive():
@@ -129,6 +135,7 @@ def test_multivariate_aggregation_is_pc_weighted_and_flux_additive():
     ) / 5.0
     np.testing.assert_allclose(result["beta_multi"], expected_beta)
     np.testing.assert_allclose(result["b_total"], result["P_c_total"] * result["beta_multi"])
+    assert np.all(result["beta_multi_defined"])
 
 
 def test_multivariate_time_varying_power_uses_pointwise_weighting():
@@ -147,6 +154,24 @@ def test_multivariate_time_varying_power_uses_pointwise_weighting():
     )
     expected = np.sum(result["P_c_components"] * result["beta_components"], axis=0)
     np.testing.assert_allclose(result["b_total"], expected)
+
+
+def test_multivariate_zero_total_power_is_explicitly_marked_undefined_for_beta_mean():
+    xi, u1 = _signal()
+    u = np.column_stack([u1, np.cos(xi)])
+    powers = np.ones((xi.size, 2))
+    powers[100:150, :] = 0.0
+    result = compute_multivariate_agencity(
+        u,
+        xi,
+        A_ref=1.0,
+        tau=2.0,
+        P_c=powers,
+    )
+    np.testing.assert_array_equal(result["b_total"][100:150], 0.0j)
+    np.testing.assert_array_equal(result["beta_multi"][100:150], 0.0j)
+    assert not np.any(result["beta_multi_defined"][100:150])
+    assert np.all(result["beta_multi_defined"][:100])
 
 
 def test_riemannian_extension_is_explicitly_not_a_production_pipeline():

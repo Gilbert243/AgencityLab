@@ -90,12 +90,12 @@ def validate_optional_tau(tau: Optional[float]):
 
 
 def validate_optional_power(P_c):
-    """Validate an optional characteristic-power value for compatibility helpers."""
+    """Validate optional finite characteristic power with the canonical ``P_c >= 0`` domain."""
     if P_c is None or callable(P_c):
         return P_c
     arr = np.asarray(P_c, dtype=float)
-    if not np.all(np.isfinite(arr)) or np.any(arr <= 0.0):
-        raise AgencityValidationError("P_c must contain only strictly positive finite values")
+    if not np.all(np.isfinite(arr)) or np.any(arr < 0.0):
+        raise AgencityValidationError("P_c must contain only non-negative finite values")
     return float(arr) if arr.ndim == 0 else arr
 
 

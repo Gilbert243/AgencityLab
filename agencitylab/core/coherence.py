@@ -2,22 +2,23 @@
 AgencityLab - core/coherence.py
 ================================
 
-Structural coherence module for Agencity theory.
+Legacy structural-coherence diagnostics retained for compatibility.
 
-This module implements the fundamental mathematical tools related to:
+Canonical structural orientation is the mathematical identity
+``Theta = atan2(O, M)``. Interpretation through angular variance, phase
+coherence, directional stability, or real-agencity belongs to
+``agencitylab.analysis`` and is not part of the reference canonical pipeline.
 
-    - structural orientation Θ
-    - angular variance Σ_Θ
-    - phase coherence
-    - directional stability
-    - circular statistics
-
-No visualization or business logic should be placed here.
+``EPSILON`` in this module protects only the legacy diagnostic logarithm in
+``circular_std``. It never modifies canonical ``S``, ``U``, ``J``, ``beta`` or
+``b``.
 
 Author : AgencityLab
 """
 
 from __future__ import annotations
+
+import warnings
 
 import numpy as np
 
@@ -186,7 +187,10 @@ def circular_variance(theta: np.ndarray) -> float:
 
 def circular_std(theta: np.ndarray) -> float:
     """
-    Compute circular standard deviation.
+    Compute legacy circular standard deviation.
+
+    ``EPSILON`` is a numerical safeguard for ``log(R)`` in this diagnostic only;
+    it is not a physical threshold and does not enter canonical equations.
 
     Parameters
     ----------
@@ -212,7 +216,9 @@ def angular_variance(
     window: Optional[int] = None
 ) -> np.ndarray:
     """
-    Compute angular variance Σ_Θ.
+    Compute legacy angular variance Σ_Θ.
+
+    The modern theory-facing diagnostic is in ``agencitylab.analysis``.
 
     If window=None:
         return global variance.
@@ -273,7 +279,7 @@ def phase_coherence(
     theta: np.ndarray
 ) -> float:
     """
-    Compute phase coherence.
+    Compute legacy phase coherence.
 
     Equivalent to the resultant length R.
 
@@ -292,7 +298,7 @@ def directional_stability(
     theta: np.ndarray
 ) -> float:
     """
-    Compute directional stability.
+    Compute legacy directional stability.
 
     Defined as:
 
@@ -364,9 +370,7 @@ def coherence_matrix(
 
 @dataclass
 class CoherenceDiagnostic:
-    """
-    Fundamental structural coherence diagnostic.
-    """
+    """Legacy structural coherence diagnostic retained for compatibility."""
 
     theta_mean: float
     angular_variance: float
@@ -391,19 +395,16 @@ def coherence_diagnostic(
     M: np.ndarray,
     O: np.ndarray
 ) -> CoherenceDiagnostic:
+    """Compute the deprecated core coherence diagnostic.
+
+    New code should use ``agencitylab.analysis.coherence``.
     """
-    Compute complete structural coherence diagnostic.
-
-    Parameters
-    ----------
-    M : np.ndarray
-
-    O : np.ndarray
-
-    Returns
-    -------
-    CoherenceDiagnostic
-    """
+    warnings.warn(
+        "agencitylab.core.coherence_diagnostic is a legacy diagnostic; use "
+        "agencitylab.analysis.coherence instead",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     theta = compute_theta(M, O)
 
     return CoherenceDiagnostic(

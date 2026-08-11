@@ -64,18 +64,21 @@ def _positive_scalar(value: Any, *, name: str) -> float:
     return out
 
 
-def _positive_power(value: Any, *, n: int):
-    """Validate a scalar or sampled characteristic-power profile."""
+def _nonnegative_power(value: Any, *, n: int):
+    """Validate a finite scalar or sampled characteristic-power profile ``P_c >= 0``."""
     try:
         arr = np.asarray(value, dtype=float)
     except Exception as exc:
         raise ValueError("P_c must be numeric") from exc
     if arr.ndim == 0:
-        return _positive_scalar(float(arr), name="P_c")
+        scalar = float(arr)
+        if not np.isfinite(scalar) or scalar < 0.0:
+            raise ValueError("P_c must be non-negative and finite")
+        return scalar
     if arr.ndim != 1 or arr.size != n:
         raise ValueError("time-varying P_c must be one-dimensional and match xi")
-    if not np.all(np.isfinite(arr)) or np.any(arr <= 0.0):
-        raise ValueError("P_c must contain only strictly positive finite values")
+    if not np.all(np.isfinite(arr)) or np.any(arr < 0.0):
+        raise ValueError("P_c must contain only non-negative finite values")
     return arr
 
 
@@ -167,7 +170,7 @@ class AgencityResult:
             setattr(self, name, arr)
 
         self.tau = _positive_scalar(self.tau, name="tau")
-        self.P_c = _positive_power(self.P_c, n=n)
+        self.P_c = _nonnegative_power(self.P_c, n=n)
         self.A_ref = _positive_scalar(self.A_ref, name="A_ref")
         self.A_fact = _positive_scalar(self.A_fact, name="A_fact")
         if self.resolution_scale is not None:
@@ -272,8 +275,18 @@ class AgencityResult:
 
     @property
     def eta(self) -> np.ndarray:
-        """Return ``|b| / P_c`` exactly; validated ``P_c`` is strictly positive."""
-        return self.b_abs / self.P_c
+        """Return ``|b| / P_c`` where ``P_c > 0`` and ``NaN`` where ``P_c = 0``.
+
+        The canonical computation itself already stores ``beta``. At zero power,
+        the inverse ratio ``|b| / P_c`` is undefined and is therefore not repaired
+        with epsilon or silently replaced by ``|beta|``.
+        """
+        power = np.asarray(self.P_c, dtype=float)
+        if power.ndim == 0:
+            power = np.full(len(self), float(power), dtype=float)
+        out = np.full(len(self), np.nan, dtype=float)
+        np.divide(self.b_abs, power, out=out, where=power > 0.0)
+        return out
 
     @property
     def b_mean(self) -> float:

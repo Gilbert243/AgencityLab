@@ -4,11 +4,13 @@ This page records the scalar equations implemented by the v1.0 reference pipelin
 
 ## Normalization and reduced coordinate
 
-For an observable `u` and a physical/contextual reference amplitude `A_ref > 0`:
+For an observable `u` and a fixed physical/contextual reference amplitude `A_ref > 0`:
 
 $$
 u^*(t) = \frac{u(t)}{A_{\mathrm{ref}}}.
 $$
+
+`A_ref` is not estimated from the observed signal by standard deviation, variance, MAD, range, min/max or z-score in the canonical path.
 
 With characteristic structural time $\tau > 0$:
 
@@ -26,7 +28,7 @@ X^*(t^*) = \frac{d u^*}{d t^*},
 A^*(t^*) = \frac{d X^*}{d t^*}.
 $$
 
-The implementation uses finite differences as a numerical approximation of these continuous derivatives.
+The reference continuous pipeline uses finite differences as a numerical approximation of these continuous derivatives. The separate Volume-2 discrete API uses the explicit discrete stencils documented in `docs/theory_mapping.md`.
 
 ## Causal moving correlation, memory, and organisation
 
@@ -42,7 +44,7 @@ $$
 
 The CRM convention returns zero when an empirical Pearson denominator is exactly zero. Numerical epsilon is not inserted into the correlation coefficient.
 
-The characteristic time $\tau$ and the CRM width $w$ are distinct quantities. If the public API omits `w`, AgencityLab uses the software convention $w=\tau$; this is not a universal theoretical identity.
+The characteristic time $\tau$ and CRM width $w$ are distinct quantities. If the public API omits `w`, AgencityLab uses the implementation fallback $w=\tau$ and records that convention; this is not a universal theoretical identity. An explicitly supplied `w` is preserved.
 
 ## Dynamic and structural intensities
 
@@ -62,7 +64,7 @@ $$
 J(t) = \ln\!\left(\frac{e + D(t)}{e + S(t)}\right).
 $$
 
-Therefore $D=S$ implies $J=0$ exactly.
+`e` is Euler's number. It is neither configurable nor numerical epsilon. Historical `(1+D)/(1+S)` variants are not part of the reference pipeline. Therefore $D=S$ implies $J=0$ exactly.
 
 ## Structural orientation
 
@@ -90,17 +92,25 @@ J(t)U(t), & S(t)>0,\\
 \end{cases}
 $$
 
-For $S>0$, $|\beta|=|J|$. The state is therefore not universally bounded to $(-1,1)$; in the large-dynamic-intensity limit its magnitude has logarithmic growth through $J$.
+For $S>0$, $|\beta|=|J|$. The state is not universally bounded to $(-1,1)$.
 
 ## Observable agencity flux
 
-For a positive physical/contextual characteristic power $P_c(t)$:
+For finite non-negative physical/contextual characteristic power $P_c(t)\ge 0$:
 
 $$
 \boxed{b(t)=P_c(t)\,\beta(t)}.
 $$
 
-This multiplicative relation is the stable v1.0 observable definition. The historical derivative-of-$\beta$ formula and historical `tanh` construction are not part of the accepted reference pipeline.
+Consequently,
+
+$$
+P_c(t)=0 \quad\Longrightarrow\quad b(t)=0.
+$$
+
+There is no division by `P_c` in the canonical observable and zero is not replaced by epsilon. Stable NumPy computation rejects negative and non-finite `P_c` values.
+
+The historical derivative-of-$\beta$ formula and historical `tanh` construction are not part of the accepted reference pipeline.
 
 ## Exact rest convention
 

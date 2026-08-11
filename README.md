@@ -2,7 +2,7 @@
 
 AgencityLab is an open-source Python framework implementing and testing the **Theory of Agencity**.
 
-**Current software status: 1.0.0 — Stable Scientific Release.** Version 1.0 freezes the documented public software contract. Software stability is distinct from empirical validation of the theory.
+**Current software status: 1.0.1 — Stable Scientific Release patch.** Version 1.0 freezes the documented public software contract; 1.0.1 corrects canonical-conformance defects without adding a new scientific feature. Software stability is distinct from empirical validation of the theory.
 
 ## Canonical observable
 
@@ -23,7 +23,7 @@ and
 ```text
 S = sqrt(M^2 + O^2)
 Theta = atan2(O, M)
-J = ln((e + D) / (e + S))
+J = ln((e + D) / (e + S)),  e = exp(1)
 ```
 
 For `S > 0`:
@@ -34,7 +34,7 @@ beta = J * U
 b = P_c * beta
 ```
 
-For `S = 0`, the canonical convention is `U = 0` and `beta = 0`. Numerical epsilon is not inserted into these valid equations.
+For `S = 0`, the canonical convention is `U = 0` and `beta = 0`. `P_c` is finite and non-negative; `P_c = 0` gives `b = 0` exactly. Numerical epsilon is not inserted into these valid equations.
 
 ## Installation
 
@@ -82,7 +82,7 @@ print(result.b)
 print(result.metadata.agencitylab_version)
 ```
 
-`A_ref`, `tau`, `w`, and `P_c` are physical/contextual inputs. The stable compute path does not silently infer them from ordinary signal statistics. `tau` and CRM width `w` are distinct. If `w` is omitted, AgencityLab uses the documented software convention `w=tau`; this is not a universal identity.
+`compute_agencity()` is the sole reference canonical end-to-end pipeline. `A_ref`, `tau`, `w`, and `P_c` are physical/contextual inputs. The stable compute path does not silently infer them from ordinary signal statistics. `tau` and CRM width `w` are distinct. If `w` is omitted, AgencityLab records and uses the implementation fallback `w=tau`; this is not a universal identity.
 
 Diagnostics are separate:
 
@@ -111,6 +111,8 @@ The principal stable interfaces are:
 
 The exact boundary is documented in `docs/stable_api.md`.
 
+`compute_discrete_agencity()` is not an alias for the continuous sampled gradient chain. It implements the explicit Volume-2 centred first and second differences, with documented one-sided endpoint conventions. The mathematical/numerical distinction is described in `docs/theory_mapping.md`.
+
 ### Semantic Versioning
 
 Starting with 1.0.0:
@@ -123,9 +125,11 @@ Experimental, research, speculative, and legacy-compatibility interfaces are not
 
 ## Canonical, diagnostic, experimental, research
 
-**Stable canonical computation.** `agencitylab/core/` contains the deterministic mathematical engine. NumPy is the stable complete backend. Normal user workflows should use the documented public API.
+**Stable canonical computation.** `agencitylab/core/` contains deterministic mathematical operators; normal user workflows use `compute_agencity()` as the unique reference orchestration. NumPy is the stable complete backend.
 
-**Diagnostic analysis.** `agencitylab/analysis/` consumes computed results. Coherence, angular variance, real-agencity criteria, curvature, winding, events, transitions, signatures, regimes, and reports do not redefine the canonical state. In particular, `beta != 0` is not the definition of coherent or real agencity. Contextual structural, angular-stability, and `|b|` criteria remain diagnostic inputs and never modify `beta`.
+**Diagnostic analysis.** `agencitylab/analysis/` consumes computed results. Coherence, angular variance, real-agencity criteria, curvature, winding, events, transitions, signatures, regimes, and reports do not redefine the canonical state. In particular, `beta != 0` is not the definition of coherent or real agencity. Contextual structural, angular-stability, `|b|`, and persistence criteria remain diagnostic inputs and never modify `beta`.
+
+Historical coherence/real-agencity helpers under `agencitylab.core` remain only as deprecated legacy diagnostics. Historical `compute_full_agencity()` is a compatibility wrapper around the public reference pipeline, not a second canonical implementation.
 
 **Experimental.** Numba/JAX primitive layers and signal-derived window optimisation may evolve outside the stable contract.
 
@@ -147,7 +151,7 @@ Multiscale analysis scans explicit `tau` values and may use independent `w` valu
 
 ## Scientific validation
 
-The deterministic regression suite covers exact rest, sinusoidal structure, passive damping, Van der Pol oscillation, negative-damping instability, filtered Ornstein-Uhlenbeck dynamics, and Lorenz dynamics. It also checks canonical identities, invariances/limits, CRM equivalence, edge cases, batch/streaming/multiscale consistency, packaging, and public workflows.
+The deterministic regression suite covers exact rest, sinusoidal structure, passive damping, Van der Pol oscillation, negative-damping instability, filtered Ornstein-Uhlenbeck dynamics, and Lorenz dynamics. It also checks canonical identities, invariances/limits, CRM equivalence, edge cases, batch/streaming/multiscale consistency, discrete stencils and convergence, packaging, and public workflows.
 
 These checks validate implementation and numerical behaviour against accepted reference consequences; they are not universal empirical validation of the Theory of Agencity.
 

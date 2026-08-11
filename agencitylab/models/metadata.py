@@ -34,6 +34,18 @@ def _positive_optional(value: Any, *, name: str) -> Optional[float]:
     return out
 
 
+def _nonnegative_optional(value: Any, *, name: str) -> Optional[float]:
+    if value is None:
+        return None
+    try:
+        out = float(value)
+    except Exception as exc:  # pragma: no cover - defensive
+        raise ValueError(f"{name} must be numeric") from exc
+    if not np.isfinite(out) or out < 0.0:
+        raise ValueError(f"{name} must be non-negative and finite")
+    return out
+
+
 def _agencity_flux_unit(power_unit: str) -> str:
     """Return the theory-facing flux label corresponding to a power unit."""
     return f"{power_unit}·nat" if power_unit else ""
@@ -50,10 +62,10 @@ class ExperimentMetadata:
     ``W·nat``). These labels are descriptive contracts; no automatic unit
     conversion is performed.
 
-    ``characteristic_power`` stores a scalar physical ``P_c`` when one exists.
-    A time-varying externally supplied ``P_c(t)`` lives on ``AgencityResult.P_c``
-    and is identified through metadata ``extra`` rather than being collapsed to a
-    scalar.
+    ``characteristic_power`` stores a scalar physical ``P_c >= 0`` when one
+    exists. A time-varying externally supplied ``P_c(t)`` lives on
+    ``AgencityResult.P_c`` and is identified through metadata ``extra`` rather
+    than being collapsed to a scalar.
 
     ``agencitylab_version`` records the software version that produced a result.
     It is populated by the public compute API and retained by serialization.
@@ -133,7 +145,7 @@ class ExperimentMetadata:
         self.characteristic_time = _positive_optional(
             self.characteristic_time, name="characteristic_time"
         )
-        self.characteristic_power = _positive_optional(
+        self.characteristic_power = _nonnegative_optional(
             self.characteristic_power, name="characteristic_power"
         )
         self.memory_window = _positive_optional(self.memory_window, name="memory_window")
