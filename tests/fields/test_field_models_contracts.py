@@ -44,6 +44,16 @@ def test_parameter_provenance_sources_are_exact_and_round_trip():
     assert restored.source is ParameterSource.USER_SUPPLIED
 
 
+def test_field_model_metadata_accepts_all_shared_scientific_statuses():
+    for status in ScientificStatus:
+        metadata = FieldModelMetadata(
+            model_name=f"example_{status.value}",
+            scientific_status=status,
+        )
+        assert metadata.scientific_status is status
+        assert metadata.to_dict()["scientific_status"] == status.value
+
+
 def test_field_model_metadata_records_contract_without_physical_defaults():
     metadata = FieldModelMetadata(
         model_name="quartic_field_example",
@@ -102,8 +112,18 @@ def test_state_preserves_complex_phi_and_phi_dot():
         {"phi": np.array([1.0, np.inf]), "time": 0.0, "spatial_shape": (2,)},
         {"phi": np.ones(2), "time": np.nan, "spatial_shape": (2,)},
         {"phi": np.ones(2), "time": np.inf, "spatial_shape": (2,)},
-        {"phi": np.ones(2), "time": 0.0, "spatial_shape": (2,), "scientific_status": "canonical"},
-        {"phi": np.ones(2), "time": 0.0, "spatial_shape": (2,), "units_convention": "SI"},
+        {
+            "phi": np.ones(2),
+            "time": 0.0,
+            "spatial_shape": (2,),
+            "scientific_status": "canonical",
+        },
+        {
+            "phi": np.ones(2),
+            "time": 0.0,
+            "spatial_shape": (2,),
+            "units_convention": "SI",
+        },
     ],
 )
 def test_state_validation_rejects_invalid_contract(kwargs):
@@ -170,7 +190,11 @@ def test_solution_2d_complex_trajectory_with_phi_dot():
 @pytest.mark.parametrize(
     "kwargs",
     [
-        {"times": np.array([[0.0, 1.0]]), "phi": np.ones((1, 2)), "spatial_shape": (2,)},
+        {
+            "times": np.array([[0.0, 1.0]]),
+            "phi": np.ones((1, 2)),
+            "spatial_shape": (2,),
+        },
         {"times": np.array([0.0, 0.0]), "phi": np.ones((2, 2)), "spatial_shape": (2,)},
         {"times": np.array([0.0, np.nan]), "phi": np.ones((2, 2)), "spatial_shape": (2,)},
         {"times": np.array([0.0, 1.0]), "phi": np.ones((3, 2)), "spatial_shape": (2,)},
@@ -180,7 +204,11 @@ def test_solution_2d_complex_trajectory_with_phi_dot():
             "phi_dot": np.ones((2, 3)),
             "spatial_shape": (2,),
         },
-        {"times": np.array([0.0, 1.0]), "phi": np.array([[1.0, np.inf], [1.0, 2.0]]), "spatial_shape": (2,)},
+        {
+            "times": np.array([0.0, 1.0]),
+            "phi": np.array([[1.0, np.inf], [1.0, 2.0]]),
+            "spatial_shape": (2,),
+        },
     ],
 )
 def test_solution_validation_rejects_invalid_shapes_and_values(kwargs):
@@ -205,7 +233,12 @@ def test_solution_dictionary_round_trip_keeps_large_arrays_as_arrays():
         spatial_shape=(4,),
         metadata={"case": "round-trip"},
         parameters={"mu": 1.5},
-        parameter_provenance={"mu": {"source": "source_document_reference", "reference": "Volume 2"}},
+        parameter_provenance={
+            "mu": {
+                "source": "source_document_reference",
+                "reference": "Volume 2",
+            }
+        },
     )
     payload = solution.to_dict()
     assert isinstance(payload["phi"], np.ndarray)
