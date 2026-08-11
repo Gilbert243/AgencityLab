@@ -1,6 +1,12 @@
+---
+orphan: true
+---
+
 # Field extension contracts
 
 AgencityLab distinguishes observable Agencity fields from autonomous dynamical fields and from later thermodynamic, gravitational, quantum, and cosmological extensions. This document defines shared scientific-status, data-model, units, metadata, and provenance contracts. It does **not** implement a beta-to-phi bridge, field potential, spatial operator, PDE, thermodynamics, gravity, quantisation, or cosmology.
+
+The page is intentionally standalone in this parallel PR. The integration PR will decide its public documentation placement without modifying `docs/index.md` here.
 
 ## Scientific-status taxonomy
 
@@ -11,9 +17,11 @@ AgencityLab uses exactly four scientific statuses:
 | `canonical` | Accepted definition of the Theory of Agencity and its reference implementation. |
 | `experimental` | Direct computational extension intended to be evaluated without becoming a new canonical law. |
 | `research` | Mathematical model proposed by the theory volumes and implemented for simulation or study without established empirical validation. |
-| `speculative` | More strongly hypothetical theoretical extension, notably quantum agencity, agentons, and fundamental cosmological applications. |
+| `speculative` | More strongly hypothetical theoretical extension, notably quantum Agencity, agentons, and fundamental cosmological applications. |
 
 Scientific status is not software maturity. It does not encode whether code is stable, well tested, production ready, or released. A speculative model may be implemented and tested rigorously while remaining scientifically speculative.
+
+`FieldModelMetadata` may carry any of these four statuses because it is shared across layers. The autonomous dynamical field state and solution contracts are specifically fixed to `research`.
 
 ## Observable field versus autonomous dynamical field
 
@@ -94,7 +102,7 @@ Future field, gravity, quantum, and cosmology work starts in one of two explicit
 
 AgencityLab does not claim automatic conversion of these future field models to SI units. The observable scalar and observable-field layers retain their existing unit contracts.
 
-Every `DynamicalAgencityFieldState`, `DynamicalAgencityFieldSolution`, and `FieldModelMetadata` must state its units convention explicitly.
+Every `DynamicalAgencityFieldState`, `DynamicalAgencityFieldSolution`, and `FieldModelMetadata` states its units convention explicitly.
 
 ## Parameter provenance
 
