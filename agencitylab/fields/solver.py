@@ -1,4 +1,10 @@
-import numpy as np
-def solve_field(initial, steps=10):
-    arr = np.asarray(initial, dtype=float)
-    return np.stack([arr for _ in range(steps)], axis=0)
+"""Reserved dynamical-field solver for the v1.2 research milestone."""
+
+
+def solve_field(*args, **kwargs):
+    """Reject the historical no-op solver placeholder in v1.1."""
+    del args, kwargs
+    raise NotImplementedError(
+        "Dynamical Agencity field solvers are not implemented in v1.1; "
+        "they are reserved for the v1.2 research milestone."
+    )

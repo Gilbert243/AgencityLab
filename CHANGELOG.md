@@ -2,6 +2,29 @@
 
 All notable changes to AgencityLab are documented here.
 
+## 1.1.0 - 2026-08-11
+
+### Added
+
+- Added experimental observable spatial Agencity fields through `compute_agencity_field()`, applying the reference scalar `compute_agencity()` pipeline independently at every spatial location.
+- Added `ObservableAgencityFieldResult` with original field geometry, spatial coordinates, all local canonical intermediate quantities, resolved local physical parameters, scientific status, backend, and reproducibility metadata.
+- Added scalar and spatial `A_ref(x)`, `tau(x)`, and `w(x)`, plus scalar, spatial, and spatio-temporal `P_c(x,t)`, with explicit shape resolution and no accidental NumPy broadcasting.
+- Added pointwise scalar-equivalence, multidimensional geometry, `time_axis`, local rest, local `P_c=0`, invariance, validation, and NumPy-only packaging tests.
+- Added `docs/observable_fields.md` documenting the observable-field contract and the strict separation from the future dynamical field.
+
+### Scientific status
+
+- `compute_agencity_field()` is **experimental spatial orchestration over the canonical scalar pipeline**. It is not new canonical field physics.
+- CRM remains temporal only and is evaluated independently at each spatial location. v1.1 introduces no spatial CRM, smoothing, derivative, Laplacian, autonomous `phi`, PDE, potential, coherent-structure dynamics, thermodynamics, gravity, quantum field, or cosmology.
+- The canonical branch `S=0 => U=0 => beta=0` and exact `b=P_c*beta` relation are inherited unchanged from `compute_agencity()`; no epsilon-based physics was introduced.
+- `tau` and `w` remain distinct. When `w` is omitted, `w=tau` is used only as the explicit software fallback and is recorded as such.
+
+### Compatibility and placeholders
+
+- Retained historical `AgencityField` only as a compatibility alias for `ObservableAgencityFieldResult`, avoiding ambiguity with the future dynamical field type.
+- Replaced misleading historical PDE, solver, boundary-condition, field-energy, action, and domain-wall placeholders with explicit `NotImplementedError` boundaries reserved for the v1.2 research milestone.
+- NumPy remains the reference and only required dependency for the observable-field API.
+
 ## 1.0.1 - 2026-08-11
 
 ### Fixed
