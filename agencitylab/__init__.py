@@ -1,7 +1,12 @@
 """High-level public API for AgencityLab."""
 
 from .version import __version__
-from .models import AgencityResult, ExperimentMetadata, RESULT_SCHEMA_VERSION
+from .models import (
+    AgencityResult,
+    ExperimentMetadata,
+    ObservableAgencityFieldResult,
+    RESULT_SCHEMA_VERSION,
+)
 from .exceptions import (
     AgencityError,
     AgencityValidationError,
@@ -13,6 +18,7 @@ from .exceptions import (
 )
 from .analysis import ANALYSIS_SCHEMA_VERSION, RegimeCriteria
 from .api.compute import compute_agencity
+from .fields import compute_agencity_field
 from .api.extensions import (
     RIEMANNIAN_EXTENSION_STATUS,
     compute_agencity_spectrum,
@@ -64,6 +70,7 @@ __all__ = [
     "SCIENTIFIC_UX_SCHEMA_VERSION",
     "RegimeCriteria",
     "AgencityResult",
+    "ObservableAgencityFieldResult",
     "ExperimentMetadata",
     "ScientificStudy",
     "AgencityError",
@@ -74,6 +81,7 @@ __all__ = [
     "StreamStateError",
     "StreamNotReadyError",
     "compute_agencity",
+    "compute_agencity_field",
     "compute_agencity_spectrum",
     "optimize_agencity_window",
     "compute_discrete_agencity",

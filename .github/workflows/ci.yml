@@ -43,7 +43,7 @@ jobs:
         run: |
           python - <<'PY'
           import agencitylab
-          assert agencitylab.__version__ == "1.0.1"
+          assert agencitylab.__version__ == "1.1.0"
           print(agencitylab.__version__)
           PY
 
@@ -86,8 +86,9 @@ jobs:
           import importlib.util
           import numpy as np
           import agencitylab
+          from agencitylab.fields import compute_agencity_field
 
-          assert agencitylab.__version__ == "1.0.1"
+          assert agencitylab.__version__ == "1.1.0"
           requirements = metadata.requires("agencitylab") or []
           assert any(requirement.lower().startswith("numpy") for requirement in requirements)
           for optional in ("scipy", "pandas", "matplotlib", "numba", "jax"):
@@ -105,9 +106,21 @@ jobs:
           analysis = agencitylab.analyze_agencity(result)
           assert result.b.shape == xi.shape
           assert np.all(np.isfinite(result.b))
-          assert result.metadata.agencitylab_version == "1.0.1"
+          assert result.metadata.agencitylab_version == "1.1.0"
           assert analysis["events"]["dynamic_peaks"]["count"] >= 0
-          print("minimal wheel install and analysis: PASS")
+
+          field = compute_agencity_field(
+              np.column_stack([np.sin(0.07 * xi), np.cos(0.07 * xi)]),
+              xi,
+              A_ref=1.0,
+              tau=16.0,
+              w=12.0,
+              P_c=np.array([0.0, 2.0]),
+          )
+          assert field.status == "experimental"
+          assert field.b.shape == (xi.size, 2)
+          assert np.all(field.b[:, 0] == 0.0j)
+          print("minimal NumPy-only wheel install, scalar and field compute: PASS")
           PY
 
       - name: Built wheel public end-to-end workflow
@@ -147,7 +160,7 @@ jobs:
               assert csv_path.exists()
               np.testing.assert_allclose(restored.beta, result.beta)
               np.testing.assert_allclose(restored.b, result.b)
-          assert result.metadata.agencitylab_version == "1.0.1"
+          assert result.metadata.agencitylab_version == "1.1.0"
           print("built wheel public end-to-end workflow: PASS")
           PY
 
@@ -161,7 +174,7 @@ jobs:
           "$GITHUB_WORKSPACE/.venv-sdist/bin/python" - <<'PY'
           import numpy as np
           import agencitylab
-          assert agencitylab.__version__ == "1.0.1"
+          assert agencitylab.__version__ == "1.1.0"
           assert agencitylab.available_backends() == ("numpy",)
           xi = np.arange(64, dtype=float)
           result = agencitylab.compute_agencity(
@@ -173,13 +186,22 @@ jobs:
               P_c=1.0,
           )
           assert result.b.shape == xi.shape
-          print("minimal sdist install and compute: PASS")
+          field = agencitylab.compute_agencity_field(
+              np.column_stack([np.sin(0.2 * xi), np.cos(0.2 * xi)]),
+              xi,
+              A_ref=1.0,
+              tau=4.0,
+              w=3.0,
+              P_c=1.0,
+          )
+          assert field.beta.shape == (xi.size, 2)
+          print("minimal sdist install, scalar and field compute: PASS")
           PY
 
       - name: Upload distributions
         uses: actions/upload-artifact@v4
         with:
-          name: agencitylab-1.0.1-distributions
+          name: agencitylab-1.1.0-distributions
           path: dist/
           if-no-files-found: error
 
@@ -324,6 +346,6 @@ jobs:
       - name: Upload benchmark report
         uses: actions/upload-artifact@v4
         with:
-          name: agencitylab-v1.0-retained-v08-benchmark
+          name: agencitylab-v1.1-retained-v08-benchmark
           path: benchmark-v08.json
           if-no-files-found: error

@@ -14,6 +14,7 @@ scientific_validation
 :caption: Scientific computation and analysis
 
 stable_api
+observable_fields
 agencity_analysis
 multiscale_extensions
 scientific_ux
@@ -40,11 +41,11 @@ references/glossary
 
 ## Project status
 
-AgencityLab `1.0.0` is the first Stable Scientific Release. The stable software contract combines the canonical scalar pipeline, deterministic scientific-validation battery, separate diagnostic analysis layer, multiscale/discrete/multivariate constructions, researcher workflows, packaging checks, executable examples, and reproducibility metadata.
+AgencityLab `1.1.0` keeps the 1.x canonical scalar software contract stable and adds **Observable Spatial Agencity Fields** as an explicitly experimental API. Software stability is distinct from empirical validation of the theory, and the spatial orchestration does not promote the future autonomous dynamical field to stable or canonical status.
 
-Version 1.0 freezes the documented public API under Semantic Versioning. It does not redefine `CRM`, `M`, `O`, `D`, `S`, `J`, `Theta`, `beta`, `b`, `A_ref`, `tau`, `w`, or `P_c`, and software stability is not empirical confirmation of the theory.
+Version 1.0 froze the documented public scalar API under Semantic Versioning. Version 1.1 adds backwards-compatible functionality without redefining `CRM`, `M`, `O`, `D`, `S`, `J`, `Theta`, `beta`, `b`, `A_ref`, `tau`, `w`, or `P_c`.
 
-Read [the stable API contract](stable_api.md), [the theory mapping](theory_mapping.md), [scientific validation](scientific_validation.md), and [v1.0 release readiness](release_readiness.md) before treating an implementation detail, diagnostic threshold, benchmark observation, or experimental extension as a scientific claim.
+Read [the stable API contract](stable_api.md), [observable spatial fields](observable_fields.md), [the theory mapping](theory_mapping.md), [scientific validation](scientific_validation.md), and [release readiness](release_readiness.md) before treating an implementation detail, diagnostic threshold, benchmark observation, or experimental extension as a scientific claim.
 
 ## Canonical target quantities
 
