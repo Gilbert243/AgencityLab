@@ -15,6 +15,8 @@ scientific_validation
 
 stable_api
 observable_fields
+dynamical_field_foundations
+field_extension_contracts
 agencity_analysis
 multiscale_extensions
 scientific_ux
@@ -41,11 +43,13 @@ references/glossary
 
 ## Project status
 
-AgencityLab `1.1.0` keeps the 1.x canonical scalar software contract stable and adds **Observable Spatial Agencity Fields** as an explicitly experimental API. Software stability is distinct from empirical validation of the theory, and the spatial orchestration does not promote the future autonomous dynamical field to stable or canonical status.
+AgencityLab `1.1.1` keeps the 1.x canonical scalar software contract stable, retains **Observable Spatial Agencity Fields** as an explicitly experimental API, and integrates the common foundations for an autonomous dynamical `phi` field as a **research** layer. Software stability is distinct from empirical validation of the theory.
 
-Version 1.0 froze the documented public scalar API under Semantic Versioning. Version 1.1 adds backwards-compatible functionality without redefining `CRM`, `M`, `O`, `D`, `S`, `J`, `Theta`, `beta`, `b`, `A_ref`, `tau`, `w`, or `P_c`.
+The research bridge from `beta_obs` to `phi` is explicit and uses `phi = sqrt(P_c * tau) * beta`; `compute_agencity_field()` never performs that promotion automatically. Version 1.1.1 also exposes the quartic reference potential, vacuum and energy primitives, research field state/solution models, parameter provenance, and generic NumPy-only field numerics. It does **not** yet provide a physical KG/TDGL PDE solver.
 
-Read [the stable API contract](stable_api.md), [observable spatial fields](observable_fields.md), [the theory mapping](theory_mapping.md), [scientific validation](scientific_validation.md), and [release readiness](release_readiness.md) before treating an implementation detail, diagnostic threshold, benchmark observation, or experimental extension as a scientific claim.
+Version 1.0 froze the documented public scalar API under Semantic Versioning. The 1.1.x series adds backwards-compatible experimental/research functionality without redefining `CRM`, `M`, `O`, `D`, `S`, `J`, `Theta`, `beta`, `b`, `A_ref`, `tau`, `w`, or `P_c`.
+
+Read [the stable API contract](stable_api.md), [observable spatial fields](observable_fields.md), [dynamical field foundations](dynamical_field_foundations.md), [field extension contracts](field_extension_contracts.md), [the theory mapping](theory_mapping.md), [scientific validation](scientific_validation.md), and [release readiness](release_readiness.md) before treating an implementation detail, diagnostic threshold, benchmark observation, or research/speculative extension as a scientific claim.
 
 ## Canonical target quantities
 
@@ -59,4 +63,4 @@ The reference scalar construction uses:
 - intrinsic state `beta`, with `beta = 0` when `S = 0`;
 - observable agencity flux `b = P_c beta`.
 
-Canonical computation, numerical safeguards, diagnostics, heuristics, experimental extensions, and legacy compatibility paths are labelled separately throughout the documentation.
+Canonical computation, numerical safeguards, diagnostics, heuristics, experimental extensions, research models, speculative extensions, and legacy compatibility paths are labelled separately throughout the documentation.
