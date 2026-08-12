@@ -2,6 +2,48 @@
 
 All notable changes to AgencityLab are documented here.
 
+## 1.1.2 - 2026-08-12
+
+### Added
+
+- Added the classical autonomous-field research dynamics from Volume 2: conservative Klein-Gordon, dissipative Klein-Gordon, and overdamped TDGL, all reusing the shared quartic potential and NumPy field operators introduced in 1.1.1.
+- Added deterministic fixed-step simulators returning `DynamicalAgencityFieldSolution`: velocity-Verlet for conservative KG, RK4 on the first-order system for dissipative KG, and RK4 for TDGL.
+- Added research coherent-structure references: the rescaled real-sector/Z2 domain wall, two-dimensional U(1) vortex construction with caller-supplied radial profile, radial residual evaluation, spatial phase winding, and explicit zero/near-zero masks.
+- Added cross-layer integration tests proving the static domain-wall residual is the same `laplacian(phi) - potential.gradient(phi)` used by the KG acceleration and that the broken vacuum remains stationary under all three reference dynamics.
+- Exposed the dynamics and coherent-structure APIs through `agencitylab.fields` and selected top-level `agencitylab` imports.
+- Added `docs/classical_field_dynamics.md` and `docs/coherent_structures.md` and updated the field-foundation documentation.
+
+### Scientific status
+
+- The scalar `u -> beta -> b` pipeline remains canonical and unchanged.
+- Observable spatial orchestration remains `experimental`.
+- Autonomous `phi`, the quartic field dynamics, domain-wall/vortex references, and spatial field topology remain `research`; numerical agreement is implementation evidence, not empirical validation.
+- The real kink is explicitly a real-sector/Z2 reference and is not claimed to be a generally stable topological wall of the full complex U(1) theory.
+- The vortex radial profile is not invented: callers provide `f(r)`, while AgencityLab evaluates the source ansatz/residual and winding diagnostics.
+
+### Compatibility and cleanup
+
+- Retired the old ambiguous `field_rhs`, `solve_field`, `zero_boundary`, `field_energy`, and empty `detect_domain_walls` placeholders instead of silently mapping them to one research equation or heuristic.
+- Kept the unsupported generic discretized `action()` boundary explicit; 1.1.2 implements the potential and equations of motion but does not fabricate a variational discretization.
+- Documented that experimental/research interfaces may evolve within the 1.1.x development line while the stable canonical scalar contract remains protected.
+- NumPy remains the only required runtime dependency.
+
+## 1.1.1 - 2026-08-12
+
+### Added
+
+- Integrated the shared dynamical-field foundations: explicit research bridge `phi = sqrt(P_c * tau) * beta`, quartic potential, broken-vacuum primitives, field-energy primitives, scientific-status/provenance models, uniform N-D grids, spatial operators, boundary contracts, generic RK4/velocity-Verlet integrators, and CFL diagnostics.
+- Added `DynamicalAgencityFieldState` and `DynamicalAgencityFieldSolution` without conflating them with `ObservableAgencityFieldResult`.
+- Added the common `ScientificStatus` taxonomy (`canonical`, `experimental`, `research`, `speculative`) and parameter-provenance contracts.
+- Added public documentation for the explicit observable-to-autonomous-field boundary and the Volume-2 source-term convention relative to standard Wirtinger normalization.
+
+### Scientific status
+
+- The `beta_obs -> phi` bridge is explicit and `research`; `compute_agencity_field()` never performs it automatically.
+- Generic field numerics are `experimental` infrastructure and do not define Agencity physics.
+- Autonomous field physics is `research`; no PDE time evolution, thermodynamics, gravity, quantization, or cosmology was claimed in 1.1.1.
+- `P_c = 0` gives `phi = 0` exactly with no epsilon substitution or implicit inverse.
+
 ## 1.1.0 - 2026-08-11
 
 ### Added
