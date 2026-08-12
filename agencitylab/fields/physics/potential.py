@@ -45,9 +45,13 @@ class QuarticAgencityPotential:
     and strictly positive. The optional provenance fields reuse AgencityLab's
     shared parameter-provenance contract rather than defining a second system.
 
-    ``gradient(phi)`` implements the complex Wirtinger derivative
-    ``dV/d(phi*) = -lambda*phi + mu*|phi|^2*phi``. For real ``phi`` the same
-    expression applies naturally; no separate real-field physics is introduced.
+    ``gradient(phi)`` implements the complex potential term used by Volume 2,
+    written there as ``dV/d(phi*) = -lambda*phi + mu*|phi|^2*phi``. With
+    ``phi = x + i y`` and the quartic coefficients used here, this returned
+    complex value is equivalently ``dV/dx + i dV/dy``. Under the standard
+    mathematical Wirtinger normalization it equals ``2 * partial V/partial phi*``.
+    This factor convention is documented rather than silently changing the
+    source equation. For real ``phi`` the same expression applies naturally.
     """
 
     lambda_: float
@@ -82,7 +86,7 @@ class QuarticAgencityPotential:
         return -(self.lambda_ / 2.0) * modulus_squared + (self.mu / 4.0) * modulus_squared**2
 
     def gradient(self, phi) -> np.ndarray:
-        """Return ``dV/d(phi*)`` under the Volume-2 complex convention."""
+        """Return the complex potential-gradient term in the Volume-2 convention."""
         arr = _finite_field(phi)
         return -self.lambda_ * arr + self.mu * (np.abs(arr) ** 2) * arr
 
