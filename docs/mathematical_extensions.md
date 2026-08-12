@@ -1,3 +1,7 @@
+---
+orphan: true
+---
+
 # Mathematical extension completeness
 
 This page implements the source-defined parts of Volume 2 Chapters 12, 13 and
@@ -14,7 +18,7 @@ D = sqrt(g(X,X) + g(A,X)^2).
 ```
 
 It also notes that scalar quantities such as `||X||_g` or `g(A,X)` may be used
-as inputs to the real-valued CRM operator.  The same section explicitly says
+as inputs to the real-valued CRM operator. The same section explicitly says
 that the detailed analysis is deferred.
 
 AgencityLab therefore implements only the intrinsic kinematic primitives:
@@ -24,7 +28,7 @@ AgencityLab therefore implements only the intrinsic kinematic primitives:
 - `riemannian_dynamic_intensity`.
 
 The caller supplies tangent vectors, covariant acceleration and a symmetric
-positive-definite metric.  The software does **not** invent a coordinate-chart
+positive-definite metric. The software does **not** invent a coordinate-chart
 framework, a Levi-Civita connection solver, or a complete Riemannian CRM/state
 pipeline that the source does not define operationally.
 
@@ -41,17 +45,17 @@ Phi3(w) = - sum_k p_k ln(p_k)                 maximise
 ```
 
 The existing automatic window selector continues to use `Phi2`, matching the
-algorithm printed in Chapter 13 and Appendix C.  This change adds evaluators
+algorithm printed in Chapter 13 and Appendix C. This change adds evaluators
 for `Phi1` and `Phi3`; it does not replace that algorithm.
 
 For `Phi3`, Volume 2 says that `p_k` are frequencies of discretised angle bins
-but does not prescribe a universal number or placement of bins.  Therefore
+but does not prescribe a universal number or placement of bins. Therefore
 `orientational_entropy_criterion()` requires explicit `bin_edges` from the
-caller.  No universal discretisation is invented.  An explicit `valid_mask`
+caller. No universal discretisation is invented. An explicit `valid_mask`
 may exclude samples at which structural orientation is undefined, such as
 `S = 0`.
 
-These criteria are selection/analysis extensions.  They do not silently infer
+These criteria are selection/analysis extensions. They do not silently infer
 a physically supplied characteristic time `tau`, and a signal-derived optimum
 is not promoted into a physical parameter without an explicit user decision.
 
@@ -67,8 +71,8 @@ W(psi) = (1/4)(1-|psi|^2)^2.
 ```
 
 AgencityLab exposes this rescaling and static residual under
-`agencitylab.fields.coherent`.  The spatial Laplacian remains the shared
-Numerics operator.  This is not a second implementation of the physical
+`agencitylab.fields.coherent`. The spatial Laplacian remains the shared
+Numerics operator. This is not a second implementation of the physical
 quartic `phi` potential.
 
 Scientific status: `research`, consistent with the autonomous field/coherent
@@ -83,9 +87,9 @@ A = 1/2 Im integral beta(t) beta_dot(t) dt.
 ```
 
 Read literally for a closed differentiable curve, that integrand is a total
-derivative and the integral vanishes.  The surrounding text calls it the
+derivative and the integral vanishes. The surrounding text calls it the
 *enclosed algebraic area*, which ordinarily requires a complex conjugation or
-an equivalent real-plane cross product.  Because the accepted source as
+an equivalent real-plane cross product. Because the accepted source as
 currently rendered does not resolve that typography unambiguously,
 AgencityLab does not silently choose one formula.
 
