@@ -2,7 +2,7 @@
 
 AgencityLab is an open-source Python framework implementing and testing the **Theory of Agencity**.
 
-**Current software status: 1.1.5.** Version 1.0 freezes the documented stable scalar software contract. The 1.1.x line adds explicitly labelled experimental, research, and speculative capabilities without redefining the canonical observable. Software stability is distinct from empirical validation of the theory.
+**Current software status: 1.1.6.** Version 1.0 freezes the documented stable scalar software contract. The 1.1.x line adds explicitly labelled experimental, research, and speculative capabilities without redefining the canonical observable. Software stability is distinct from empirical validation of the theory.
 
 ## Canonical observable
 
@@ -152,6 +152,16 @@ The explicitly incomplete Riemannian extension now implements only the intrinsic
 
 Source ambiguities are recorded instead of guessed. The printed Chapter-15 phase equation does not algebraically match the direct complex equation without an additional factor; the extracted Chapter-8 cycle-area typography is ambiguous; and Volume 2 explicitly leaves a closed autonomous equation for `b` as future work. AgencityLab therefore does not silently manufacture any of these missing conventions.
 
+## Functional-completeness extensions in 1.1.6
+
+Version 1.1.6 adds source-defined mathematical/reference formulas found by a second completeness audit without modifying the canonical scalar engine.
+
+`agencitylab.extensions` now exposes the historical Chapter-14 intensity candidates: the sum form, its logarithm, the raw dynamic/structural ratio, and the common offset expression printed by the source. These are **experimental reference formulas** only. Their singularities are exposed instead of repaired with epsilon, and they never replace canonical `J = ln((e+D)/(e+S))` in `compute_agencity()`.
+
+`agencitylab.analysis` adds the Chapter-4 logarithmic-contrast sensitivity with respect to the fixed offset, the exact Chapter-10 multiplicative `P_c` perturbation identity, and the Chapter-11 recoverable inverse signature. The inverse helper requires known strictly positive `P_c`, recovers `beta`, `|J|`, and structural direction only modulo sign, and never claims to reconstruct the original observable or individual `D` and `S` values.
+
+The source prints the offset expression at the end of Section 14.3 and the `I3` expression in Section 14.4 in algebraically identical form. AgencityLab implements that common printed expression once rather than inventing a distinction not supported by the accepted document. The canonical constant remains `e = exp(1)` and is not made tunable.
+
 ## Stable v1.0 API
 
 The principal stable scalar interfaces are:
@@ -182,11 +192,11 @@ The 1.1.x development line deliberately contains **experimental/research/specula
 
 **Stable canonical computation.** `agencitylab/core/` contains deterministic mathematical operators; normal user workflows use `compute_agencity()` as the unique reference orchestration. NumPy is the stable complete backend.
 
-**Diagnostic analysis.** `agencitylab/analysis/` consumes computed results. Coherence, angular variance, real-agencity criteria, curvature, winding, events, transitions, signatures, regimes, and reports do not redefine the canonical state. In particular, `beta != 0` is not the definition of coherent or real agencity. Contextual structural, angular-stability, `|b|`, and persistence criteria remain diagnostic inputs and never modify `beta`.
+**Diagnostic analysis.** `agencitylab/analysis/` consumes computed results. Coherence, angular variance, real-agencity criteria, curvature, winding, events, transitions, signatures, regimes, reports, robustness relations, and recoverable inverse signatures do not redefine the canonical state. In particular, `beta != 0` is not the definition of coherent or real agencity. Contextual structural, angular-stability, `|b|`, and persistence criteria remain diagnostic inputs and never modify `beta`.
 
 Historical coherence/real-agencity helpers under `agencitylab.core` remain only as deprecated legacy diagnostics. Historical `compute_full_agencity()` is a compatibility wrapper around the public reference pipeline, not a second canonical implementation.
 
-**Experimental.** Observable spatial orchestration, generic field numerics, Numba/JAX primitive layers, signal-derived window optimisation, `Phi1`/`Phi3` selection criteria, and the limited Riemannian kinematic extension are explicitly outside the stable canonical contract.
+**Experimental.** Observable spatial orchestration, generic field numerics, Numba/JAX primitive layers, signal-derived window optimisation, `Phi1`/`Phi3` selection criteria, the limited Riemannian kinematic extension, and historical Chapter-14 intensity candidates are explicitly outside the stable canonical contract.
 
 **Research / speculative.** Autonomous `phi` dynamics, the separate Chapter-15 effective-beta model, flat-field conservation laws, coherent structures, thermodynamic and gravitational extensions are research layers. Quantum/agenton and cosmological extensions are speculative.
 
@@ -239,7 +249,7 @@ Documentation is built in CI with significant Sphinx warnings treated as errors.
 
 ## Limitations
 
-AgencityLab remains research software beyond its stable scalar computation contract. Results depend on the observable and physically/contextually justified parameters. Sampling and preprocessing decisions must be explicit. Sensitivity to `w` is scientifically meaningful. The inverse problem is non-injective. Current streaming is not constant-memory. Accelerated backends are experimental. Autonomous-field, effective-beta, thermodynamic, and gravitational extensions retain research status; limited Riemannian primitives remain experimental; quantum and cosmological extensions remain speculative. Gravity is not a general numerical-relativity framework, and the cosmology package is not an observational inference framework. Source formulas that are incomplete or internally ambiguous are documented rather than silently completed by software convention.
+AgencityLab remains research software beyond its stable scalar computation contract. Results depend on the observable and physically/contextually justified parameters. Sampling and preprocessing decisions must be explicit. Sensitivity to `w` is scientifically meaningful. The inverse problem is non-injective. Current streaming is not constant-memory. Accelerated backends are experimental. Autonomous-field, effective-beta, thermodynamic, and gravitational extensions retain research status; limited Riemannian primitives and historical intensity candidates remain experimental; quantum and cosmological extensions remain speculative. Gravity is not a general numerical-relativity framework, and the cosmology package is not an observational inference framework. Source formulas that are incomplete or internally ambiguous are documented rather than silently completed by software convention.
 
 ## Development and contribution
 
