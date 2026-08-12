@@ -44,13 +44,13 @@ def test_v1_release_metadata_is_consistent():
     license_text = (ROOT / "LICENSE").read_text(encoding="utf-8")
     citation = (ROOT / "CITATION.cff").read_text(encoding="utf-8")
 
-    assert __version__ == "1.1.0"
-    assert 'version = "1.1.0"' in pyproject
+    assert __version__ == "1.1.1"
+    assert 'version = "1.1.1"' in pyproject
     assert "Development Status :: 5 - Production/Stable" in pyproject
     assert "Permission is hereby granted" in license_text
     assert "placeholder license text" not in license_text
-    assert "version: 1.1.0" in citation
-    assert "date-released: 2026-08-11" in citation
+    assert "version: 1.1.1" in citation
+    assert "date-released: 2026-08-12" in citation
     assert "license: MIT" in citation
 
 
@@ -64,7 +64,7 @@ def test_quickstart_compute_analyze_export_roundtrip(tmp_path):
         power_unit="W",
     )
 
-    assert result.metadata.agencitylab_version == __version__ == "1.1.0"
+    assert result.metadata.agencitylab_version == __version__ == "1.1.1"
     assert result.metadata.reference_amplitude == 1.0
     assert result.metadata.characteristic_time == 2.0
     assert result.metadata.memory_window == 1.5
@@ -89,7 +89,7 @@ def test_quickstart_compute_analyze_export_roundtrip(tmp_path):
     restored = AgencityResult.from_dict(payload["result"])
     np.testing.assert_allclose(restored.beta, result.beta)
     np.testing.assert_allclose(restored.b, result.b)
-    assert restored.metadata.agencitylab_version == "1.1.0"
+    assert restored.metadata.agencitylab_version == "1.1.1"
 
     frame = pd.read_csv(csv_path)
     for column in ("beta_real", "beta_imag", "b_real", "b_imag"):
@@ -199,7 +199,7 @@ def test_batch_preserves_order_and_per_item_physics():
     assert [result.tau for result in results] == [2.0, 3.0]
     assert [result.memory_window for result in results] == [2.0, 2.0]
     assert [float(result.P_c) for result in results] == [1.0, 4.0]
-    assert all(result.metadata.agencitylab_version == "1.1.0" for result in results)
+    assert all(result.metadata.agencitylab_version == "1.1.1" for result in results)
 
 
 def test_full_history_stream_matches_one_shot():
