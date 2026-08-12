@@ -49,14 +49,16 @@ from agencitylab.thermodynamics.laws import (
 )
 
 
-def test_thermodynamics_is_research_only_and_not_globally_exported():
-    assert agencitylab.__version__ == "1.1.2"
+def test_thermodynamics_remains_research_when_selected_apis_are_globally_exported():
+    assert agencitylab.__version__ == "1.1.3"
     assert DISSIPATION_STATUS is ScientificStatus.RESEARCH
     assert TEMPERATURE_STATUS is ScientificStatus.RESEARCH
     assert ENTROPY_STATUS is ScientificStatus.RESEARCH
     assert LAWS_STATUS is ScientificStatus.RESEARCH
-    assert not hasattr(agencitylab, "field_agencial_entropy")
-    assert not hasattr(agencitylab, "phase_law_prediction")
+    assert agencitylab.field_agencial_entropy is field_agencial_entropy
+    assert agencitylab.phase_law_prediction is phase_law_prediction
+    assert agencitylab.dissipation_density is dissipation_density
+    assert agencitylab.temperature_dependent_lambda is temperature_dependent_lambda
 
 
 def test_zero_velocity_gives_exact_zero_dissipation_and_entropy_production():
