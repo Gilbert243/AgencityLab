@@ -1,7 +1,3 @@
----
-orphan: true
----
-
 # Mathematical extension completeness
 
 This page implements the source-defined parts of Volume 2 Chapters 12, 13 and

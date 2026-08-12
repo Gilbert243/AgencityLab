@@ -2,7 +2,7 @@
 
 AgencityLab is an open-source Python framework implementing and testing the **Theory of Agencity**.
 
-**Current software status: 1.1.4.** Version 1.0 freezes the documented stable scalar software contract. The 1.1.x line adds explicitly labelled experimental, research, and speculative capabilities without redefining the canonical observable. Software stability is distinct from empirical validation of the theory.
+**Current software status: 1.1.5.** Version 1.0 freezes the documented stable scalar software contract. The 1.1.x line adds explicitly labelled experimental, research, and speculative capabilities without redefining the canonical observable. Software stability is distinct from empirical validation of the theory.
 
 ## Canonical observable
 
@@ -140,6 +140,18 @@ Version 1.1.4 adds two explicitly **speculative** layers. They implement source 
 
 Selected principal speculative APIs are available at package top level, while the complete contracts remain under `agencitylab.quantum` and `agencitylab.applications.cosmology`.
 
+## Theory-completeness extensions in 1.1.5
+
+Version 1.1.5 implements additional formulas already present in the accepted Volume-2 theory rather than introducing a new research programme.
+
+The Chapter-15 postulated effective field called `beta` is exposed separately under `agencitylab.fields.effective_beta`. Its reaction-diffusion-advection equation is **research** and is not the canonical computation of `beta_obs` from an observable. API names such as `diffusion_coefficient` and `saturation_coefficient` avoid collisions with the canonical dynamic intensity `D` and flux `b`.
+
+The Chapter-16 `(+,-,-,-)` flat-field layer now includes the Lagrangian density, symmetric energy-momentum tensor, U(1) Noether current, phase-current form, and radial-equation residual. Appendix B's separate beta-field Lagrangian/equation/current/tensor are retained under explicit `appendix_b_beta_*` names instead of being silently identified with the `phi = sqrt(P_c tau) beta` normalization.
+
+The explicitly incomplete Riemannian extension now implements only the intrinsic Definition-12.4 kinematics supplied by the source: metric inner product, speed, and `sqrt(g(X,X)+g(A,X)^2)` for caller-supplied covariant acceleration. It remains **experimental** and does not invent a full manifold CRM pipeline. Chapter-13 `Phi1` and `Phi3` evaluators are also available under `agencitylab.extensions`; `Phi3` requires caller-supplied angle bins because the theory does not prescribe a universal binning rule. Chapter 17's dimensionless coherent-field rescaling, coherence length, effective potential, and static residual are available from `agencitylab.fields.coherent`.
+
+Source ambiguities are recorded instead of guessed. The printed Chapter-15 phase equation does not algebraically match the direct complex equation without an additional factor; the extracted Chapter-8 cycle-area typography is ambiguous; and Volume 2 explicitly leaves a closed autonomous equation for `b` as future work. AgencityLab therefore does not silently manufacture any of these missing conventions.
+
 ## Stable v1.0 API
 
 The principal stable scalar interfaces are:
@@ -174,9 +186,9 @@ The 1.1.x development line deliberately contains **experimental/research/specula
 
 Historical coherence/real-agencity helpers under `agencitylab.core` remain only as deprecated legacy diagnostics. Historical `compute_full_agencity()` is a compatibility wrapper around the public reference pipeline, not a second canonical implementation.
 
-**Experimental.** Observable spatial orchestration, generic field numerics, Numba/JAX primitive layers, and signal-derived window optimisation are explicitly outside the stable canonical contract.
+**Experimental.** Observable spatial orchestration, generic field numerics, Numba/JAX primitive layers, signal-derived window optimisation, `Phi1`/`Phi3` selection criteria, and the limited Riemannian kinematic extension are explicitly outside the stable canonical contract.
 
-**Research / speculative.** Autonomous `phi` dynamics, coherent structures, thermodynamic and gravitational extensions are research layers. Quantum/agenton and cosmological extensions are speculative.
+**Research / speculative.** Autonomous `phi` dynamics, the separate Chapter-15 effective-beta model, flat-field conservation laws, coherent structures, thermodynamic and gravitational extensions are research layers. Quantum/agenton and cosmological extensions are speculative.
 
 ## Reproducibility
 
@@ -192,13 +204,13 @@ Batch computations preserve input order and allow independent physical parameter
 
 Streaming is retained-history recomputation. With full history its final result is tested against one-shot computation. A finite `window_size` intentionally changes the retained-history problem; the current implementation does not claim a constant-memory online recurrence.
 
-Multiscale analysis scans explicit `tau` values and may use independent `w` values. It does not conflate characteristic time, CRM memory width, sampling interval, or physical parameter estimation. Discrete and multivariate constructions are part of the documented stable computational API; the incomplete Riemannian research extension is not promoted to stable status.
+Multiscale analysis scans explicit `tau` values and may use independent `w` values. It does not conflate characteristic time, CRM memory width, sampling interval, or physical parameter estimation. Discrete and multivariate constructions are part of the documented stable computational API. The Riemannian layer exposes only the source-defined intrinsic primitives and remains experimental; its detailed manifold analysis is still explicitly deferred by the source.
 
 ## Scientific validation
 
 The deterministic regression suite covers exact rest, sinusoidal structure, passive damping, Van der Pol oscillation, negative-damping instability, filtered Ornstein-Uhlenbeck dynamics, and Lorenz dynamics. It also checks canonical identities, invariances/limits, CRM equivalence, edge cases, batch/streaming/multiscale consistency, discrete stencils and convergence, packaging, public workflows, classical field equations, coherent-structure references, thermodynamic identities/evaluators, gravity tensor/equation contracts, quantum primitive identities, homogeneous FLRW contracts, and cross-layer field contracts.
 
-These checks validate implementation and numerical behaviour against accepted reference consequences; they are not universal empirical validation of the Theory of Agencity or evidence for speculative extensions.
+These checks verify implementation and numerical behaviour against accepted equations and mathematical consequences. They are not a user-independent falsification protocol and are not empirical confirmation of the Theory of Agencity or its research/speculative extensions.
 
 ## Documentation
 
@@ -207,7 +219,9 @@ These checks validate implementation and numerical behaviour against accepted re
 - `docs/observable_fields.md`
 - `docs/dynamical_field_foundations.md`
 - `docs/classical_field_dynamics.md`
+- `docs/effective_beta_and_conservation.md`
 - `docs/coherent_structures.md`
+- `docs/mathematical_extensions.md`
 - `docs/thermodynamics.md`
 - `docs/gravity.md`
 - `docs/quantum.md`
@@ -225,7 +239,7 @@ Documentation is built in CI with significant Sphinx warnings treated as errors.
 
 ## Limitations
 
-AgencityLab remains research software beyond its stable scalar computation contract. Results depend on the observable and physically/contextually justified parameters. Sampling and preprocessing decisions must be explicit. Sensitivity to `w` is scientifically meaningful. The inverse problem is non-injective. Current streaming is not constant-memory. Accelerated backends are experimental. Autonomous-field, thermodynamic, and gravitational extensions retain research status; quantum and cosmological extensions remain speculative. Gravity is not a general numerical-relativity framework, and the cosmology package is not an observational inference framework.
+AgencityLab remains research software beyond its stable scalar computation contract. Results depend on the observable and physically/contextually justified parameters. Sampling and preprocessing decisions must be explicit. Sensitivity to `w` is scientifically meaningful. The inverse problem is non-injective. Current streaming is not constant-memory. Accelerated backends are experimental. Autonomous-field, effective-beta, thermodynamic, and gravitational extensions retain research status; limited Riemannian primitives remain experimental; quantum and cosmological extensions remain speculative. Gravity is not a general numerical-relativity framework, and the cosmology package is not an observational inference framework. Source formulas that are incomplete or internally ambiguous are documented rather than silently completed by software convention.
 
 ## Development and contribution
 
