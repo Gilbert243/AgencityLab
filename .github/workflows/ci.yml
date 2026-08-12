@@ -43,7 +43,7 @@ jobs:
         run: |
           python - <<'PY'
           import agencitylab
-          assert agencitylab.__version__ == "1.1.4"
+          assert agencitylab.__version__ == "1.1.5"
           print(agencitylab.__version__)
           PY
 
@@ -88,7 +88,7 @@ jobs:
           import agencitylab
           from agencitylab.fields import compute_agencity_field
 
-          assert agencitylab.__version__ == "1.1.4"
+          assert agencitylab.__version__ == "1.1.5"
           requirements = metadata.requires("agencitylab") or []
           assert any(requirement.lower().startswith("numpy") for requirement in requirements)
           for optional in ("scipy", "pandas", "matplotlib", "numba", "jax"):
@@ -106,7 +106,7 @@ jobs:
           analysis = agencitylab.analyze_agencity(result)
           assert result.b.shape == xi.shape
           assert np.all(np.isfinite(result.b))
-          assert result.metadata.agencitylab_version == "1.1.4"
+          assert result.metadata.agencitylab_version == "1.1.5"
           assert analysis["events"]["dynamic_peaks"]["count"] >= 0
 
           field = compute_agencity_field(
@@ -202,7 +202,7 @@ jobs:
               assert csv_path.exists()
               np.testing.assert_allclose(restored.beta, result.beta)
               np.testing.assert_allclose(restored.b, result.b)
-          assert result.metadata.agencitylab_version == "1.1.4"
+          assert result.metadata.agencitylab_version == "1.1.5"
           print("built wheel public end-to-end workflow: PASS")
           PY
 
@@ -216,7 +216,7 @@ jobs:
           "$GITHUB_WORKSPACE/.venv-sdist/bin/python" - <<'PY'
           import numpy as np
           import agencitylab
-          assert agencitylab.__version__ == "1.1.4"
+          assert agencitylab.__version__ == "1.1.5"
           assert agencitylab.available_backends() == ("numpy",)
           xi = np.arange(64, dtype=float)
           result = agencitylab.compute_agencity(
@@ -244,13 +244,13 @@ jobs:
           assert callable(agencitylab.einstein_equation_residual)
           assert callable(agencitylab.radial_mass_squared)
           assert callable(agencitylab.simulate_flat_flrw)
-          print("minimal sdist install, scalar and integrated 1.1.4 APIs: PASS")
+          print("minimal sdist install, scalar and integrated 1.1.5 APIs: PASS")
           PY
 
       - name: Upload distributions
         uses: actions/upload-artifact@v4
         with:
-          name: agencitylab-1.1.4-distributions
+          name: agencitylab-1.1.5-distributions
           path: dist/
           if-no-files-found: error
 
