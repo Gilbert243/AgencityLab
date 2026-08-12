@@ -15,7 +15,7 @@ from agencitylab.scientific_status import ScientificStatus
 
 
 def test_public_foundations_are_exposed_with_expected_statuses():
-    assert agencitylab.__version__ == "1.1.1"
+    assert agencitylab.__version__ == "1.1.2"
     assert agencitylab.ScientificStatus.RESEARCH is ScientificStatus.RESEARCH
     assert agencitylab.DynamicalAgencityFieldState is DynamicalAgencityFieldState
     assert agencitylab.QuarticAgencityPotential is QuarticAgencityPotential
