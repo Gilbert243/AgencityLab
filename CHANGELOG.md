@@ -2,6 +2,31 @@
 
 All notable changes to AgencityLab are documented here.
 
+## 1.1.3 - 2026-08-12
+
+### Added
+
+- Added the unified Agencity thermodynamics research layer: field dissipation and entropy-production evaluators, temperature-dependent `lambda(T)`, distinct field and contrast agencial entropies, energy-balance and second-law residuals, Modulus Law and Phase Law evaluators, and the explicitly conditional Volume-1 Landauer relations.
+- Added the named empirical Phase-Law reference fit (`alpha ~= 0.82`, `beta_fit ~= -1.50`, `R^2 ~= 0.87`) without making those values universal defaults.
+- Added the classical gravity research layer with explicit Chapter-19 `(-,+,+,+)` geometry, matter/action-density evaluators, external U(1) gauge covariant derivative, minimal stress-energy, Einstein-equation residual, nonminimal action/field coupling, and named minimal/conformal coupling helpers.
+- Added public documentation for thermodynamics and gravity and selected top-level research exports while retaining the complete APIs under `agencitylab.thermodynamics` and `agencitylab.gravity`.
+- Added cross-layer release tests connecting dissipative field solutions to thermodynamic dissipation, checking vacuum zero-dissipation behaviour, verifying shared use of `QuarticAgencityPotential`, protecting the gravity metric-signature contract, and checking U(1) invariance of field entropy.
+
+### Scientific status
+
+- The scalar `u -> beta -> b` pipeline remains canonical and unchanged.
+- Observable spatial orchestration and generic field numerics remain `experimental`.
+- Autonomous `phi`, classical field dynamics, coherent structures, thermodynamics, and classical gravity remain `research` and are not presented as empirically validated physics.
+- Quantum/agenton and cosmological extensions remain outside this release and retain `speculative` status.
+- The Chapter-16 `(+,-,-,-)` flat-field convention and Chapter-19 `(-,+,+,+)` gravity convention remain explicitly distinct. AgencityLab does not silently rewrite either source equation to force equality.
+
+### Limitations and compatibility
+
+- The gravity package does not implement a generic Einstein/3+1 solver, cosmological evolution, autonomous gauge dynamics, or the complete nonminimal stress-energy tensor because the accepted source does not fully specify that tensor.
+- Thermodynamic balance laws are evaluated rather than imposed; no autonomous thermal solver, invented `J_E` discretisation, universal Phase-Law fit, or closed autonomous equation for `b` is introduced.
+- The two source-layer agencial entropies remain separate APIs and the historical Shannon-style `agential_entropy` helper remains only a deprecated legacy placeholder.
+- NumPy remains the only required runtime dependency and the stable canonical scalar contract is unchanged.
+
 ## 1.1.2 - 2026-08-12
 
 ### Added
@@ -159,7 +184,7 @@ All notable changes to AgencityLab are documented here.
 
 - Added explicit candidate-v1.0 public API boundaries for stable, experimental, and legacy/compatibility interfaces.
 - Added `ExperimentMetadata.agencitylab_version`; every new `compute_agencity()` result records the producing software version for reproducibility.
-- Added release-candidate end-to-end tests covering input, canonical compute, diagnostics, JSON/CSV export, complex-value round-trip, batch ordering/per-item physics, full-history streaming equivalence, multiscale/scalar equivalence, and critical invalid-input/physical-parameter cases.
+- Added release-candidate end-to-end tests covering input, canonical compute, diagnostics, JSON/CSV export, complex result restoration, batch ordering/per-item physics, full-history streaming equivalence, multiscale/scalar equivalence, and critical invalid-input/physical-parameter cases.
 - Added a v1.0 release-readiness checklist.
 - Added CI gates for Sphinx documentation and critical executable user examples.
 
