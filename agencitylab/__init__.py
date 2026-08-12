@@ -5,8 +5,14 @@ from .models import (
     AgencityResult,
     ExperimentMetadata,
     ObservableAgencityFieldResult,
+    DynamicalAgencityFieldState,
+    DynamicalAgencityFieldSolution,
+    FieldModelMetadata,
+    ParameterProvenance,
+    ParameterSource,
     RESULT_SCHEMA_VERSION,
 )
+from .scientific_status import ScientificStatus
 from .exceptions import (
     AgencityError,
     AgencityValidationError,
@@ -18,7 +24,21 @@ from .exceptions import (
 )
 from .analysis import ANALYSIS_SCHEMA_VERSION, RegimeCriteria
 from .api.compute import compute_agencity
-from .fields import compute_agencity_field
+from .fields import (
+    compute_agencity_field,
+    beta_to_phi,
+    phi_from_observable_field,
+    QuarticAgencityPotential,
+    vacuum_amplitude,
+    vacuum_state,
+    field_energy_density,
+    UniformRectilinearGrid,
+    PeriodicBoundary,
+    DirichletBoundary,
+    NeumannBoundary,
+    gradient,
+    laplacian,
+)
 from .api.extensions import (
     RIEMANNIAN_EXTENSION_STATUS,
     compute_agencity_spectrum,
@@ -68,9 +88,15 @@ __all__ = [
     "RESULT_SCHEMA_VERSION",
     "ANALYSIS_SCHEMA_VERSION",
     "SCIENTIFIC_UX_SCHEMA_VERSION",
+    "ScientificStatus",
     "RegimeCriteria",
     "AgencityResult",
     "ObservableAgencityFieldResult",
+    "DynamicalAgencityFieldState",
+    "DynamicalAgencityFieldSolution",
+    "FieldModelMetadata",
+    "ParameterProvenance",
+    "ParameterSource",
     "ExperimentMetadata",
     "ScientificStudy",
     "AgencityError",
@@ -82,6 +108,18 @@ __all__ = [
     "StreamNotReadyError",
     "compute_agencity",
     "compute_agencity_field",
+    "beta_to_phi",
+    "phi_from_observable_field",
+    "QuarticAgencityPotential",
+    "vacuum_amplitude",
+    "vacuum_state",
+    "field_energy_density",
+    "UniformRectilinearGrid",
+    "PeriodicBoundary",
+    "DirichletBoundary",
+    "NeumannBoundary",
+    "gradient",
+    "laplacian",
     "compute_agencity_spectrum",
     "optimize_agencity_window",
     "compute_discrete_agencity",
