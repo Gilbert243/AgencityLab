@@ -1,10 +1,21 @@
-"""Reserved boundary conditions for the v1.2 dynamical-field research milestone."""
+"""Deprecated historical boundary-condition compatibility boundary.
+
+The supported field boundary contracts are now ``PeriodicBoundary``,
+``DirichletBoundary``, and ``NeumannBoundary`` from
+``agencitylab.fields.numerics``. The old ``zero_boundary`` function was an
+identity placeholder and is not kept as a misleading numerical operation.
+"""
 
 
 def zero_boundary(*args, **kwargs):
-    """Reject the historical identity boundary-condition placeholder in v1.1."""
+    """Reject the retired identity boundary placeholder.
+
+    Use ``DirichletBoundary(value=0.0)`` explicitly when a zero fixed boundary
+    is intended.
+    """
+
     del args, kwargs
     raise NotImplementedError(
-        "Dynamical Agencity field boundary conditions are not implemented in v1.1; "
-        "they are reserved for the v1.2 research milestone."
+        "zero_boundary() was a historical identity placeholder; use "
+        "DirichletBoundary(value=0.0) explicitly."
     )
