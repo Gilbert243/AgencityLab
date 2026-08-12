@@ -2,6 +2,34 @@
 
 All notable changes to AgencityLab are documented here.
 
+## 1.1.5 - 2026-08-12
+
+### Added
+
+- Added the Volume-2 Chapter-15 effective complex `beta` field as a separate `research` model with the source reaction-diffusion-advection equation, explicit stationary amplitude, and unambiguous API names that do not collide with the canonical dynamic intensity `D` or flux `b`.
+- Added Chapter-16 flat-field `(+,-,-,-)` research primitives for the Lagrangian density, symmetric energy-momentum tensor, U(1) Noether current, amplitude/phase current, and radial-equation residual.
+- Added the separately named Appendix-B `beta`-field Lagrangian, equation residual, Noether current, and energy-momentum tensor with their explicit `P_c^2` normalization instead of silently identifying them with the Chapter-16 `phi` formulation.
+- Added the source-defined part of Definition 12.4 as experimental Riemannian kinematic primitives: metric inner product, Riemannian speed, and `sqrt(g(X,X) + g(A,X)^2)` for caller-supplied covariant acceleration.
+- Added the Chapter-13 `Phi1` mean-contrast and `Phi3` orientational-entropy criteria. `Phi3` requires caller-supplied angle-bin edges because the accepted theory does not prescribe a universal binning convention.
+- Added the Chapter-17 dimensionless coherent-field rescaling, coherence length, effective potential, and static field residual while reusing the existing numerical Laplacian.
+- Added public documentation and implementation-conformance tests for these source-defined extensions without changing the canonical scalar engine.
+
+### Scientific status
+
+- The scalar `u -> beta -> b` pipeline remains canonical and unchanged.
+- Observable spatial orchestration, generic field numerics, the limited Riemannian kinematic layer, and the `Phi1`/`Phi3` selection criteria remain `experimental`.
+- The autonomous `phi` field, Chapter-15 effective-beta dynamics, flat-field conservation laws, coherent structures, thermodynamics, and classical gravity remain `research`.
+- Quantum/agenton and homogeneous cosmology primitives remain `speculative`.
+- The implementation tests in this release verify software transcription, mathematical identities, numerical behaviour, and cross-layer wiring. They are not a user-independent falsification protocol and are not empirical confirmation of the theory.
+
+### Source boundaries preserved
+
+- The printed Chapter-15 phase equation is not independently implemented because its normalization does not algebraically match the unambiguous complex Eq. (15.2)--(15.3) without an additional factor. AgencityLab documents the mismatch rather than silently repairing the source.
+- The Appendix-B `beta` normalization is kept explicitly distinct from the research bridge `phi = sqrt(P_c * tau) * beta`; no undocumented relation between the two formulations is invented.
+- The Chapter-8 cycle-area expression remains deliberately unimplemented because the extracted typography conflicts with the surrounding description of enclosed algebraic area; no missing conjugation is guessed.
+- No closed autonomous equation for the canonical flux `b` is introduced because Volume 2 Section 23.6 explicitly leaves `b_eq` undetermined as future work.
+- NumPy remains the only required runtime dependency and the stable canonical scalar contract remains protected.
+
 ## 1.1.4 - 2026-08-12
 
 ### Added
