@@ -51,11 +51,11 @@ def _energy_at(
     return total_field_energy(density, volume_element=grid.cell_volume)
 
 
-def test_dynamics_status_and_export_boundary_are_research_only():
+def test_dynamics_status_and_public_boundary_are_research_only():
     assert SCIENTIFIC_STATUS is ScientificStatus.RESEARCH
-    assert agencitylab.__version__ == "1.1.1"
-    assert not hasattr(fields_api, "simulate_klein_gordon")
-    assert not hasattr(agencitylab, "simulate_klein_gordon")
+    assert agencitylab.__version__ == "1.1.2"
+    assert fields_api.simulate_klein_gordon is simulate_klein_gordon
+    assert agencitylab.simulate_klein_gordon is simulate_klein_gordon
 
 
 @pytest.mark.parametrize("theta", [0.0, 0.7])
