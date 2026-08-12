@@ -19,7 +19,7 @@ from agencitylab.core.validation import validate_positive_scalar, validate_signa
 
 from .compute import compute_agencity
 
-RIEMANNIAN_EXTENSION_STATUS = "experimental: theoretical definition exists; detailed analysis is deferred"
+RIEMANNIAN_EXTENSION_STATUS = "experimental: intrinsic kinematic primitives implemented; detailed analysis is deferred"
 
 
 def compute_agencity_spectrum(
@@ -132,9 +132,6 @@ def compute_discrete_agencity(
         raise ValueError("t0 must be finite")
     xi = t0 + delta * np.arange(values.size, dtype=float)
 
-    # Reuse the stable public path for physical/context validation and metadata.
-    # The derivative-dependent fields are recomputed below from the explicit
-    # Volume-2 stencils, so no second reference canonical pipeline is introduced.
     result = compute_agencity(
         u=values,
         xi=xi,
@@ -149,8 +146,6 @@ def compute_discrete_agencity(
     A_star = volume2_second_difference(result.u_star, delta_star)
 
     if np.all(values == values[0]):
-        # The canonical exact rest convention already populated all downstream
-        # arrays with exact zeros. The explicit stencils are also exactly zero.
         result.X_star = X_star
         result.A_star = A_star
     else:
@@ -195,15 +190,19 @@ def compute_discrete_agencity(
 def riemannian_extension_status() -> dict:
     """Report the implementation boundary of the Riemannian construction.
 
-    Volume 2 defines covariant activation/activity and an intrinsic dynamic
-    intensity, but explicitly defers the detailed analysis. AgencityLab therefore
-    does not invent the missing general CRM/vector-state construction.
+    Volume 2 defines covariant velocity/acceleration and the intrinsic dynamic
+    intensity, while explicitly deferring the detailed analysis. AgencityLab
+    implements those source-defined kinematic primitives under
+    ``agencitylab.extensions`` but does not invent the missing general
+    CRM/vector-state manifold pipeline.
     """
     return {
         "status": RIEMANNIAN_EXTENSION_STATUS,
         "implemented": False,
+        "intrinsic_primitives_implemented": True,
+        "full_pipeline_implemented": False,
         "reason": (
-            "the source defines the geometric direction but defers the detailed analysis; "
-            "a production pipeline would require additional accepted definitions and tests"
+            "Definition 12.4 kinematic primitives are implemented; the source explicitly "
+            "defers detailed Riemannian Agencity analysis, so no full pipeline is fabricated"
         ),
     }
