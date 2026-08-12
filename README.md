@@ -2,7 +2,7 @@
 
 AgencityLab is an open-source Python framework implementing and testing the **Theory of Agencity**.
 
-**Current software status: 1.1.2.** Version 1.0 freezes the documented stable scalar software contract. The 1.1.x line adds explicitly labelled experimental/research field capabilities without redefining the canonical observable. Software stability is distinct from empirical validation of the theory.
+**Current software status: 1.1.3.** Version 1.0 freezes the documented stable scalar software contract. The 1.1.x line adds explicitly labelled experimental/research field capabilities without redefining the canonical observable. Software stability is distinct from empirical validation of the theory.
 
 ## Canonical observable
 
@@ -118,6 +118,18 @@ Version 1.1.2 exposes the research classical-field layer built on the shared qua
 
 The autonomous field, its PDE dynamics, and coherent-structure references are **research** interfaces. Their implementation and numerical tests are not empirical confirmation of the underlying field-theory extension.
 
+## Thermodynamics and classical gravity
+
+Version 1.1.3 integrates two additional **research** layers on the same shared field contracts.
+
+Thermodynamics provides source-defined evaluators for dissipation `Gamma |phi_dot|^2`, entropy production, temperature-dependent `lambda(T)`, distinct field and contrast agencial entropies, energy-balance and second-law residuals, Modulus Law and Phase Law evaluation, plus the explicitly conditional Volume-1 Landauer relations. The reported Phase-Law fit is available only as a named empirical reference; it is not a universal constant set.
+
+Classical gravity provides limited Chapter-19/23 primitives: Minkowski geometry, matter/action densities, minimal stress-energy, Einstein-equation residuals, nonminimal action/field coupling, and an optional externally supplied U(1) gauge potential. It does **not** provide an Einstein solver, a cosmological solver, autonomous gauge dynamics, or a nonminimal stress-energy tensor when the accepted source does not fully specify one.
+
+The gravity source convention is explicitly `(-,+,+,+)`, while the Chapter-16 flat dynamics remain `(+,-,-,-)`. AgencityLab preserves this source-level convention difference rather than silently changing signs to force equality.
+
+Selected principal research APIs are available from the top-level package, while the full contracts remain organized under `agencitylab.thermodynamics` and `agencitylab.gravity`.
+
 ## Stable v1.0 API
 
 The principal stable scalar interfaces are:
@@ -174,7 +186,7 @@ Multiscale analysis scans explicit `tau` values and may use independent `w` valu
 
 ## Scientific validation
 
-The deterministic regression suite covers exact rest, sinusoidal structure, passive damping, Van der Pol oscillation, negative-damping instability, filtered Ornstein-Uhlenbeck dynamics, and Lorenz dynamics. It also checks canonical identities, invariances/limits, CRM equivalence, edge cases, batch/streaming/multiscale consistency, discrete stencils and convergence, packaging, public workflows, classical field equations, coherent-structure references, and cross-layer field contracts.
+The deterministic regression suite covers exact rest, sinusoidal structure, passive damping, Van der Pol oscillation, negative-damping instability, filtered Ornstein-Uhlenbeck dynamics, and Lorenz dynamics. It also checks canonical identities, invariances/limits, CRM equivalence, edge cases, batch/streaming/multiscale consistency, discrete stencils and convergence, packaging, public workflows, classical field equations, coherent-structure references, thermodynamic identities/evaluators, gravity tensor/equation contracts, and cross-layer field contracts.
 
 These checks validate implementation and numerical behaviour against accepted reference consequences; they are not universal empirical validation of the Theory of Agencity.
 
@@ -186,6 +198,8 @@ These checks validate implementation and numerical behaviour against accepted re
 - `docs/dynamical_field_foundations.md`
 - `docs/classical_field_dynamics.md`
 - `docs/coherent_structures.md`
+- `docs/thermodynamics.md`
+- `docs/gravity.md`
 - `docs/tutorials/quickstart.md`
 - `docs/tutorials/full_pipeline.md`
 - `docs/agencity_analysis.md`
@@ -199,7 +213,7 @@ Documentation is built in CI with significant Sphinx warnings treated as errors.
 
 ## Limitations
 
-AgencityLab remains research software beyond its stable scalar computation contract. Results depend on the observable and physically/contextually justified parameters. Sampling and preprocessing decisions must be explicit. Sensitivity to `w` is scientifically meaningful. The inverse problem is non-injective. Current streaming is not constant-memory. Accelerated backends are experimental, and autonomous-field, thermodynamic, gravitational, quantum, and cosmological extensions retain their documented research/speculative status.
+AgencityLab remains research software beyond its stable scalar computation contract. Results depend on the observable and physically/contextually justified parameters. Sampling and preprocessing decisions must be explicit. Sensitivity to `w` is scientifically meaningful. The inverse problem is non-injective. Current streaming is not constant-memory. Accelerated backends are experimental. Autonomous-field, thermodynamic, and gravitational extensions retain research status; quantum and cosmological extensions remain speculative. The gravity package is deliberately not a general numerical-relativity or cosmology framework.
 
 ## Development and contribution
 
