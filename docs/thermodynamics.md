@@ -1,9 +1,6 @@
----
-orphan: true
----
-
 # Unified Agencity Thermodynamics
 
+**Software version:** 1.1.3  
 **Scientific status: `research`.** This layer implements mathematical evaluators from the accepted theory documents. It is neither part of the canonical `u -> beta -> b` definition nor evidence of empirical validation.
 
 ## Source hierarchy and scope
@@ -162,3 +159,13 @@ The previous thermodynamics package contained generic helpers such as a clipped 
 This thermodynamics layer does not implement gravity, Einstein equations, curved spacetime, quantum fields, agentons, FLRW, inflation, dark energy, a cosmological solver, or a closed autonomous equation for `b`. In particular, no `tau_b db/dt = ...` closure is introduced.
 
 The Modulus Law and Phase Law are **evaluated**, never imposed on the canonical pipeline.
+
+## Public API scope
+
+The complete research API remains available from:
+
+```python
+import agencitylab.thermodynamics
+```
+
+Version 1.1.3 also exposes a selected set of principal evaluators from top-level `agencitylab` for convenient research workflows. Those exports retain `research` scientific status and are outside the frozen canonical v1.0 contract.
