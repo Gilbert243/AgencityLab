@@ -1,7 +1,3 @@
----
-orphan: true
----
-
 # Quantum Agencity primitives
 
 **Scientific status:** `speculative`
