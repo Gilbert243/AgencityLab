@@ -44,7 +44,7 @@ def test_recoverable_signature_returns_absolute_contrast_and_direction_modulo_si
     np.testing.assert_allclose(signature["beta"], beta)
     np.testing.assert_allclose(signature["absolute_contrast"], np.abs(J))
     np.testing.assert_allclose(signature["orientation_mod_pi"], np.mod(theta, np.pi))
-    np.testing.assert_array_equal(signature["direction_defined"], True)
+    assert np.all(signature["direction_defined"])
 
 
 def test_inverse_direction_is_undefined_at_zero_flux() -> None:
