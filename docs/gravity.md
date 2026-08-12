@@ -1,3 +1,7 @@
+---
+orphan: true
+---
+
 # Classical Agencity Gravity
 
 **Software version:** 1.1.2  
