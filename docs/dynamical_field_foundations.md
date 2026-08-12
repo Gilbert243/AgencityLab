@@ -1,9 +1,9 @@
 # Dynamical Agencity Field Foundations
 
-**Software version:** 1.1.1  
-**Scientific status:** `research` for autonomous `phi` physics; `experimental` for generic field numerics.
+**Software version:** 1.1.2  
+**Scientific status:** `research` for autonomous `phi` physics and classical dynamics; `experimental` for generic field numerics.
 
-AgencityLab 1.1.1 integrates the common foundations needed for later autonomous field dynamics without yet claiming a Klein–Gordon, dissipative Klein–Gordon, or TDGL simulation API.
+AgencityLab 1.1.2 builds on the 1.1.1 field foundations and now exposes the classical autonomous-field equations and coherent-structure references described in Volume 2. These remain research extensions, not canonical observable definitions and not empirical validation.
 
 ## Observable field and dynamical field are distinct
 
@@ -76,21 +76,35 @@ Physics receives the squared gradient norm as an input. It does not compute spat
 
 These numerical operators do not define Agencity physics.
 
+## Classical dynamics in 1.1.2
+
+The research dynamics now exposed by `agencitylab.fields.dynamics` are:
+
+```text
+conservative KG: phi_tt = laplacian(phi) - g(phi)
+
+dissipative KG:  phi_tt = laplacian(phi) - Gamma phi_t - g(phi), Gamma >= 0
+
+TDGL:            phi_t = (laplacian(phi) - g(phi)) / Gamma, Gamma > 0
+```
+
+The conservative solver uses velocity-Verlet; the velocity-dependent dissipative equation is integrated as a first-order system with RK4; TDGL also uses RK4. See `classical_field_dynamics.md` for the numerical and boundary contracts.
+
+## Coherent structures in 1.1.2
+
+`agencitylab.fields.coherent` provides a real-sector domain-wall reference, two-dimensional U(1) vortex construction with caller-supplied radial profile, radial residual evaluation, and spatial winding diagnostics. The domain wall is explicitly a real-sector/Z2 reference and is not promoted to a generally stable defect of the full complex U(1) vacuum manifold. See `coherent_structures.md`.
+
 ## Data models and provenance
 
 `DynamicalAgencityFieldState` and `DynamicalAgencityFieldSolution` are research-layer contracts for autonomous fields. `ScientificStatus` distinguishes `canonical`, `experimental`, `research`, and `speculative`; parameter provenance records whether values are user supplied, context supplied, benchmark conventions, source-document references, mathematically derived, or implementation conventions.
 
-## What 1.1.1 does not yet implement
+## Still outside 1.1.2
 
 The following remain future work in the 1.1.x series:
 
-- physical Klein–Gordon time evolution;
-- dissipative Klein–Gordon evolution;
-- time-dependent Ginzburg–Landau evolution;
-- domain walls, vortices, and phase-transition simulation helpers;
-- Agencity thermodynamics;
+- Agencity thermodynamics and temperature-dependent phase laws;
 - gravity coupling;
 - quantization and agentons;
-- cosmology.
+- cosmological applications.
 
 The canonical scalar engine remains unchanged.
