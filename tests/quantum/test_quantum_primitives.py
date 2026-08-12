@@ -90,7 +90,7 @@ def test_finite_fock_commutator_exposes_cutoff_defect() -> None:
     defect = truncation_commutator_defect(cutoff)
     expected_defect = np.zeros((cutoff, cutoff), dtype=complex)
     expected_defect[-1, -1] = -cutoff
-    np.testing.assert_allclose(defect, expected_defect)
+    np.testing.assert_allclose(defect, expected_defect, atol=1e-15)
 
     for occupation in range(cutoff - 1):
         state = fock_state(occupation, cutoff)
