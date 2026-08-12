@@ -5,8 +5,7 @@ Volume 2 Appendix B separately records the flat-field action
     L_beta = 1/2 P_c^2 partial_mu beta partial^mu conjugate(beta) - V(|beta|),
 
 the equation ``box(beta) + gradient(V)/P_c^2 = 0``, the corresponding
-energy--momentum tensor, and the U(1) current
-``J^mu = P_c^2 Im(beta partial^mu conjugate(beta))``.
+energy--momentum tensor, and a P_c-scaled U(1) current.
 
 This source-layer formulation is intentionally kept distinct from the
 Chapter-15 bridge ``phi = sqrt(P_c tau) beta`` and the Chapter-16 canonically
@@ -15,6 +14,9 @@ normalisations are algebraically identical.  ``P_c`` is therefore required to
 be a finite strictly positive scalar here when it appears in a denominator;
 this research-only restriction does not alter the canonical observable rule
 that ``P_c = 0`` is valid and gives ``b = 0``.
+
+The current sign follows the Chapter-16 amplitude/phase identity
+``J^mu = R^2 partial^mu Theta``; Appendix B adds the stated ``P_c^2`` factor.
 
 Scientific status: research.
 """
@@ -95,12 +97,12 @@ def appendix_b_beta_equation_residual(
 
 
 def appendix_b_beta_noether_current(beta, derivatives, *, P_c: float) -> np.ndarray:
-    """Return the Appendix-B U(1) current ``P_c^2 Im(beta d^mu beta*)``."""
+    """Return the Appendix-B U(1) current with its explicit ``P_c^2`` factor."""
 
     power = _positive_characteristic_power(P_c)
     field, deriv = _field_and_derivatives(beta, derivatives)
     raised = _raised_derivatives(deriv)
-    return power**2 * np.imag(field[..., np.newaxis] * np.conjugate(raised))
+    return power**2 * np.imag(np.conjugate(field)[..., np.newaxis] * raised)
 
 
 def appendix_b_beta_energy_momentum_tensor(
