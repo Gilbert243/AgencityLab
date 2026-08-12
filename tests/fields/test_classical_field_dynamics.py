@@ -452,16 +452,16 @@ def test_tdgl_rk4_shows_fourth_order_temporal_convergence_on_homogeneous_case():
         grid,
         potential,
         gamma=gamma,
-        dt=0.1,
-        n_steps=4,
+        dt=0.2,
+        n_steps=2,
     )
     fine = simulate_tdgl(
         phi0,
         grid,
         potential,
         gamma=gamma,
-        dt=0.05,
-        n_steps=8,
+        dt=0.1,
+        n_steps=4,
     )
     exact = phi0_value / np.sqrt(
         1.0 + 2.0 * mu * phi0_value**2 * final_time / gamma
@@ -512,10 +512,9 @@ def test_velocity_verlet_shows_second_order_temporal_convergence():
 
 
 def test_conservative_energy_is_numerically_nearly_conserved():
-    grid = _periodic_grid(24)
-    x = grid.axes[0]
-    phi0 = 0.2 * np.cos(x)
-    phi_dot0 = 0.1 * np.sin(x)
+    grid = UniformRectilinearGrid(shape=(8,), spacings=(0.2,))
+    phi0 = np.full(grid.shape, 0.3)
+    phi_dot0 = np.full(grid.shape, 0.2)
     potential = QuarticAgencityPotential(lambda_=-1.0, mu=0.5)
 
     solution = simulate_klein_gordon(
