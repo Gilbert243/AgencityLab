@@ -17,6 +17,7 @@ stable_api
 observable_fields
 dynamical_field_foundations
 classical_field_dynamics
+effective_beta_and_conservation
 coherent_structures
 thermodynamics
 gravity
@@ -57,7 +58,7 @@ The gravity package follows the Chapter-19 `(-,+,+,+)` convention explicitly. Th
 
 Version 1.0 froze the documented public scalar API under Semantic Versioning. The 1.1.x series adds backwards-compatible experimental/research/speculative functionality without redefining `CRM`, `M`, `O`, `D`, `S`, `J`, `Theta`, `beta`, `b`, `A_ref`, `tau`, `w`, or `P_c`.
 
-Read [the stable API contract](stable_api.md), [observable spatial fields](observable_fields.md), [dynamical field foundations](dynamical_field_foundations.md), [classical field dynamics](classical_field_dynamics.md), [coherent structures and topology](coherent_structures.md), [thermodynamics](thermodynamics.md), [classical gravity](gravity.md), [quantum primitives](quantum.md), [cosmological application](cosmology.md), [field extension contracts](field_extension_contracts.md), [the theory mapping](theory_mapping.md), [scientific validation](scientific_validation.md), and [release readiness](release_readiness.md) before treating an implementation detail, diagnostic threshold, benchmark observation, research model, or speculative extension as a scientific claim.
+Read [the stable API contract](stable_api.md), [observable spatial fields](observable_fields.md), [dynamical field foundations](dynamical_field_foundations.md), [classical field dynamics](classical_field_dynamics.md), [effective beta field and conservation laws](effective_beta_and_conservation.md), [coherent structures and topology](coherent_structures.md), [thermodynamics](thermodynamics.md), [classical gravity](gravity.md), [quantum primitives](quantum.md), [cosmological application](cosmology.md), [field extension contracts](field_extension_contracts.md), [the theory mapping](theory_mapping.md), [scientific validation](scientific_validation.md), and [release readiness](release_readiness.md) before treating an implementation detail, diagnostic threshold, benchmark observation, research model, or speculative extension as a scientific claim.
 
 ## Canonical target quantities
 
