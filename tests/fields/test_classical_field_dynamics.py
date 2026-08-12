@@ -53,7 +53,7 @@ def _energy_at(
 
 def test_dynamics_status_and_public_boundary_are_research_only():
     assert SCIENTIFIC_STATUS is ScientificStatus.RESEARCH
-    assert agencitylab.__version__ == "1.1.2"
+    assert agencitylab.__version__ == "1.1.3"
     assert fields_api.simulate_klein_gordon is simulate_klein_gordon
     assert agencitylab.simulate_klein_gordon is simulate_klein_gordon
 
