@@ -1,10 +1,21 @@
-"""Reserved dynamical-field solver for the v1.2 research milestone."""
+"""Deprecated historical field-solver compatibility boundary.
+
+AgencityLab 1.1.2 exposes explicit deterministic research simulators under
+``agencitylab.fields.dynamics``. The old generic ``solve_field`` placeholder is
+not assigned a hidden default equation.
+"""
 
 
 def solve_field(*args, **kwargs):
-    """Reject the historical no-op solver placeholder in v1.1."""
+    """Reject the retired generic solver placeholder.
+
+    Use ``simulate_klein_gordon()``, ``simulate_dissipative_klein_gordon()``,
+    or ``simulate_tdgl()`` explicitly.
+    """
+
     del args, kwargs
     raise NotImplementedError(
-        "Dynamical Agencity field solvers are not implemented in v1.1; "
-        "they are reserved for the v1.2 research milestone."
+        "solve_field() is a retired ambiguous compatibility placeholder; choose "
+        "simulate_klein_gordon(), simulate_dissipative_klein_gordon(), or "
+        "simulate_tdgl() explicitly."
     )
