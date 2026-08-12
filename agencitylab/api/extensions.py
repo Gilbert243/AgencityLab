@@ -132,6 +132,9 @@ def compute_discrete_agencity(
         raise ValueError("t0 must be finite")
     xi = t0 + delta * np.arange(values.size, dtype=float)
 
+    # Reuse the stable public path for physical/context validation and metadata.
+    # The derivative-dependent fields are recomputed below from the explicit
+    # Volume-2 stencils, so no second reference canonical pipeline is introduced.
     result = compute_agencity(
         u=values,
         xi=xi,
@@ -146,6 +149,8 @@ def compute_discrete_agencity(
     A_star = volume2_second_difference(result.u_star, delta_star)
 
     if np.all(values == values[0]):
+        # The canonical exact rest convention already populated all downstream
+        # arrays with exact zeros. The explicit stencils are also exactly zero.
         result.X_star = X_star
         result.A_star = A_star
     else:
