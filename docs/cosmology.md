@@ -1,7 +1,3 @@
----
-orphan: true
----
-
 # Cosmological Agencity
 
 **Scientific status:** `speculative`
