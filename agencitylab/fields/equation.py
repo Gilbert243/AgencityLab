@@ -1,10 +1,22 @@
-"""Reserved dynamical-field equations for the v1.2 research milestone."""
+"""Deprecated historical field-equation compatibility boundary.
+
+AgencityLab 1.1.2 provides explicit research equations under
+``agencitylab.fields.dynamics``. The old generic ``field_rhs`` placeholder had
+no unambiguous theoretical meaning and is intentionally not mapped to one of
+those equations silently.
+"""
 
 
 def field_rhs(*args, **kwargs):
-    """Reject the historical ungrounded field-equation placeholder in v1.1."""
+    """Reject the retired ambiguous field-equation placeholder.
+
+    Use ``klein_gordon_acceleration()``,
+    ``dissipative_klein_gordon_acceleration()``, or ``tdgl_rhs()`` explicitly.
+    """
+
     del args, kwargs
     raise NotImplementedError(
-        "Dynamical Agencity field equations are not implemented in v1.1; "
-        "they are reserved for the v1.2 research milestone."
+        "field_rhs() is a retired ambiguous compatibility placeholder; choose "
+        "klein_gordon_acceleration(), dissipative_klein_gordon_acceleration(), "
+        "or tdgl_rhs() explicitly."
     )
