@@ -19,7 +19,7 @@ from agencitylab.core.validation import validate_positive_scalar, validate_signa
 
 from .compute import compute_agencity
 
-RIEMANNIAN_EXTENSION_STATUS = "experimental: theoretical definition exists; detailed analysis is deferred"
+RIEMANNIAN_EXTENSION_STATUS = "experimental: intrinsic kinematic primitives implemented; detailed analysis is deferred"
 
 
 def compute_agencity_spectrum(
@@ -195,15 +195,19 @@ def compute_discrete_agencity(
 def riemannian_extension_status() -> dict:
     """Report the implementation boundary of the Riemannian construction.
 
-    Volume 2 defines covariant activation/activity and an intrinsic dynamic
-    intensity, but explicitly defers the detailed analysis. AgencityLab therefore
-    does not invent the missing general CRM/vector-state construction.
+    Volume 2 defines covariant velocity/acceleration and the intrinsic dynamic
+    intensity, while explicitly deferring the detailed analysis. AgencityLab
+    implements those source-defined kinematic primitives under
+    ``agencitylab.extensions`` but does not invent the missing general
+    CRM/vector-state manifold pipeline.
     """
     return {
         "status": RIEMANNIAN_EXTENSION_STATUS,
         "implemented": False,
+        "intrinsic_primitives_implemented": True,
+        "full_pipeline_implemented": False,
         "reason": (
-            "the source defines the geometric direction but defers the detailed analysis; "
-            "a production pipeline would require additional accepted definitions and tests"
+            "Definition 12.4 kinematic primitives are implemented; the source explicitly "
+            "defers detailed Riemannian Agencity analysis, so no full pipeline is fabricated"
         ),
     }
