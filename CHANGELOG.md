@@ -2,6 +2,31 @@
 
 All notable changes to AgencityLab are documented here.
 
+## 1.1.6 - 2026-08-12
+
+### Added
+
+- Added the explicitly experimental Chapter-14 historical/reference intensity candidates: the sum form `I1`, its logarithm `J1`, the unregularised dynamic/structural ratio, and the common offset expression printed by the accepted source.
+- Added the Chapter-4 logarithmic-contrast offset sensitivity relation while keeping the canonical offset fixed to the mathematical constant `e = exp(1)`.
+- Added the Chapter-10 exact multiplicative characteristic-power perturbation identity `P_c = P_c0(1 + epsilon) => b = b0 + epsilon b0` without introducing a stochastic error model.
+- Added the Chapter-11 recoverable macroscopic inverse signature for known strictly positive `P_c`: `beta = b/P_c`, `|J| = |beta|`, and structural orientation modulo `pi` where the direction is defined.
+- Added unit, cross-layer, packaging, documentation, and release gates for these source-defined additions. The completeness audit also confirmed that beta-trajectory length and the physical characteristic-power construction were already implemented, so no duplicate APIs were introduced.
+
+### Scientific status and boundaries
+
+- The scalar `u -> beta -> b` pipeline remains canonical and unchanged. None of the historical Chapter-14 candidates can replace canonical `J = ln((e + D)/(e + S))` inside `compute_agencity()`.
+- Chapter-14 historical intensity candidates remain `experimental` reference formulas. Their exact singularities are exposed: no epsilon is inserted into `ln(I1)` or the raw ratio.
+- Chapter-4 sensitivity, Chapter-10 power perturbation, and Chapter-11 inverse helpers are mathematical/diagnostic consequences in the analysis layer, not new canonical physics.
+- The inverse problem remains non-injective. AgencityLab does not claim to reconstruct the original observable `u` or the individual intensities `D` and `S` from `b`; `P_c = 0` is explicitly non-invertible because it erases intrinsic-state information in the forward flux.
+- The implementation tests verify transcription, identities, numerical behaviour, and layer separation. They are not a user-independent falsification protocol and are not empirical confirmation of the theory.
+
+### Source boundaries preserved
+
+- The offset expression printed at the end of Section 14.3 and the `I3` expression printed in Section 14.4 are algebraically identical in the accepted source. AgencityLab implements the common printed expression once instead of inventing an undocumented difference between the labels.
+- The Chapter-8 cycle-area expression remains deliberately unimplemented because the extracted typography conflicts with the surrounding description of enclosed algebraic area; no missing conjugation is guessed.
+- The Chapter-15 phase-equation normalization mismatch, the distinct Appendix-B beta normalization, and the absence of a closed autonomous equation for `b` remain explicit source boundaries rather than silently repaired conventions.
+- NumPy remains the only required runtime dependency and the stable canonical scalar contract remains protected.
+
 ## 1.1.5 - 2026-08-12
 
 ### Added
@@ -260,7 +285,7 @@ All notable changes to AgencityLab are documented here.
 
 ### Deprecated
 
-- No new stable API is removed in v0.9. Existing legacy compatibility paths such as `activity_factor`/`A_fact`, `resolution_scale`, historical `Pc=`, `data=`, and pipeline-builder aliases remain isolated from canonical physics; new code should use the canonical spellings and stable entry points documented in `docs/stable_api.md`.
+- No new stable API is removed in v0.9. Existing legacy compatibility paths such as `activity_factor`/`A_fact`, `resolution_scale`, historical `Pc=`, `data=`, and pipeline-builder aliases remain isolated from canonical physics; new code should use the canonical spellings and entry points documented in `docs/stable_api.md`.
 
 ### Performance
 
