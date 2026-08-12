@@ -123,7 +123,7 @@ def test_beta_to_phi_rejects_spacetime_tau():
 
 
 def test_observable_field_bridge_is_explicit_exact_and_nonmutating():
-    t = np.linspace(0.0, 6.0, 41)
+    t = np.linspace(0.0, 6.0, 61)
     u = np.stack([np.sin(t), 0.5 * np.cos(t)], axis=1)
     result = compute_agencity_field(
         u,
@@ -181,16 +181,16 @@ def test_quartic_potential_rejects_nonfinite_lambda(lambda_):
         QuarticAgencityPotential(lambda_=lambda_, mu=1.0)
 
 
-def test_wirtinger_gradient_matches_real_component_finite_differences():
+def test_volume2_gradient_matches_real_component_finite_differences():
     potential = QuarticAgencityPotential(lambda_=1.3, mu=0.8)
     phi = 0.7 - 0.4j
     gradient = potential.gradient(phi)
     h = 1e-6
     d_v_dx = (potential.value(phi + h) - potential.value(phi - h)) / (2.0 * h)
     d_v_dy = (potential.value(phi + 1j * h) - potential.value(phi - 1j * h)) / (2.0 * h)
-    # For real V, dV/d(phi*) = 1/2 (dV/dx + i dV/dy).
-    assert d_v_dx == pytest.approx(2.0 * np.real(gradient), rel=1e-7, abs=1e-8)
-    assert d_v_dy == pytest.approx(2.0 * np.imag(gradient), rel=1e-7, abs=1e-8)
+    # Volume 2 uses g = dV/dx + i dV/dy. Standard Wirtinger dV/d(phi*) is g/2.
+    assert d_v_dx == pytest.approx(np.real(gradient), rel=1e-7, abs=1e-8)
+    assert d_v_dy == pytest.approx(np.imag(gradient), rel=1e-7, abs=1e-8)
 
 
 def test_vacuum_amplitude_and_gradient_stationarity():
@@ -205,7 +205,10 @@ def test_vacuum_amplitude_and_gradient_stationarity():
 
 def test_vacuum_u1_phases_have_equal_energy():
     potential = QuarticAgencityPotential(lambda_=3.0, mu=2.0)
-    energies = [potential.value(vacuum_state(3.0, 2.0, theta=theta)) for theta in (0.0, 1.0, 2.5)]
+    energies = [
+        potential.value(vacuum_state(3.0, 2.0, theta=theta))
+        for theta in (0.0, 1.0, 2.5)
+    ]
     np.testing.assert_allclose(energies, energies[0])
 
 
