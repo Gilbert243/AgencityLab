@@ -62,6 +62,11 @@ from .geometry import (
     winding_diagnostic,
     geometric_summary,
 )
+from .inverse import recoverable_agencity_signature
+from .robustness import (
+    logarithmic_contrast_offset_sensitivity,
+    multiplicative_power_perturbation,
+)
 from .correlation import full_correlation_summary
 from .coherence import (
     sigma_theta,
@@ -126,6 +131,9 @@ __all__ = [
     "winding_number",
     "winding_diagnostic",
     "geometric_summary",
+    "recoverable_agencity_signature",
+    "logarithmic_contrast_offset_sensitivity",
+    "multiplicative_power_perturbation",
     "full_correlation_summary",
     "sigma_theta",
     "phase_coherence",
