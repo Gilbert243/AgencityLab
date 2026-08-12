@@ -113,14 +113,19 @@ def flat_energy_momentum_tensor(
 def u1_noether_current(phi, derivatives) -> np.ndarray:
     """Return the Chapter-16 global-U(1) Noether current, Eq. (16.5).
 
-    Implements ``J^mu = Im(phi * partial^mu conjugate(phi))`` using the
-    Chapter-16 ``(+,-,-,-)`` metric.  This is a field-theory current and is not
-    the canonical logarithmic contrast ``J(t)``.
+    The PDF typography around complex conjugation in Eq. (16.5) is ambiguous
+    when extracted as text, while Eq. (16.7) fixes the chapter's internal sign
+    convention unambiguously as ``J^mu = R^2 partial^mu Theta``.  This helper
+    therefore implements the equivalent form
+    ``Im(conjugate(phi) * partial^mu phi)``.
+
+    This field-theory current is not the canonical logarithmic contrast
+    ``J(t)``.
     """
 
     field, deriv = _field_and_derivatives(phi, derivatives)
     raised = _raised_derivatives(deriv)
-    return np.imag(field[..., np.newaxis] * np.conjugate(raised))
+    return np.imag(np.conjugate(field)[..., np.newaxis] * raised)
 
 
 def phase_noether_current(amplitude, theta_derivatives) -> np.ndarray:
