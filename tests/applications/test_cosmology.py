@@ -20,10 +20,11 @@ from agencitylab.fields.physics import QuarticAgencityPotential, field_energy_de
 from agencitylab.scientific_status import ScientificStatus
 
 
-def test_cosmology_layer_is_speculative_and_not_top_level() -> None:
+def test_cosmology_layer_is_speculative_and_selected_api_is_public() -> None:
     assert SCIENTIFIC_STATUS is ScientificStatus.SPECULATIVE
-    assert not hasattr(agencitylab, "simulate_flat_flrw")
-    assert not hasattr(agencitylab, "homogeneous_energy_density")
+    assert agencitylab.simulate_flat_flrw is simulate_flat_flrw
+    assert agencitylab.homogeneous_energy_density is homogeneous_energy_density
+    assert agencitylab.friedmann_constraint_residual is friedmann_constraint_residual
 
 
 def test_homogeneous_energy_reuses_shared_field_energy() -> None:

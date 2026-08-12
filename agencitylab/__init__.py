@@ -82,6 +82,20 @@ from .gravity import (
     nonminimal_coupling_density,
     stress_energy_tensor,
 )
+from .quantum import (
+    agencity_uncertainty_lower_bound,
+    annihilation_operator,
+    one_loop_quartic_beta,
+    radial_angular_frequency,
+    radial_mass_squared,
+)
+from .applications.cosmology import (
+    FlatFLRWSolution,
+    friedmann_constraint_residual,
+    homogeneous_energy_density,
+    homogeneous_pressure,
+    simulate_flat_flrw,
+)
 from .api.extensions import (
     RIEMANNIAN_EXTENSION_STATUS,
     compute_agencity_spectrum,
@@ -202,6 +216,16 @@ __all__ = [
     "minkowski_metric",
     "nonminimal_coupling_density",
     "stress_energy_tensor",
+    "agencity_uncertainty_lower_bound",
+    "annihilation_operator",
+    "one_loop_quartic_beta",
+    "radial_angular_frequency",
+    "radial_mass_squared",
+    "FlatFLRWSolution",
+    "friedmann_constraint_residual",
+    "homogeneous_energy_density",
+    "homogeneous_pressure",
+    "simulate_flat_flrw",
     "compute_agencity_spectrum",
     "optimize_agencity_window",
     "compute_discrete_agencity",
