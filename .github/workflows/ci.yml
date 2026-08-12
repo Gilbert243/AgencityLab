@@ -43,7 +43,7 @@ jobs:
         run: |
           python - <<'PY'
           import agencitylab
-          assert agencitylab.__version__ == "1.1.1"
+          assert agencitylab.__version__ == "1.1.2"
           print(agencitylab.__version__)
           PY
 
@@ -88,7 +88,7 @@ jobs:
           import agencitylab
           from agencitylab.fields import compute_agencity_field
 
-          assert agencitylab.__version__ == "1.1.1"
+          assert agencitylab.__version__ == "1.1.2"
           requirements = metadata.requires("agencitylab") or []
           assert any(requirement.lower().startswith("numpy") for requirement in requirements)
           for optional in ("scipy", "pandas", "matplotlib", "numba", "jax"):
@@ -106,7 +106,7 @@ jobs:
           analysis = agencitylab.analyze_agencity(result)
           assert result.b.shape == xi.shape
           assert np.all(np.isfinite(result.b))
-          assert result.metadata.agencitylab_version == "1.1.1"
+          assert result.metadata.agencitylab_version == "1.1.2"
           assert analysis["events"]["dynamic_peaks"]["count"] >= 0
 
           field = compute_agencity_field(
@@ -130,7 +130,22 @@ jobs:
               units_convention="dimensionless",
           )
           assert state.scientific_status.value == "research"
-          print("minimal NumPy-only wheel install, scalar, observable field and phi bridge: PASS")
+
+          grid = agencitylab.UniformRectilinearGrid(shape=(8,), spacings=(0.5,))
+          potential = agencitylab.QuarticAgencityPotential(lambda_=1.0, mu=1.0)
+          vacuum = agencitylab.vacuum_state(1.0, 1.0, theta=0.2)
+          dynamic = agencitylab.simulate_tdgl(
+              np.full(grid.shape, vacuum, dtype=complex),
+              grid,
+              potential,
+              gamma=1.0,
+              dt=0.01,
+              n_steps=1,
+          )
+          assert dynamic.scientific_status.value == "research"
+          theta = np.linspace(0.0, 2.0 * np.pi, 64, endpoint=False)
+          assert agencitylab.phase_winding(np.exp(1j * theta)) == 1.0
+          print("minimal NumPy-only wheel install, observable and classical field APIs: PASS")
           PY
 
       - name: Built wheel public end-to-end workflow
@@ -170,7 +185,7 @@ jobs:
               assert csv_path.exists()
               np.testing.assert_allclose(restored.beta, result.beta)
               np.testing.assert_allclose(restored.b, result.b)
-          assert result.metadata.agencitylab_version == "1.1.1"
+          assert result.metadata.agencitylab_version == "1.1.2"
           print("built wheel public end-to-end workflow: PASS")
           PY
 
@@ -184,7 +199,7 @@ jobs:
           "$GITHUB_WORKSPACE/.venv-sdist/bin/python" - <<'PY'
           import numpy as np
           import agencitylab
-          assert agencitylab.__version__ == "1.1.1"
+          assert agencitylab.__version__ == "1.1.2"
           assert agencitylab.available_backends() == ("numpy",)
           xi = np.arange(64, dtype=float)
           result = agencitylab.compute_agencity(
@@ -206,13 +221,15 @@ jobs:
           )
           assert field.beta.shape == (xi.size, 2)
           assert agencitylab.phi_from_observable_field(field).shape == field.beta.shape
-          print("minimal sdist install, scalar and field foundations: PASS")
+          assert callable(agencitylab.simulate_klein_gordon)
+          assert callable(agencitylab.domain_wall_profile)
+          print("minimal sdist install, scalar and integrated field APIs: PASS")
           PY
 
       - name: Upload distributions
         uses: actions/upload-artifact@v4
         with:
-          name: agencitylab-1.1.1-distributions
+          name: agencitylab-1.1.2-distributions
           path: dist/
           if-no-files-found: error
 

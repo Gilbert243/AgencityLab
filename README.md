@@ -2,7 +2,7 @@
 
 AgencityLab is an open-source Python framework implementing and testing the **Theory of Agencity**.
 
-**Current software status: 1.0.1 — Stable Scientific Release patch.** Version 1.0 freezes the documented public software contract; 1.0.1 corrects canonical-conformance defects without adding a new scientific feature. Software stability is distinct from empirical validation of the theory.
+**Current software status: 1.1.2.** Version 1.0 freezes the documented stable scalar software contract. The 1.1.x line adds explicitly labelled experimental/research field capabilities without redefining the canonical observable. Software stability is distinct from empirical validation of the theory.
 
 ## Canonical observable
 
@@ -56,7 +56,7 @@ pip install "agencitylab[numba]"  # experimental
 pip install "agencitylab[jax]"    # experimental
 ```
 
-Numba and JAX do not replace the complete stable NumPy reference pipeline in v1.0.
+Numba and JAX do not replace the complete stable NumPy reference pipeline.
 
 ## Quickstart
 
@@ -93,35 +93,56 @@ print(analysis["real_agencity"]["status"])
 
 For the complete visualisation/export walkthrough, install `agencitylab[viz,export]` and see `docs/tutorials/quickstart.md`.
 
+## Observable and autonomous spatial fields
+
+Version 1.1 adds an explicit field stack without changing the scalar core.
+
+`compute_agencity_field()` applies the canonical temporal pipeline independently at each spatial location and returns `beta_obs(x,t)` and `b_obs(x,t)`. This orchestration has scientific status **experimental**; CRM remains temporal only.
+
+Promotion to the autonomous research field is explicit:
+
+```text
+phi = sqrt(P_c * tau) * beta_obs
+```
+
+via `phi_from_observable_field()` or `beta_to_phi()`. `compute_agencity_field()` never performs this promotion automatically.
+
+Version 1.1.2 exposes the research classical-field layer built on the shared quartic potential and NumPy numerical infrastructure:
+
+- `simulate_klein_gordon()`;
+- `simulate_dissipative_klein_gordon()`;
+- `simulate_tdgl()`;
+- `domain_wall_profile()` / `domain_wall_residual()`;
+- `vortex_field()` / `vortex_radial_residual()`;
+- `phase_winding()` and `field_zero_mask()`.
+
+The autonomous field, its PDE dynamics, and coherent-structure references are **research** interfaces. Their implementation and numerical tests are not empirical confirmation of the underlying field-theory extension.
+
 ## Stable v1.0 API
 
-The principal stable interfaces are:
+The principal stable scalar interfaces are:
 
-- `compute_agencity()`
-- `AgencityResult`, `ExperimentMetadata`
-- `analyze_agencity()` and documented named diagnostics
-- `run_batch()`, `analyze_batch()`
-- `AgencityStream`, `stream_agencity()`
-- `compute_agencity_spectrum()`
-- `compute_discrete_agencity()`
-- `compute_multivariate_agencity()`
-- documented exports and visualisations
-- `ScientificStudy`, `scientific_workflow()`
-- `AgencityPipeline`, `pipeline()`
+- `compute_agencity()`;
+- `AgencityResult`, `ExperimentMetadata`;
+- `analyze_agencity()` and documented named diagnostics;
+- `run_batch()`, `analyze_batch()`;
+- `AgencityStream`, `stream_agencity()`;
+- `compute_agencity_spectrum()`;
+- `compute_discrete_agencity()`;
+- `compute_multivariate_agencity()`;
+- documented exports and visualisations;
+- `ScientificStudy`, `scientific_workflow()`;
+- `AgencityPipeline`, `pipeline()`.
 
 The exact boundary is documented in `docs/stable_api.md`.
 
 `compute_discrete_agencity()` is not an alias for the continuous sampled gradient chain. It implements the explicit Volume-2 centred first and second differences, with documented one-sided endpoint conventions. The mathematical/numerical distinction is described in `docs/theory_mapping.md`.
 
-### Semantic Versioning
+### Semantic Versioning and research APIs
 
-Starting with 1.0.0:
+Starting with 1.0.0, intentional breaking changes to the stable scalar public contract require a major version. Backwards-compatible stable functionality normally belongs to a minor release and stable bug fixes to patch releases.
 
-- `1.0.x`: bug fixes, documentation, compatible internal improvements;
-- `1.x.0`: backwards-compatible functionality and new APIs;
-- `2.0.0`: intentional breaking changes to the stable public contract.
-
-Experimental, research, speculative, and legacy-compatibility interfaces are not automatically covered by the same stability guarantee.
+The 1.1.x development line deliberately contains **experimental/research/speculative interfaces** that are outside the frozen v1.0 canonical stability guarantee. Those labelled interfaces may be added or refined within 1.1.x patch releases while the stable canonical scalar contract remains protected. Their scientific status must remain explicit.
 
 ## Canonical, diagnostic, experimental, research
 
@@ -131,13 +152,15 @@ Experimental, research, speculative, and legacy-compatibility interfaces are not
 
 Historical coherence/real-agencity helpers under `agencitylab.core` remain only as deprecated legacy diagnostics. Historical `compute_full_agencity()` is a compatibility wrapper around the public reference pipeline, not a second canonical implementation.
 
-**Experimental.** Numba/JAX primitive layers and signal-derived window optimisation may evolve outside the stable contract.
+**Experimental.** Observable spatial orchestration, generic field numerics, Numba/JAX primitive layers, and signal-derived window optimisation are explicitly outside the stable canonical contract.
 
-**Research / speculative.** Riemannian, field, extended thermodynamic, quantum, gravitational, and cosmological extensions are outside the v1.0 stable scalar contract and are not presented as empirically established results.
+**Research / speculative.** Autonomous `phi` dynamics, coherent structures, thermodynamic and gravitational extensions are research layers. Quantum/agenton and cosmological extensions are speculative unless and until evidence establishes otherwise.
 
 ## Reproducibility
 
 `AgencityResult` preserves the coordinate, observable, canonical intermediate arrays, physical/contextual parameters, unit/context labels, backend information, and producing AgencityLab version. Complex `beta` and `b` are preserved by JSON serialization; stable CSV export exposes real and imaginary components explicitly.
+
+Research field solutions preserve spatial axes, model parameters, parameter provenance, numerical method, boundary handling, scientific status, and units convention through `DynamicalAgencityFieldSolution`.
 
 This metadata supports traceability but does not make the inverse problem injective: the original observable cannot in general be reconstructed uniquely from `b` alone.
 
@@ -145,13 +168,13 @@ This metadata supports traceability but does not make the inverse problem inject
 
 Batch computations preserve input order and allow independent physical parameters per item. Supported serial/threaded execution is tested for scientific equivalence.
 
-Streaming in v1.0 is retained-history recomputation. With full history its final result is tested against one-shot computation. A finite `window_size` intentionally changes the retained-history problem. v1.0 does not claim a constant-memory online recurrence.
+Streaming is retained-history recomputation. With full history its final result is tested against one-shot computation. A finite `window_size` intentionally changes the retained-history problem; the current implementation does not claim a constant-memory online recurrence.
 
 Multiscale analysis scans explicit `tau` values and may use independent `w` values. It does not conflate characteristic time, CRM memory width, sampling interval, or physical parameter estimation. Discrete and multivariate constructions are part of the documented stable computational API; the incomplete Riemannian research extension is not promoted to stable status.
 
 ## Scientific validation
 
-The deterministic regression suite covers exact rest, sinusoidal structure, passive damping, Van der Pol oscillation, negative-damping instability, filtered Ornstein-Uhlenbeck dynamics, and Lorenz dynamics. It also checks canonical identities, invariances/limits, CRM equivalence, edge cases, batch/streaming/multiscale consistency, discrete stencils and convergence, packaging, and public workflows.
+The deterministic regression suite covers exact rest, sinusoidal structure, passive damping, Van der Pol oscillation, negative-damping instability, filtered Ornstein-Uhlenbeck dynamics, and Lorenz dynamics. It also checks canonical identities, invariances/limits, CRM equivalence, edge cases, batch/streaming/multiscale consistency, discrete stencils and convergence, packaging, public workflows, classical field equations, coherent-structure references, and cross-layer field contracts.
 
 These checks validate implementation and numerical behaviour against accepted reference consequences; they are not universal empirical validation of the Theory of Agencity.
 
@@ -159,6 +182,10 @@ These checks validate implementation and numerical behaviour against accepted re
 
 - `docs/overview.md`
 - `docs/stable_api.md`
+- `docs/observable_fields.md`
+- `docs/dynamical_field_foundations.md`
+- `docs/classical_field_dynamics.md`
+- `docs/coherent_structures.md`
 - `docs/tutorials/quickstart.md`
 - `docs/tutorials/full_pipeline.md`
 - `docs/agencity_analysis.md`
@@ -172,7 +199,7 @@ Documentation is built in CI with significant Sphinx warnings treated as errors.
 
 ## Limitations
 
-AgencityLab 1.0 remains research software. Results depend on the observable and physically/contextually justified parameters. Sampling and preprocessing decisions must be explicit. Sensitivity to `w` is scientifically meaningful. The inverse problem is non-injective. Current streaming is not constant-memory. Accelerated backends are experimental, and fundamental extensions remain research/speculative.
+AgencityLab remains research software beyond its stable scalar computation contract. Results depend on the observable and physically/contextually justified parameters. Sampling and preprocessing decisions must be explicit. Sensitivity to `w` is scientifically meaningful. The inverse problem is non-injective. Current streaming is not constant-memory. Accelerated backends are experimental, and autonomous-field, thermodynamic, gravitational, quantum, and cosmological extensions retain their documented research/speculative status.
 
 ## Development and contribution
 
@@ -186,7 +213,7 @@ sphinx-build -W --keep-going -b html docs docs/_build/html
 python -m build
 ```
 
-See `CONTRIBUTING.md` for scientific-change rules, branch/PR workflow, tests, and SemVer policy.
+See `CONTRIBUTING.md` for scientific-change rules, branch/PR workflow, tests, and versioning policy.
 
 ## Citation
 

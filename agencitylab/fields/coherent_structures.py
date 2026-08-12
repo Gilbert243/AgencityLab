@@ -1,10 +1,22 @@
-"""Reserved coherent structures for the v1.2 dynamical-field research milestone."""
+"""Deprecated historical coherent-structure compatibility boundary.
+
+AgencityLab 1.1.2 provides research reference structures under
+``agencitylab.fields.coherent``. The old ``detect_domain_walls`` placeholder
+never implemented a scientifically defined detector, so it remains retired
+rather than being silently mapped to a profile generator or heuristic.
+"""
 
 
 def detect_domain_walls(*args, **kwargs):
-    """Reject the historical empty domain-wall detector placeholder in v1.1."""
+    """Reject the retired empty domain-wall detector placeholder.
+
+    Use ``domain_wall_profile()`` / ``domain_wall_residual()`` for the explicit
+    real-sector reference solution. Detection heuristics, if added later, must
+    be separately specified and must not be confused with those references.
+    """
+
     del args, kwargs
     raise NotImplementedError(
-        "Domain walls and coherent structures are not implemented in v1.1; "
-        "they are reserved for the v1.2 research milestone."
+        "detect_domain_walls() was an empty historical detector placeholder; "
+        "use agencitylab.fields.coherent reference functions explicitly."
     )
