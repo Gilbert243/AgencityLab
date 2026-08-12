@@ -18,6 +18,8 @@ observable_fields
 dynamical_field_foundations
 classical_field_dynamics
 coherent_structures
+thermodynamics
+gravity
 field_extension_contracts
 agencity_analysis
 multiscale_extensions
@@ -45,13 +47,15 @@ references/glossary
 
 ## Project status
 
-AgencityLab `1.1.2` keeps the 1.x canonical scalar software contract stable, retains **Observable Spatial Agencity Fields** as an explicitly experimental API, and exposes the autonomous classical `phi` field, its reference dynamics, and coherent structures as a **research** layer. Software stability is distinct from empirical validation of the theory.
+AgencityLab `1.1.3` keeps the 1.x canonical scalar software contract stable, retains **Observable Spatial Agencity Fields** as an explicitly experimental API, and exposes the autonomous classical `phi` field, its reference dynamics, coherent structures, thermodynamic evaluators, and classical gravity primitives as **research** layers. Software stability is distinct from empirical validation of the theory.
 
-The research bridge from `beta_obs` to `phi` remains explicit and uses `phi = sqrt(P_c * tau) * beta`; `compute_agencity_field()` never performs that promotion automatically. Version 1.1.2 adds conservative Klein-Gordon, dissipative Klein-Gordon, overdamped TDGL, real-sector domain-wall references, U(1) vortex references, and spatial winding diagnostics on top of the shared 1.1.1 field physics/numerics/models contracts.
+The research bridge from `beta_obs` to `phi` remains explicit and uses `phi = sqrt(P_c * tau) * beta`; `compute_agencity_field()` never performs that promotion automatically. Version 1.1.2 added conservative Klein-Gordon, dissipative Klein-Gordon, overdamped TDGL, real-sector domain-wall references, U(1) vortex references, and spatial winding diagnostics. Version 1.1.3 adds the source-defined thermodynamic evaluators and the limited classical curved-spacetime primitives without introducing a thermal solver, Einstein solver, cosmological solver, or quantum-field machinery.
+
+The gravity package follows the Chapter-19 `(-,+,+,+)` convention explicitly. The classical flat-field dynamics preserve the Chapter-16 `(+,-,-,-)` convention. AgencityLab does not silently identify those source conventions or change either equation merely to force equality.
 
 Version 1.0 froze the documented public scalar API under Semantic Versioning. The 1.1.x series adds backwards-compatible experimental/research functionality without redefining `CRM`, `M`, `O`, `D`, `S`, `J`, `Theta`, `beta`, `b`, `A_ref`, `tau`, `w`, or `P_c`.
 
-Read [the stable API contract](stable_api.md), [observable spatial fields](observable_fields.md), [dynamical field foundations](dynamical_field_foundations.md), [classical field dynamics](classical_field_dynamics.md), [coherent structures and topology](coherent_structures.md), [field extension contracts](field_extension_contracts.md), [the theory mapping](theory_mapping.md), [scientific validation](scientific_validation.md), and [release readiness](release_readiness.md) before treating an implementation detail, diagnostic threshold, benchmark observation, or research/speculative extension as a scientific claim.
+Read [the stable API contract](stable_api.md), [observable spatial fields](observable_fields.md), [dynamical field foundations](dynamical_field_foundations.md), [classical field dynamics](classical_field_dynamics.md), [coherent structures and topology](coherent_structures.md), [thermodynamics](thermodynamics.md), [classical gravity](gravity.md), [field extension contracts](field_extension_contracts.md), [the theory mapping](theory_mapping.md), [scientific validation](scientific_validation.md), and [release readiness](release_readiness.md) before treating an implementation detail, diagnostic threshold, benchmark observation, or research/speculative extension as a scientific claim.
 
 ## Canonical target quantities
 

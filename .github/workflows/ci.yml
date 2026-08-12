@@ -43,7 +43,7 @@ jobs:
         run: |
           python - <<'PY'
           import agencitylab
-          assert agencitylab.__version__ == "1.1.2"
+          assert agencitylab.__version__ == "1.1.3"
           print(agencitylab.__version__)
           PY
 
@@ -88,7 +88,7 @@ jobs:
           import agencitylab
           from agencitylab.fields import compute_agencity_field
 
-          assert agencitylab.__version__ == "1.1.2"
+          assert agencitylab.__version__ == "1.1.3"
           requirements = metadata.requires("agencitylab") or []
           assert any(requirement.lower().startswith("numpy") for requirement in requirements)
           for optional in ("scipy", "pandas", "matplotlib", "numba", "jax"):
@@ -106,7 +106,7 @@ jobs:
           analysis = agencitylab.analyze_agencity(result)
           assert result.b.shape == xi.shape
           assert np.all(np.isfinite(result.b))
-          assert result.metadata.agencitylab_version == "1.1.2"
+          assert result.metadata.agencitylab_version == "1.1.3"
           assert analysis["events"]["dynamic_peaks"]["count"] >= 0
 
           field = compute_agencity_field(
@@ -145,7 +145,17 @@ jobs:
           assert dynamic.scientific_status.value == "research"
           theta = np.linspace(0.0, 2.0 * np.pi, 64, endpoint=False)
           assert agencitylab.phase_winding(np.exp(1j * theta)) == 1.0
-          print("minimal NumPy-only wheel install, observable and classical field APIs: PASS")
+
+          np.testing.assert_array_equal(
+              agencitylab.dissipation_density(np.zeros(grid.shape), gamma=1.0),
+              0.0,
+          )
+          assert agencitylab.GRAVITY_METRIC_SIGNATURE == (-1, 1, 1, 1)
+          np.testing.assert_array_equal(
+              np.diag(agencitylab.minkowski_metric()),
+              np.array([-1.0, 1.0, 1.0, 1.0]),
+          )
+          print("minimal NumPy-only wheel install, observable, field, thermo and gravity APIs: PASS")
           PY
 
       - name: Built wheel public end-to-end workflow
@@ -185,7 +195,7 @@ jobs:
               assert csv_path.exists()
               np.testing.assert_allclose(restored.beta, result.beta)
               np.testing.assert_allclose(restored.b, result.b)
-          assert result.metadata.agencitylab_version == "1.1.2"
+          assert result.metadata.agencitylab_version == "1.1.3"
           print("built wheel public end-to-end workflow: PASS")
           PY
 
@@ -199,7 +209,7 @@ jobs:
           "$GITHUB_WORKSPACE/.venv-sdist/bin/python" - <<'PY'
           import numpy as np
           import agencitylab
-          assert agencitylab.__version__ == "1.1.2"
+          assert agencitylab.__version__ == "1.1.3"
           assert agencitylab.available_backends() == ("numpy",)
           xi = np.arange(64, dtype=float)
           result = agencitylab.compute_agencity(
@@ -223,13 +233,15 @@ jobs:
           assert agencitylab.phi_from_observable_field(field).shape == field.beta.shape
           assert callable(agencitylab.simulate_klein_gordon)
           assert callable(agencitylab.domain_wall_profile)
-          print("minimal sdist install, scalar and integrated field APIs: PASS")
+          assert callable(agencitylab.field_agencial_entropy)
+          assert callable(agencitylab.einstein_equation_residual)
+          print("minimal sdist install, scalar and integrated research APIs: PASS")
           PY
 
       - name: Upload distributions
         uses: actions/upload-artifact@v4
         with:
-          name: agencitylab-1.1.2-distributions
+          name: agencitylab-1.1.3-distributions
           path: dist/
           if-no-files-found: error
 

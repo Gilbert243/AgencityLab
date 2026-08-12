@@ -1,10 +1,6 @@
----
-orphan: true
----
-
 # Classical Agencity Gravity
 
-**Software version:** 1.1.2  
+**Software version:** 1.1.3  
 **Scientific status:** `research`
 
 This module implements small numerical evaluators for the classical gravity coupling described in *Agencity — Advanced Mathematical Foundations and Extensions*, Volume 2, primarily Chapter 19 with the compact action of Chapter 23. It is a research implementation of the manuscript, not experimental validation of Agencity gravity and not a general-relativity solver.
@@ -169,18 +165,18 @@ This package intentionally does not provide:
 - a gravitational-wave evolution equation;
 - FLRW or scale-factor evolution;
 - inflation or dark-energy solvers;
-- thermodynamics;
+- thermodynamic equations inside the gravity package;
 - quantum fields, Fock states, or agentons;
 - autonomous gauge dynamics.
 
-The manuscript's qualitative linearised-gravity and cosmological discussions therefore remain theory context, not operational solvers in AgencityLab 1.1.2.
+The manuscript's qualitative linearised-gravity and cosmological discussions therefore remain theory context, not operational solvers in AgencityLab 1.1.3.
 
 ## Public API scope
 
-The direct research API is available only from:
+The complete direct research API remains available from:
 
 ```python
 import agencitylab.gravity
 ```
 
-This branch does not add top-level `agencitylab` exports. Public integration and versioning are deferred to the planned 1.1.3 integration work.
+Version 1.1.3 also exposes a selected set of principal gravity primitives from top-level `agencitylab`. These exports remain `research`, preserve the explicit `(-,+,+,+)` convention, and are outside the frozen canonical v1.0 API contract.
