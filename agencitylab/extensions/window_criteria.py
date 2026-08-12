@@ -38,7 +38,7 @@ def mean_contrast_criterion(contrast, *, coordinates=None) -> float:
 
     If ``coordinates`` is omitted, the arithmetic mean is the uniform-sampling
     numerical approximation to ``(1/T) integral |J_w(t)| dt``.  If coordinates
-    are supplied they must be strictly increasing and the trapezoidal integral
+    are supplied they must be strictly increasing and a trapezoidal integral
     is divided by the represented duration.
     """
 
@@ -54,7 +54,8 @@ def mean_contrast_criterion(contrast, *, coordinates=None) -> float:
     if np.any(increments <= 0.0):
         raise ValueError("coordinates must be strictly increasing")
     duration = coordinate[-1] - coordinate[0]
-    return float(np.trapezoid(magnitude, coordinate) / duration)
+    integral = np.sum(0.5 * (magnitude[:-1] + magnitude[1:]) * increments)
+    return float(integral / duration)
 
 
 def orientational_entropy_criterion(
