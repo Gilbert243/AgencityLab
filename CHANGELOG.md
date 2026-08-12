@@ -2,6 +2,33 @@
 
 All notable changes to AgencityLab are documented here.
 
+## 1.1.4 - 2026-08-12
+
+### Added
+
+- Added the explicitly speculative Chapter-21 quantum Agencity layer for the autonomous `phi` field: broken-symmetry radial and Goldstone masses and dispersion relations, caller-regulated propagators, finite Fock-space primitives, occupation expectations, the constant-bridge Agencity uncertainty bound, and the explicitly stated leading one-loop quartic beta-function term.
+- Added the explicitly speculative homogeneous flat-FLRW cosmology application from Volume 2 Chapters 20 and 22: shared field energy density and pressure, equation-of-state evaluation, Friedmann and acceleration-equation residuals, explicit expanding/contracting initial branches, and a deterministic RK4 reference solver.
+- Added selected top-level quantum and cosmology APIs while retaining the complete contracts under `agencitylab.quantum` and `agencitylab.applications.cosmology`.
+- Added public quantum/cosmology documentation and cross-layer release tests connecting both extensions to the shared `QuarticAgencityPotential` without duplicating field physics.
+
+### Scientific status
+
+- The scalar `u -> beta -> b` pipeline remains canonical and unchanged.
+- Observable spatial orchestration and generic field numerics remain `experimental`.
+- Autonomous `phi`, classical field dynamics, coherent structures, thermodynamics, and classical gravity remain `research`.
+- Quantum/agenton primitives and homogeneous cosmology are `speculative`; implementation and numerical tests are not experimental evidence for quantum Agencity, agentons, inflation, or dark energy.
+- The quantum layer quantises only the proposed autonomous `phi` field and does not quantise or redefine the canonical observable pipeline.
+
+### Numerical and theoretical boundaries
+
+- Finite Fock matrices are explicit numerical truncations. The unavoidable highest-state commutator defect is exposed rather than hidden or presented as the exact infinite-dimensional bosonic algebra.
+- Propagator `epsilon` is caller supplied; no machine epsilon is inserted as a physical regulator.
+- The Agencity uncertainty helper is restricted to the constant-parameter bridge where the source relation is operationally unambiguous; no derivative of time-varying bridge factors is silently omitted.
+- The FLRW solver initializes `H` from the first Friedmann equation and then reports its constraint residual during RK4 evolution instead of projecting the numerical state back onto the constraint.
+- The minimal broken-symmetry quartic vacuum remains negative, `V_min = -lambda^2/(4 mu)`. AgencityLab does not add a positive vacuum offset, cosmological constant, or modified potential merely to reproduce positive dark-energy density.
+- No path-integral engine, vacuum-energy prescription, scattering engine, lattice QFT, generic quantum gravity, cosmological perturbation/CMB machinery, inflationary fit, or observational dark-energy inference is introduced.
+- NumPy remains the only required runtime dependency and the stable canonical scalar contract remains protected.
+
 ## 1.1.3 - 2026-08-12
 
 ### Added
