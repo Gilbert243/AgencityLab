@@ -6,9 +6,11 @@ to :mod:`agencitylab.core`. It does not redefine canonical equations.
 
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable, Optional, Tuple
+from collections.abc import Iterable, Mapping
+from typing import Any
 
 import numpy as np
+from numpy.typing import ArrayLike, NDArray
 
 from agencitylab.core.validation import validate_positive_scalar
 from agencitylab.exceptions import (
@@ -19,7 +21,7 @@ from agencitylab.exceptions import (
 from agencitylab.models.metadata import ExperimentMetadata
 
 
-def normalize_unit_label(value: Optional[str], *, name: str) -> str:
+def normalize_unit_label(value: str | None, *, name: str) -> str:
     """Normalize an optional descriptive unit label without converting values."""
     if value is None:
         return ""
@@ -29,22 +31,14 @@ def normalize_unit_label(value: Optional[str], *, name: str) -> str:
 
 
 def prepare_inputs(
-    data=None,
-    u=None,
-    xi=None,
+    u: ArrayLike,
+    xi: ArrayLike | None = None,
     *,
     name: str = "u",
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
     """Prepare one finite one-dimensional observable and coordinate array."""
-    if u is not None and data is not None:
-        raise AgencityValidationError("provide only one of 'u' or its compatibility alias 'data'")
-
-    signal = u if u is not None else data
-    if signal is None:
-        raise AgencityValidationError("either 'u' or 'data' must be provided")
-
     try:
-        signal = np.asarray(signal, dtype=float)
+        signal = np.asarray(u, dtype=float)
     except Exception as exc:
         raise AgencityValidationError(f"{name} must be numeric") from exc
 
@@ -76,7 +70,7 @@ def prepare_inputs(
     return axis, signal
 
 
-def validate_optional_tau(tau: Optional[float]):
+def validate_optional_tau(tau: float | None) -> float | None:
     """Validate an optional positive structural time without epsilon substitution."""
     if tau is None:
         return None
@@ -89,8 +83,8 @@ def validate_optional_tau(tau: Optional[float]):
     return value
 
 
-def validate_optional_power(P_c):
-    """Validate optional finite characteristic power with the canonical ``P_c >= 0`` domain."""
+def validate_optional_power(P_c: Any) -> Any:
+    """Validate optional finite characteristic power with canonical ``P_c >= 0``."""
     if P_c is None or callable(P_c):
         return P_c
     arr = np.asarray(P_c, dtype=float)
@@ -99,7 +93,7 @@ def validate_optional_power(P_c):
     return float(arr) if arr.ndim == 0 else arr
 
 
-def validate_kind(kind: str, allowed: Iterable[str]):
+def validate_kind(kind: str, allowed: Iterable[str]) -> str:
     """Validate a visualization or analysis kind."""
     key = str(kind).lower().strip()
     allowed_values = {str(value).lower().strip() for value in allowed}
@@ -111,25 +105,27 @@ def validate_kind(kind: str, allowed: Iterable[str]):
 
 
 def validate_metadata(
-    metadata: Optional[Dict[str, Any] | ExperimentMetadata],
-) -> Dict[str, Any]:
+    metadata: Mapping[str, Any] | ExperimentMetadata | None,
+) -> dict[str, Any]:
     """Return validated metadata as a detached dictionary."""
     try:
+        if isinstance(metadata, Mapping) and not isinstance(metadata, dict):
+            metadata = dict(metadata)
         return ExperimentMetadata.from_dict(metadata).to_dict()
     except ValueError as exc:
         raise AgencityValidationError(str(exc)) from exc
 
 
 def validate_physical_context(
-    metadata: Optional[Dict[str, Any] | ExperimentMetadata] = None,
+    metadata: Mapping[str, Any] | ExperimentMetadata | None = None,
     *,
-    unit: Optional[str] = None,
-    coordinate_unit: Optional[str] = None,
-    power_unit: Optional[str] = None,
-    observable_kind: Optional[str] = None,
-    domain: Optional[str] = None,
+    unit: str | None = None,
+    coordinate_unit: str | None = None,
+    power_unit: str | None = None,
+    observable_kind: str | None = None,
+    domain: str | None = None,
     reference_amplitude: Any = None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Merge explicit public arguments into reproducibility metadata."""
     meta = validate_metadata(metadata)
 
@@ -159,7 +155,7 @@ def validate_physical_context(
         raise AgencityValidationError(str(exc)) from exc
 
 
-def validate_batch_items(items):
+def validate_batch_items(items: Iterable[Any] | None) -> list[Any]:
     """Validate and materialize a non-empty batch iterable."""
     if items is None:
         raise AgencityValidationError("batch items cannot be None")

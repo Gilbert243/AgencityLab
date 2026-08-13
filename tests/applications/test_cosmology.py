@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 import agencitylab
+import agencitylab.applications.cosmology as cosmology_api
 from agencitylab.applications.cosmology import (
     SCIENTIFIC_STATUS,
     acceleration_equation_residual,
@@ -20,11 +21,13 @@ from agencitylab.fields.physics import QuarticAgencityPotential, field_energy_de
 from agencitylab.scientific_status import ScientificStatus
 
 
-def test_cosmology_layer_is_speculative_and_selected_api_is_public() -> None:
+def test_cosmology_layer_is_speculative_and_namespaced() -> None:
     assert SCIENTIFIC_STATUS is ScientificStatus.SPECULATIVE
-    assert agencitylab.simulate_flat_flrw is simulate_flat_flrw
-    assert agencitylab.homogeneous_energy_density is homogeneous_energy_density
-    assert agencitylab.friedmann_constraint_residual is friedmann_constraint_residual
+    assert cosmology_api.simulate_flat_flrw is simulate_flat_flrw
+    assert cosmology_api.homogeneous_energy_density is homogeneous_energy_density
+    assert cosmology_api.friedmann_constraint_residual is friedmann_constraint_residual
+    assert not hasattr(agencitylab, "simulate_flat_flrw")
+    assert not hasattr(agencitylab, "homogeneous_energy_density")
 
 
 def test_homogeneous_energy_reuses_shared_field_energy() -> None:

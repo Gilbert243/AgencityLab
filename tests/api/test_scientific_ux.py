@@ -3,9 +3,9 @@ import json
 import numpy as np
 import pandas as pd
 
-from agencitylab import (
+from agencitylab import compute_agencity
+from agencitylab.api import (
     analyze_agencity,
-    compute_agencity,
     export_result_csv,
     export_study_json,
     scientific_workflow,
@@ -16,8 +16,8 @@ def _result(*, w=None):
     xi = np.linspace(0.0, 20.0, 401)
     u = np.sin(xi) + 0.1 * np.sin(2.0 * xi)
     return compute_agencity(
-        u=u,
-        xi=xi,
+        u,
+        xi,
         A_ref=1.0,
         tau=2.0,
         w=w,
@@ -79,8 +79,8 @@ def test_study_json_preserves_result_and_diagnostics(tmp_path):
     analysis = analyze_agencity(result)
     path = export_study_json(result, analysis, tmp_path / "study.json", text_report="report")
     payload = json.loads(path.read_text(encoding="utf-8"))
-    assert payload["scientific_ux_schema_version"] == "0.7"
-    assert payload["result"]["schema_version"] == "0.3"
+    assert payload["scientific_ux_schema_version"] == "1.0"
+    assert payload["result"]["schema_version"] == "1.0"
     assert payload["analysis"]["real_agencity"]["status"] == "undetermined"
     assert payload["text_report"] == "report"
 

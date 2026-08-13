@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from agencitylab import compute_agencity
 from agencitylab.backends import (
@@ -46,7 +47,7 @@ def test_optional_crm_wrappers_do_not_reclassify_tiny_variance_as_zero():
     np.testing.assert_array_equal(numba_result, numpy_result)
 
 
-def test_compute_result_records_requested_and_canonical_backend_scope():
+def test_compute_api_is_backend_agnostic_and_rejects_pre_1_0_config_keyword():
     xi = np.linspace(0.0, 4.0, 33)
     result = compute_agencity(
         u=np.sin(xi),
@@ -55,10 +56,16 @@ def test_compute_result_records_requested_and_canonical_backend_scope():
         tau=0.5,
         w=0.5,
         P_c=2.0,
-        config={"backend": "numpy"},
     )
 
-    assert result.config["backend_requested"] == "numpy"
-    assert result.config["backend_resolved"] == "numpy"
-    assert result.config["backend_status"] == "stable"
-    assert result.config["canonical_backend"] == "numpy"
+    assert not hasattr(result, "config")
+    with pytest.raises(TypeError):
+        compute_agencity(
+            u=np.sin(xi),
+            xi=xi,
+            A_ref=1.0,
+            tau=0.5,
+            w=0.5,
+            P_c=2.0,
+            config={"backend": "numpy"},
+        )

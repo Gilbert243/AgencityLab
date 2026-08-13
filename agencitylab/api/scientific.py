@@ -1,10 +1,12 @@
-"""End-to-end researcher workflow for AgencityLab v0.7."""
+"""End-to-end researcher workflow built on the stable AgencityLab API."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterable, Mapping
+
+from agencitylab.models import AgencityResult
 
 from .analyze import analyze_agencity, textual_analysis
 from .compute import compute_agencity
@@ -16,8 +18,8 @@ from .visualize import visualize_agencity
 class ScientificStudy:
     """Artifacts produced by a reproducible signal-to-diagnostic workflow."""
 
-    result: Any
-    analysis: dict
+    result: AgencityResult
+    analysis: dict[str, Any]
     report: str
     figures: dict[str, Any] = field(default_factory=dict)
     exports: dict[str, Path] = field(default_factory=dict)
@@ -39,11 +41,8 @@ def scientific_workflow(
 ) -> ScientificStudy:
     """Run ``signal -> result -> diagnostics -> report -> figures``.
 
-    Physical/contextual quantities are explicit. Diagnostic thresholds, when
-    needed, must be supplied in ``analysis_kwargs``; this workflow never invents
-    universal real-agencity or regime thresholds. If ``export_dir`` is supplied,
-    the canonical sample table, reproducible study JSON, text report and created
-    figures are written there.
+    Diagnostic products live on :class:`ScientificStudy`; they are deliberately
+    not mutated into the canonical :class:`AgencityResult`.
     """
     result = compute_agencity(
         u=u,
@@ -57,8 +56,6 @@ def scientific_workflow(
     diagnostic_options = dict(analysis_kwargs or {})
     analysis = analyze_agencity(result, **diagnostic_options)
     report = textual_analysis(result, **diagnostic_options)
-    result.attach_analysis(analysis)
-    result.attach_report(report)
 
     figures: dict[str, Any] = {}
     for kind in tuple(figure_kinds):

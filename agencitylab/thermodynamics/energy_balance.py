@@ -9,8 +9,6 @@ than inventing ``J_E``.
 
 from __future__ import annotations
 
-import warnings
-
 import numpy as np
 
 from agencitylab.scientific_status import ScientificStatus
@@ -37,10 +35,9 @@ def _finite_real_array(value, *, name: str) -> np.ndarray:
 def energy_balance_residual(dH_dt, div_j_e, phi_dot, gamma: float) -> np.ndarray:
     """Evaluate ``dH_dt + div(J_E) + Gamma*|phi_dot|**2``.
 
-    A zero result is the numerical statement of Volume 2 Eq. (18.3).  The
+    A zero result is the numerical statement of Volume 2 Eq. (18.3). The
     residual is not clipped or forced to zero.
     """
-
     energy_rate = _finite_real_array(dH_dt, name="dH_dt")
     flux_divergence = _finite_real_array(div_j_e, name="div_j_e")
     dissipated = dissipation_density(phi_dot, gamma)
@@ -55,19 +52,3 @@ def energy_balance_residual(dH_dt, div_j_e, phi_dot, gamma: float) -> np.ndarray
             "dH_dt, div_j_e, and phi_dot are not broadcast-compatible"
         ) from exc
     return np.asarray(energy_b + flux_b + dissipated_b, dtype=float)
-
-
-def balance(inflow, outflow):
-    """Legacy generic inflow-minus-outflow placeholder.
-
-    This helper is not Volume 2 Eq. (18.3).  It is retained for compatibility;
-    new field-thermodynamic code should use :func:`energy_balance_residual`.
-    """
-
-    warnings.warn(
-        "balance is a legacy generic helper, not the Agencity field energy "
-        "balance; use energy_balance_residual instead",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    return inflow - outflow

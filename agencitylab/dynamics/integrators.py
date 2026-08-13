@@ -1,28 +1,25 @@
-"""Generic ODE integration helpers retained for compatibility.
+"""Generic ODE integration helpers.
 
-The authoritative fixed-step RK4 primitive is
-``agencitylab.fields.numerics.rk4_step``. This module keeps the historical
-``rk4_step`` location as a deprecated forwarding wrapper and retains the unique
-Euler and optional-SciPy convenience solvers.
+The reusable fixed-step RK4 primitive lives in
+:mod:`agencitylab.fields.numerics`; this module provides only the distinct Euler
+and optional-SciPy convenience solvers.
 """
 
 from __future__ import annotations
 
-from typing import Callable
-import warnings
+from collections.abc import Callable
 
 import numpy as np
 
 
 def solve_euler(rhs: Callable[[float, np.ndarray], np.ndarray], y0, xi_grid):
     """Integrate an ODE with the explicit Euler method."""
-
     xi_grid = np.asarray(xi_grid, dtype=float)
     y0 = np.asarray(y0, dtype=float)
     if xi_grid.ndim != 1:
-        raise ValueError("xi_grid must be one-dimensional.")
+        raise ValueError("xi_grid must be one-dimensional")
     if xi_grid.size == 0:
-        raise ValueError("xi_grid must not be empty.")
+        raise ValueError("xi_grid must not be empty")
 
     trajectory = np.zeros((xi_grid.size, y0.size), dtype=float)
     trajectory[0] = y0
@@ -34,25 +31,6 @@ def solve_euler(rhs: Callable[[float, np.ndarray], np.ndarray], y0, xi_grid):
     return trajectory
 
 
-def rk4_step(
-    rhs: Callable[[float, np.ndarray], np.ndarray],
-    xi: float,
-    y: np.ndarray,
-    h: float,
-) -> np.ndarray:
-    """Deprecated forwarding alias to the authoritative generic RK4 primitive."""
-
-    warnings.warn(
-        "agencitylab.dynamics.rk4_step is deprecated; use "
-        "agencitylab.fields.numerics.rk4_step.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    from agencitylab.fields.numerics.integrators import rk4_step as authoritative_rk4_step
-
-    return authoritative_rk4_step(rhs, xi, y, h)
-
-
 def solve_ivp_wrapper(
     rhs: Callable[[float, np.ndarray], np.ndarray],
     y0,
@@ -62,18 +40,17 @@ def solve_ivp_wrapper(
     atol: float = 1e-9,
 ):
     """Use SciPy ``solve_ivp`` when installed, otherwise fall back to Euler."""
-
     try:
-        from scipy.integrate import solve_ivp  # type: ignore
-    except Exception:
+        from scipy.integrate import solve_ivp  # type: ignore[import-not-found]
+    except ImportError:
         return solve_euler(rhs, y0, xi_grid)
 
     xi_grid = np.asarray(xi_grid, dtype=float)
     y0 = np.asarray(y0, dtype=float)
     if xi_grid.ndim != 1:
-        raise ValueError("xi_grid must be one-dimensional.")
+        raise ValueError("xi_grid must be one-dimensional")
     if xi_grid.size == 0:
-        raise ValueError("xi_grid must not be empty.")
+        raise ValueError("xi_grid must not be empty")
 
     sol = solve_ivp(
         fun=lambda t, y: rhs(t, y),

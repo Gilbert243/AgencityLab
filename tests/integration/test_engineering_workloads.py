@@ -1,11 +1,7 @@
 import numpy as np
 
-from agencitylab import (
-    AgencityStream,
-    compute_agencity,
-    compute_agencity_spectrum,
-    run_batch,
-)
+from agencitylab import compute_agencity
+from agencitylab.api import AgencityStream, compute_agencity_spectrum, run_batch
 
 
 _CANONICAL_FIELDS = ("X_star", "A_star", "M", "O", "D", "S", "J", "U", "beta", "b")

@@ -1,0 +1,66 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build release distributions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+          cache: pip
+      - name: Install build tooling
+        run: python -m pip install --upgrade pip "build>=1.2" "twine>=5.1"
+      - name: Verify release tag matches package version
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          PACKAGE_VERSION="$(python - <<'PY'
+          from pathlib import Path
+          import re
+          text = Path('agencitylab/version.py').read_text(encoding='utf-8')
+          match = re.search(r'__version__\s*=\s*["\x27]([^"\x27]+)', text)
+          if match is None:
+              raise SystemExit('unable to read package version')
+          print(match.group(1))
+          PY
+          )"
+          test "$RELEASE_TAG" = "v${PACKAGE_VERSION}"
+      - name: Build wheel and source distribution
+        run: |
+          python -m build
+          python -m twine check dist/*
+      - name: Upload release distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+          if-no-files-found: error
+
+  publish:
+    name: Publish to PyPI with Trusted Publishing
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Download distributions
+        uses: actions/download-artifact@v5
+        with:
+          name: python-package-distributions
+          path: dist/
+      - name: Publish distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1

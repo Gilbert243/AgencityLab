@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 import agencitylab
+import agencitylab.quantum as quantum_api
 from agencitylab.fields.physics import QuarticAgencityPotential, vacuum_amplitude
 from agencitylab.quantum import (
     SCIENTIFIC_STATUS,
@@ -29,11 +30,13 @@ from agencitylab.quantum import (
 from agencitylab.scientific_status import ScientificStatus
 
 
-def test_quantum_layer_is_explicitly_speculative_and_selected_api_is_public() -> None:
+def test_quantum_layer_is_explicitly_speculative_and_namespaced() -> None:
     assert SCIENTIFIC_STATUS is ScientificStatus.SPECULATIVE
-    assert agencitylab.radial_mass_squared is radial_mass_squared
-    assert agencitylab.annihilation_operator is annihilation_operator
-    assert agencitylab.agencity_uncertainty_lower_bound is agencity_uncertainty_lower_bound
+    assert quantum_api.radial_mass_squared is radial_mass_squared
+    assert quantum_api.annihilation_operator is annihilation_operator
+    assert quantum_api.agencity_uncertainty_lower_bound is agencity_uncertainty_lower_bound
+    assert not hasattr(agencitylab, "radial_mass_squared")
+    assert not hasattr(agencitylab, "annihilation_operator")
 
 
 def test_broken_symmetry_modes_reuse_shared_potential_contract() -> None:

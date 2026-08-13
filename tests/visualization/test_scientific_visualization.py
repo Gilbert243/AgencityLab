@@ -5,7 +5,8 @@ matplotlib = pytest.importorskip("matplotlib")
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-from agencitylab import analyze_agencity, compute_agencity, compute_agencity_spectrum
+from agencitylab import compute_agencity
+from agencitylab.api import analyze_agencity, compute_agencity_spectrum
 from agencitylab.api.visualize import visualize_agencity, visualize_multiscale_spectrum
 
 
@@ -55,7 +56,7 @@ def test_diagnostic_figure_consumes_analysis_without_creating_thresholds():
     plt.close(figure)
 
 
-def test_legacy_timeseries_handles_complex_beta_and_b_explicitly():
+def test_timeseries_handles_complex_beta_and_b_explicitly():
     result, _ = _result()
     figure = visualize_agencity(result, kind="timeseries", show=False)
     assert len(figure.axes[1].lines) == 3

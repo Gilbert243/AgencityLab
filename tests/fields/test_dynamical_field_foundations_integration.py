@@ -1,6 +1,7 @@
 import numpy as np
 
 import agencitylab
+import agencitylab.fields as fields_api
 from agencitylab.fields import (
     PeriodicBoundary,
     QuarticAgencityPotential,
@@ -15,11 +16,13 @@ from agencitylab.scientific_status import ScientificStatus
 
 
 def test_public_foundations_are_exposed_with_expected_statuses():
-    assert agencitylab.__version__ == "1.1.7"
+    assert agencitylab.__version__ == "1.0.0"
     assert agencitylab.ScientificStatus.RESEARCH is ScientificStatus.RESEARCH
     assert agencitylab.DynamicalAgencityFieldState is DynamicalAgencityFieldState
-    assert agencitylab.QuarticAgencityPotential is QuarticAgencityPotential
-    assert agencitylab.UniformRectilinearGrid is UniformRectilinearGrid
+    assert fields_api.QuarticAgencityPotential is QuarticAgencityPotential
+    assert fields_api.UniformRectilinearGrid is UniformRectilinearGrid
+    assert not hasattr(agencitylab, "QuarticAgencityPotential")
+    assert not hasattr(agencitylab, "UniformRectilinearGrid")
 
 
 def test_observable_beta_bridge_initializes_research_state_without_mutation():
