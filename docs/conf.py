@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -58,3 +59,5 @@ intersphinx_mapping = {
 
 html_title = "AgencityLab Documentation"
 html_short_title = "AgencityLab"
+
+html_baseurl = os.environ.get("READTHEDOCS_CANONICAL_URL", "/")
