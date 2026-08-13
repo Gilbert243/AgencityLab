@@ -1,10 +1,11 @@
-"""Cross-layer integration tests for the AgencityLab 1.1.2 research field release."""
+"""Cross-layer integration checks for research field dynamics and coherent structures."""
 
 from __future__ import annotations
 
 import numpy as np
 
 import agencitylab
+import agencitylab.fields as fields_api
 from agencitylab.fields import (
     NeumannBoundary,
     PeriodicBoundary,
@@ -21,7 +22,7 @@ from agencitylab.fields import (
 )
 
 
-def test_public_api_exposes_dynamics_and_coherent_references():
+def test_public_api_exposes_dynamics_and_coherent_references_in_fields_namespace():
     names = (
         "klein_gordon_acceleration",
         "dissipative_klein_gordon_acceleration",
@@ -37,7 +38,8 @@ def test_public_api_exposes_dynamics_and_coherent_references():
         "field_zero_mask",
     )
     for name in names:
-        assert hasattr(agencitylab, name), name
+        assert hasattr(fields_api, name), name
+        assert not hasattr(agencitylab, name), name
 
 
 def test_domain_wall_static_residual_is_the_kg_acceleration():
