@@ -1,0 +1,355 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Quality / Ruff and warning audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+          cache: pip
+      - name: Install lint tools
+        run: python -m pip install "ruff>=0.8"
+      - name: Repository correctness lint
+        run: ruff check agencitylab tests benchmarks/performance examples
+      - name: Strict stable-surface lint
+        run: |
+          ruff check \
+            --select E4,E7,E9,F,I,UP,B \
+            --ignore E741 \
+            agencitylab/__init__.py \
+            agencitylab/api/compute.py \
+            agencitylab/api/_compute_support.py \
+            agencitylab/api/validation.py \
+            agencitylab/models/result.py \
+            agencitylab/models/metadata.py \
+            agencitylab/io/result_serialization.py \
+            agencitylab/io/adapters.py
+      - name: Reject pre-1.0 deprecation machinery
+        run: |
+          if grep -R --line-number "DeprecationWarning" agencitylab; then
+            echo "Pre-1.0 compatibility/deprecation code must be removed before 1.0."
+            exit 1
+          fi
+
+  typing:
+    name: Quality / public API typing
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install package, support-floor NumPy stubs, and mypy
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e . "numpy==1.26.4" "mypy>=1.11"
+      - name: Type-check stable public surface against Python 3.10 syntax contract
+        run: |
+          mypy --follow-imports=skip \
+            agencitylab/__init__.py \
+            agencitylab/api/compute.py \
+            agencitylab/api/_compute_support.py \
+            agencitylab/api/validation.py \
+            agencitylab/models/result.py \
+            agencitylab/models/metadata.py \
+            agencitylab/exceptions.py \
+            agencitylab/scientific_status.py
+
+  tests:
+    name: Tests / Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install package and development dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Verify version
+        run: |
+          python - <<'PY'
+          import agencitylab
+          assert agencitylab.__version__ == "1.0.0"
+          print(agencitylab.__version__)
+          PY
+      - name: Pytest
+        run: python -m pytest
+
+  minimum-dependencies:
+    name: Compatibility / minimum NumPy on Python 3.10
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.10"
+          cache: pip
+      - name: Install declared minimum core stack
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "numpy==1.22.4" "pytest>=7,<8"
+          python -m pip install --no-deps -e .
+          python -m pip check
+      - name: Run minimum-dependency core contract
+        run: python -m pytest tests/core tests/architecture
+
+  coverage:
+    name: Quality / coverage baseline
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install full test environment
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Measure coverage without an arbitrary threshold
+        run: |
+          python -m pytest \
+            --cov=agencitylab \
+            --cov-report=term-missing \
+            --cov-report=xml:coverage.xml
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: agencitylab-1.0-coverage
+          path: coverage.xml
+          if-no-files-found: error
+
+  package:
+    name: Package / wheel, sdist, clean installs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+          cache: pip
+      - name: Build and validate distributions
+        run: |
+          python -m pip install --upgrade pip "build>=1.2" "twine>=5.1"
+          python -m build
+          python -m twine check dist/*
+          test "$(find dist -maxdepth 1 -name '*.whl' | wc -l)" -eq 1
+          test "$(find dist -maxdepth 1 -name '*.tar.gz' | wc -l)" -eq 1
+      - name: Clean wheel install smoke test
+        run: |
+          python -m venv .venv-wheel
+          .venv-wheel/bin/python -m pip install --upgrade pip
+          .venv-wheel/bin/python -m pip install dist/*.whl
+          .venv-wheel/bin/python -m pip check
+          cd /tmp
+          "$GITHUB_WORKSPACE/.venv-wheel/bin/python" - <<'PY'
+          from pathlib import Path
+          import numpy as np
+          import agencitylab as al
+
+          assert al.__version__ == "1.0.0"
+          assert Path(al.__file__).with_name("py.typed").is_file()
+          xi = np.arange(128, dtype=float)
+          result = al.compute_agencity(
+              np.sin(0.07 * xi), xi, A_ref=1.0, tau=8.0, w=6.0, P_c=2.0
+          )
+          assert result.b.shape == xi.shape
+          assert np.all(np.isfinite(result.b))
+          assert result.metadata.agencitylab_version == "1.0.0"
+          print("wheel smoke test: PASS")
+          PY
+      - name: Clean sdist install smoke test
+        run: |
+          python -m venv .venv-sdist
+          .venv-sdist/bin/python -m pip install --upgrade pip
+          .venv-sdist/bin/python -m pip install dist/*.tar.gz
+          .venv-sdist/bin/python -m pip check
+          cd /tmp
+          "$GITHUB_WORKSPACE/.venv-sdist/bin/python" - <<'PY'
+          import numpy as np
+          import agencitylab as al
+          import agencitylab.fields as fields
+          import agencitylab.gravity as gravity
+          import agencitylab.quantum as quantum
+          import agencitylab.thermodynamics as thermodynamics
+
+          assert al.__version__ == "1.0.0"
+          xi = np.arange(64, dtype=float)
+          result = al.compute_agencity(
+              np.sin(0.2 * xi), xi, A_ref=1.0, tau=4.0, w=3.0, P_c=1.0
+          )
+          assert result.b.shape == xi.shape
+          assert callable(fields.compute_agencity_field)
+          assert callable(gravity.minkowski_metric)
+          assert callable(quantum.radial_mass_squared)
+          assert callable(thermodynamics.field_agencial_entropy)
+          print("sdist namespace smoke test: PASS")
+          PY
+      - name: Upload distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: agencitylab-1.0.0-distributions
+          path: dist/
+          if-no-files-found: error
+
+  optional-extras:
+    name: Extra / ${{ matrix.extra }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        extra: [scientific, data, viz, export, numba, jax]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install isolated extra
+        env:
+          EXTRA: ${{ matrix.extra }}
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install ".[${EXTRA}]"
+          python -m pip check
+      - name: Smoke test isolated extra
+        env:
+          EXTRA: ${{ matrix.extra }}
+        run: python tests/packaging/smoke_extra.py "${EXTRA}"
+
+  docs:
+    name: Docs / Sphinx warnings as errors
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+          cache: pip
+      - name: Install documentation dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[docs]"
+      - name: Build documentation
+        run: sphinx-build -W --keep-going -b html docs docs/_build/html
+
+  examples:
+    name: Examples / critical user workflows
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+          cache: pip
+      - name: Install documented example capabilities
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[viz,export]"
+          python -m pip check
+      - name: Run minimal example
+        env:
+          MPLBACKEND: Agg
+        run: python examples/basic/simple_compute.py
+      - name: Run signal exploration example
+        env:
+          MPLBACKEND: Agg
+        run: python examples/basic/explore_signal.py
+      - name: Run scientific workflow example
+        env:
+          MPLBACKEND: Agg
+        run: |
+          python examples/basic/scientific_workflow.py
+          test -d agencity_output
+          rm -rf agencity_output
+      - name: Run multiscale example
+        run: python examples/advanced/agencity_spectrum.py
+
+  benchmark:
+    name: Benchmark / reproducible scientific equivalence
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install NumPy-only benchmark environment
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+      - name: Run retained pre-1.0 before-after benchmark
+        run: |
+          python benchmarks/performance/benchmark_v08.py \
+            --quick \
+            --output benchmark-v08.json
+      - name: Verify numerical equivalence, not timing
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          report = json.loads(Path("benchmark-v08.json").read_text(encoding="utf-8"))
+          for group in ("crm", "pipeline", "sigma_theta"):
+              for row in report[group]:
+                  assert row["max_abs_difference"] <= 1e-8, (group, row)
+          assert all(row["finite_domain_equal"] for row in report["sigma_theta"])
+          workloads = report["representative_workloads"]
+          assert workloads["stream_final_max_abs_difference"] == 0.0
+          assert workloads["batch_threaded_max_abs_difference"] == 0.0
+          print("benchmark scientific equivalence: PASS")
+          PY
+      - name: Upload benchmark report
+        uses: actions/upload-artifact@v4
+        with:
+          name: agencitylab-1.0-retained-pre1-benchmark
+          path: benchmark-v08.json
+          if-no-files-found: error

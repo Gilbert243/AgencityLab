@@ -1,136 +1,168 @@
-"""
-High-level validation helpers for the AgencityLab public API.
+"""Validation helpers for the stable AgencityLab public API.
 
-This layer validates user inputs before delegating to the core engine.
-It stays lightweight and does not duplicate the core mathematics.
+This layer validates user-facing contracts before delegating mathematical work
+to :mod:`agencitylab.core`. It does not redefine canonical equations.
 """
 
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable, Optional, Tuple
+from collections.abc import Iterable, Mapping
+from typing import Any
 
 import numpy as np
+from numpy.typing import ArrayLike, NDArray
 
-from agencitylab.core.validation import (
-    as_float_array,
-    validate_axis,
-    validate_signal,
-    validate_window_size,
+from agencitylab.core.validation import validate_positive_scalar
+from agencitylab.exceptions import (
+    AgencityValidationError,
+    PhysicalParameterError,
+    UnitValidationError,
 )
-from agencitylab.core.safeguards import ensure_positive
+from agencitylab.models.metadata import ExperimentMetadata
+
+
+def normalize_unit_label(value: str | None, *, name: str) -> str:
+    """Normalize an optional descriptive unit label without converting values."""
+    if value is None:
+        return ""
+    if not isinstance(value, str):
+        raise UnitValidationError(f"{name} must be a string or None")
+    return value.strip()
 
 
 def prepare_inputs(
-    data=None,
-    u=None,
-    xi=None,
+    u: ArrayLike,
+    xi: ArrayLike | None = None,
     *,
-    name: str = "signal",
-) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Prepare and validate (xi, u).
-    """
-    signal = u if u is not None else data
-    if signal is None:
-        raise ValueError("Either 'u' or 'data' must be provided")
+    name: str = "u",
+) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+    """Prepare one finite one-dimensional observable and coordinate array."""
+    try:
+        signal = np.asarray(u, dtype=float)
+    except Exception as exc:
+        raise AgencityValidationError(f"{name} must be numeric") from exc
 
-    signal = validate_signal(signal, name=name)
-    signal = np.asarray(signal, dtype=float)
+    if signal.ndim != 1:
+        raise AgencityValidationError(
+            f"{name} must be one-dimensional for the canonical scalar API"
+        )
+    if signal.size < 3:
+        raise AgencityValidationError(f"{name} must contain at least three samples")
+    if not np.all(np.isfinite(signal)):
+        raise AgencityValidationError(f"{name} must contain only finite values")
 
     if xi is None:
-        xi = np.arange(signal.shape[0], dtype=float)
+        axis = np.arange(signal.size, dtype=float)
     else:
-        xi = validate_axis(xi, expected_length=signal.shape[0], name="xi")
+        try:
+            axis = np.asarray(xi, dtype=float)
+        except Exception as exc:
+            raise AgencityValidationError("xi must be numeric") from exc
+        if axis.ndim != 1:
+            raise AgencityValidationError("xi must be one-dimensional")
+        if axis.size != signal.size:
+            raise AgencityValidationError("xi and u must have the same length")
+        if not np.all(np.isfinite(axis)):
+            raise AgencityValidationError("xi must contain only finite values")
+        if np.any(np.diff(axis) <= 0.0):
+            raise AgencityValidationError("xi must be strictly increasing")
 
-    return xi, signal
+    return axis, signal
 
 
-def validate_optional_tau(tau: Optional[float]):
-    """Validate an optional tau parameter."""
+def validate_optional_tau(tau: float | None) -> float | None:
+    """Validate an optional positive structural time without epsilon substitution."""
     if tau is None:
         return None
-    tau = float(tau)
-    if not np.isfinite(tau) or tau <= 0:
-        raise ValueError("tau must be positive")
-    return tau
+    try:
+        value = float(tau)
+    except Exception as exc:
+        raise AgencityValidationError("tau must be numeric") from exc
+    if not np.isfinite(value) or value <= 0.0:
+        raise AgencityValidationError("tau must be strictly positive")
+    return value
 
 
-def validate_optional_power(P_c):
-    """
-    Validate an optional characteristic power input.
-    """
-    if P_c is None:
-        return None
-
-    if callable(P_c):
+def validate_optional_power(P_c: Any) -> Any:
+    """Validate optional finite characteristic power with canonical ``P_c >= 0``."""
+    if P_c is None or callable(P_c):
         return P_c
-
-    arr = np.asarray(P_c)
-    if arr.ndim == 0:
-        return ensure_positive(float(arr))
-
-    if not np.all(np.isfinite(arr)):
-        raise ValueError("P_c must contain only finite values")
-
-    return ensure_positive(arr)
+    arr = np.asarray(P_c, dtype=float)
+    if not np.all(np.isfinite(arr)) or np.any(arr < 0.0):
+        raise AgencityValidationError("P_c must contain only non-negative finite values")
+    return float(arr) if arr.ndim == 0 else arr
 
 
-def validate_kind(kind: str, allowed: Iterable[str]):
+def validate_kind(kind: str, allowed: Iterable[str]) -> str:
     """Validate a visualization or analysis kind."""
-    kind = str(kind).lower().strip()
-    allowed = {str(x).lower().strip() for x in allowed}
-    if kind not in allowed:
-        raise ValueError(f"Unknown kind '{kind}'. Allowed: {sorted(allowed)}")
-    return kind
+    key = str(kind).lower().strip()
+    allowed_values = {str(value).lower().strip() for value in allowed}
+    if key not in allowed_values:
+        raise AgencityValidationError(
+            f"unknown kind '{kind}'; allowed values are {sorted(allowed_values)}"
+        )
+    return key
 
 
-def validate_metadata(metadata: Optional[Dict[str, Any]]):
-    """
-    Validate metadata dictionary.
-
-    This function preserves all keys so that model-level metadata can carry
-    physics context such as unit, observable_kind, domain and reference_amplitude.
-    """
-    if metadata is None:
-        return {}
-    if not isinstance(metadata, dict):
-        raise ValueError("metadata must be a dictionary or None")
-    return dict(metadata)
+def validate_metadata(
+    metadata: Mapping[str, Any] | ExperimentMetadata | None,
+) -> dict[str, Any]:
+    """Return validated metadata as a detached dictionary."""
+    try:
+        if isinstance(metadata, Mapping) and not isinstance(metadata, dict):
+            metadata = dict(metadata)
+        return ExperimentMetadata.from_dict(metadata).to_dict()
+    except ValueError as exc:
+        raise AgencityValidationError(str(exc)) from exc
 
 
 def validate_physical_context(
-    metadata: Optional[Dict[str, Any]] = None,
+    metadata: Mapping[str, Any] | ExperimentMetadata | None = None,
     *,
-    unit: Optional[str] = None,
-    observable_kind: Optional[str] = None,
-    domain: Optional[str] = None,
+    unit: str | None = None,
+    coordinate_unit: str | None = None,
+    power_unit: str | None = None,
+    observable_kind: str | None = None,
+    domain: str | None = None,
     reference_amplitude: Any = None,
-):
-    """
-    Merge and normalize the physical context used to resolve A_ref.
-    """
+) -> dict[str, Any]:
+    """Merge explicit public arguments into reproducibility metadata."""
     meta = validate_metadata(metadata)
 
     if unit is not None:
-        meta["unit"] = unit
+        meta["unit"] = normalize_unit_label(unit, name="unit")
+    if coordinate_unit is not None:
+        meta["coordinate_unit"] = normalize_unit_label(
+            coordinate_unit, name="coordinate_unit"
+        )
+    if power_unit is not None:
+        meta["power_unit"] = normalize_unit_label(power_unit, name="power_unit")
     if observable_kind is not None:
-        meta["observable_kind"] = observable_kind
+        meta["observable_kind"] = str(observable_kind).strip()
     if domain is not None:
-        meta["domain"] = domain
+        meta["domain"] = str(domain).strip()
     if reference_amplitude is not None:
-        meta["reference_amplitude"] = reference_amplitude
+        try:
+            meta["reference_amplitude"] = validate_positive_scalar(
+                reference_amplitude, name="A_ref"
+            )
+        except ValueError as exc:
+            raise PhysicalParameterError(f"A_ref resolution failed: {exc}") from exc
 
-    return meta
-
-
-def validate_batch_items(items):
-    """Validate batch input container."""
-    if items is None:
-        raise ValueError("Batch items cannot be None")
     try:
-        items = list(items)
+        return ExperimentMetadata.from_dict(meta).to_dict()
+    except ValueError as exc:
+        raise AgencityValidationError(str(exc)) from exc
+
+
+def validate_batch_items(items: Iterable[Any] | None) -> list[Any]:
+    """Validate and materialize a non-empty batch iterable."""
+    if items is None:
+        raise AgencityValidationError("batch items cannot be None")
+    try:
+        materialized = list(items)
     except TypeError as exc:
-        raise ValueError("Batch items must be iterable") from exc
-    if len(items) == 0:
-        raise ValueError("Batch items cannot be empty")
-    return items
+        raise AgencityValidationError("batch items must be iterable") from exc
+    if not materialized:
+        raise AgencityValidationError("batch items cannot be empty")
+    return materialized

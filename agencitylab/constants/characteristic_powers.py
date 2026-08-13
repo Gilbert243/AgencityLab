@@ -1,184 +1,72 @@
-"""
-characteristic_powers.py
+"""Characteristic-power registry for AgencityLab.
 
-Canonical characteristic powers for AgencityLab.
-
-Pc represents the characteristic energetic scale
-of the containing physical system.
-
-Important
----------
-Pc is NOT estimated from the observable signal u(t).
-
-Canonical relation:
-    Pc = E_ref / tau
+``P_c`` is a structural energetic capacity of the containing system. The canonical
+resolver never derives it from the observed signal and has no arbitrary generic fallback.
+The accepted domain is finite ``P_c >= 0``.
 """
 
 from __future__ import annotations
 
 from typing import Any, Mapping
 
-try:
-    from agencitylab.core.safeguards import ensure_positive
-except Exception:
-    def ensure_positive(x, minimum=1e-12):
-        return max(float(x), minimum)
+import numpy as np
 
 
-# ============================================================
-# REGISTRIES
-# ============================================================
-
-CANONICAL_POWER_BY_SYSTEM: dict[str, float] = {
-    "generic": 1.0,
-
-    "thermal_water_1l": 100.0,
-
-    "thermal_air_small": 1.0,
-
-    "pendulum_small": 0.1,
-
-    "rc_small": 0.01,
-}
-
-CANONICAL_POWER_BY_DOMAIN: dict[str, float] = {
-    "thermal": 10.0,
-    "mechanics": 1.0,
-    "electronics": 0.1,
-    "fluidics": 5.0,
-}
+CANONICAL_POWER_BY_SYSTEM: dict[str, float] = {}
+CANONICAL_POWER_BY_DOMAIN: dict[str, float] = {}
 
 
-# ============================================================
-# INTERNAL
-# ============================================================
-
-def _norm(x: Any) -> str:
-
-    if x is None:
-        return ""
-
-    return str(x).strip().lower()
+def _norm(value: Any) -> str:
+    return "" if value is None else str(value).strip().lower()
 
 
-# ============================================================
-# REGISTRATION
-# ============================================================
+def _nonnegative_power(value, *, name="P_c") -> float:
+    try:
+        out = float(value)
+    except Exception as exc:  # pragma: no cover - defensive
+        raise ValueError(f"{name} must be numeric") from exc
+    if not np.isfinite(out) or out < 0.0:
+        raise ValueError(f"{name} must be non-negative and finite")
+    return out
 
-def register_characteristic_power(
-    key,
-    value,
-    *,
-    scope="system",
-):
-    """
-    Register or override canonical Pc values.
-    """
 
-    value = ensure_positive(value)
-
+def register_characteristic_power(key, value, *, scope="system"):
+    """Register an explicit physical characteristic-power convention."""
+    value = _nonnegative_power(value)
     scope = _norm(scope)
-
     if scope == "system":
-
-        CANONICAL_POWER_BY_SYSTEM[
-            _norm(key)
-        ] = value
-
+        CANONICAL_POWER_BY_SYSTEM[_norm(key)] = value
         return
-
     if scope == "domain":
-
-        CANONICAL_POWER_BY_DOMAIN[
-            _norm(key)
-        ] = value
-
+        CANONICAL_POWER_BY_DOMAIN[_norm(key)] = value
         return
+    raise ValueError("scope must be: system | domain")
+
+
+def resolve_characteristic_power(*, system=None, domain=None, Pc=None, default=None):
+    """Resolve finite ``P_c >= 0`` without signal-derived or epsilon fallback."""
+    if Pc is not None and _norm(Pc) not in {"auto", "canonical", "default"}:
+        return _nonnegative_power(Pc)
+
+    system_key = _norm(system)
+    domain_key = _norm(domain)
+    if system_key and system_key in CANONICAL_POWER_BY_SYSTEM:
+        return CANONICAL_POWER_BY_SYSTEM[system_key]
+    if domain_key and domain_key in CANONICAL_POWER_BY_DOMAIN:
+        return CANONICAL_POWER_BY_DOMAIN[domain_key]
+    if default is not None:
+        return _nonnegative_power(default)
 
     raise ValueError(
-        "scope must be: system | domain"
+        "P_c is a structural physical parameter; provide it explicitly, derive it from "
+        "documented container energetics, or register a physical convention"
     )
 
 
-# ============================================================
-# RESOLUTION
-# ============================================================
-
-def resolve_characteristic_power(
-    *,
-    system=None,
-    domain=None,
-    Pc=None,
-    default=1.0,
-):
-    """
-    Resolve canonical characteristic power Pc.
-    """
-
-    if Pc is not None:
-
-        token = _norm(Pc)
-
-        if token not in {
-            "auto",
-            "canonical",
-            "default",
-        }:
-            return ensure_positive(Pc)
-
-    system_key = _norm(system)
-
-    domain_key = _norm(domain)
-
-    # ========================================================
-    # SYSTEM
-    # ========================================================
-
-    if system_key:
-
-        val = (
-            CANONICAL_POWER_BY_SYSTEM
-            .get(system_key)
-        )
-
-        if val is not None:
-            return ensure_positive(val)
-
-    # ========================================================
-    # DOMAIN
-    # ========================================================
-
-    if domain_key:
-
-        val = (
-            CANONICAL_POWER_BY_DOMAIN
-            .get(domain_key)
-        )
-
-        if val is not None:
-            return ensure_positive(val)
-
-    # ========================================================
-    # DEFAULT
-    # ========================================================
-
-    return ensure_positive(default)
-
-
-# ============================================================
-# METADATA
-# ============================================================
-
-def power_context_from_metadata(
-    metadata: Mapping[str, Any] | None,
-):
-    """
-    Extract characteristic power context from metadata.
-    """
-
+def power_context_from_metadata(metadata: Mapping[str, Any] | None):
+    """Extract characteristic-power context from metadata."""
     if metadata is None:
         return {}
-
     return {
         "system": metadata.get("system_type"),
         "domain": metadata.get("domain"),
@@ -186,17 +74,10 @@ def power_context_from_metadata(
     }
 
 
-# ============================================================
-# PUBLIC API
-# ============================================================
-
 __all__ = [
     "CANONICAL_POWER_BY_SYSTEM",
     "CANONICAL_POWER_BY_DOMAIN",
-
     "register_characteristic_power",
-
     "resolve_characteristic_power",
-
     "power_context_from_metadata",
 ]

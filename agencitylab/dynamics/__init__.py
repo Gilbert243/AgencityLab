@@ -1,31 +1,22 @@
-"""
-Dynamical system layer for AgencityLab.
+"""Generic dynamical-systems utilities.
 
-This package contains the equations, integrators and qualitative analysis
-utilities used to study the evolution of the Agencity variables.
+This namespace contains reusable numerical helpers only. It is not an authority
+for the canonical Theory of Agencity, which is implemented in
+:mod:`agencitylab.core` and orchestrated by :func:`agencitylab.compute_agencity`.
 """
 
 from .attractors import detect_attractor_type
 from .bifurcation import scan_bifurcation
 from .delays import interpolate_history, solve_delay_euler
-from .integrators import rk4_step, solve_euler, solve_ivp_wrapper
-from .stability import (
-    lyapunov_like_indicator,
-    is_bounded_trajectory,
-    linear_stability_hint,
-)
-from .system import AgencityState, agencity_rhs, default_system_rhs
+from .integrators import solve_euler, solve_ivp_wrapper
+from .stability import is_bounded_trajectory, linear_stability_hint, lyapunov_like_indicator
 
 __all__ = [
-    "AgencityState",
-    "agencity_rhs",
-    "default_system_rhs",
     "detect_attractor_type",
     "interpolate_history",
     "is_bounded_trajectory",
     "linear_stability_hint",
     "lyapunov_like_indicator",
-    "rk4_step",
     "scan_bifurcation",
     "solve_delay_euler",
     "solve_euler",

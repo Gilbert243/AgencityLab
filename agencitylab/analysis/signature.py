@@ -1,62 +1,29 @@
-"""
-signature.py
+"""Multiscale Agencity signature diagnostics.
 
-Agencity scaling signature analysis.
-
-This module extracts scale-invariant properties from the agencity
-multi-scale response using log-log regression.
-
-Core idea:
-    log(beta_mean) ~ alpha * log(tau)
-
-Where:
-    alpha = scaling exponent (signature of the system)
+This module is analytical, not canonical. It fits a log-log relation across
+explicitly supplied scales and never modifies tau, beta, or the canonical
+single-scale computation.
 """
 
 from __future__ import annotations
+
 import numpy as np
-
-from agencitylab.core.safeguards import EPS, replace_non_finite
-
-
-# =========================================================
-# INTERNAL UTILITIES
-# =========================================================
-
-def _safe_log(x, eps=EPS):
-    """Safe logarithm avoiding zero/negative values."""
-    x = np.asarray(x, dtype=float)
-    x = replace_non_finite(x, eps)
-    x = np.maximum(x, eps)
-    return np.log(x)
 
 
 def _linear_regression(x, y):
-    """Least-squares linear regression."""
-    x = np.asarray(x, dtype=float)
-    y = np.asarray(y, dtype=float)
-
-    A = np.vstack([x, np.ones_like(x)]).T
-    slope, intercept = np.linalg.lstsq(A, y, rcond=None)[0]
-
+    matrix = np.vstack([x, np.ones_like(x)]).T
+    slope, intercept = np.linalg.lstsq(matrix, y, rcond=None)[0]
     return float(slope), float(intercept)
 
 
 def _compute_r2(x, y, slope, intercept):
-    """Coefficient of determination (R²)."""
-    y_pred = slope * x + intercept
-    ss_res = np.sum((y - y_pred) ** 2)
-    ss_tot = np.sum((y - np.mean(y)) ** 2)
+    predicted = slope * x + intercept
+    residual = float(np.sum((y - predicted) ** 2))
+    total = float(np.sum((y - np.mean(y)) ** 2))
+    if total == 0.0:
+        return 1.0 if residual == 0.0 else 0.0
+    return float(1.0 - residual / total)
 
-    if ss_tot < EPS:
-        return 0.0
-
-    return float(1 - ss_res / ss_tot)
-
-
-# =========================================================
-# MAIN API
-# =========================================================
 
 def agencity_signature(
     tau,
@@ -64,79 +31,52 @@ def agencity_signature(
     *,
     log_base=np.e,
     return_fit=True,
+    slope_threshold: float | None = None,
     verbose=False,
 ):
+    """Fit the diagnostic scaling relation ``log(beta_mean) ~ alpha log(tau)``.
+
+    Only strictly positive finite pairs are admissible because the logarithm is
+    part of this diagnostic regression. Invalid values are not replaced by an
+    epsilon. ``slope_threshold`` is optional and contextual; without it, no
+    qualitative regime label is inferred from the fitted slope.
     """
-    Compute the scaling signature of agencity.
-
-    Parameters
-    ----------
-    tau : array-like
-        Characteristic scales
-    beta_mean : array-like
-        Mean agencity magnitude per scale
-    log_base : float
-        Logarithm base (default: natural)
-    return_fit : bool
-        Whether to return fitted curve
-    verbose : bool
-        Print debug information
-
-    Returns
-    -------
-    dict with:
-        slope       : scaling exponent α
-        intercept   : regression intercept
-        r2          : goodness of fit
-        tau_log     : log(tau)
-        beta_log    : log(beta_mean)
-        fit         : optional fitted curve
-        regime      : qualitative interpretation
-    """
-
     tau = np.asarray(tau, dtype=float)
     beta_mean = np.asarray(beta_mean, dtype=float)
+    if tau.ndim != 1 or beta_mean.ndim != 1 or tau.size != beta_mean.size:
+        raise ValueError("tau and beta_mean must be one-dimensional with equal length")
+    valid = np.isfinite(tau) & np.isfinite(beta_mean) & (tau > 0.0) & (beta_mean > 0.0)
+    if np.count_nonzero(valid) < 2:
+        raise ValueError("at least two strictly positive finite scale pairs are required")
+    tau_valid = tau[valid]
+    beta_valid = beta_mean[valid]
 
-    # --- safety ---
-    tau = replace_non_finite(tau, EPS)
-    beta_mean = replace_non_finite(beta_mean, EPS)
-
-    tau = np.maximum(tau, EPS)
-    beta_mean = np.maximum(beta_mean, EPS)
-
-    # --- logs ---
-    if log_base == np.e:
-        lt = _safe_log(tau)
-        lb = _safe_log(beta_mean)
-    else:
-        lt = _safe_log(tau) / np.log(log_base)
-        lb = _safe_log(beta_mean) / np.log(log_base)
-
-    # --- regression ---
+    base = float(log_base)
+    if not np.isfinite(base) or base <= 0.0 or base == 1.0:
+        raise ValueError("log_base must be positive, finite, and different from 1")
+    lt = np.log(tau_valid) / np.log(base)
+    lb = np.log(beta_valid) / np.log(base)
     slope, intercept = _linear_regression(lt, lb)
-
-    # --- goodness ---
     r2 = _compute_r2(lt, lb, slope, intercept)
 
-    # --- regime classification ---
-    if slope > 0.1:
-        regime = "amplifying"
-    elif slope < -0.1:
-        regime = "dissipative"
+    if slope_threshold is None:
+        regime = "undetermined"
+        interpretation_status = "no slope threshold configured"
     else:
-        regime = "scale-invariant"
+        threshold = float(slope_threshold)
+        if not np.isfinite(threshold) or threshold < 0.0:
+            raise ValueError("slope_threshold must be finite and non-negative")
+        if slope > threshold:
+            regime = "amplifying"
+        elif slope < -threshold:
+            regime = "dissipative"
+        else:
+            regime = "approximately_scale_invariant"
+        interpretation_status = "diagnostic threshold configured"
 
-    # --- fit curve ---
-    fit = None
-    if return_fit:
-        fit = slope * lt + intercept
-
+    fit = slope * lt + intercept if return_fit else None
     if verbose:
-        print("[signature] ---")
-        print(f"[signature] slope (alpha): {slope:.6f}")
-        print(f"[signature] intercept   : {intercept:.6f}")
-        print(f"[signature] R²          : {r2:.6f}")
-        print(f"[signature] regime      : {regime}")
+        print(f"[signature] slope={slope:.6g}, r2={r2:.6g}, regime={regime}")
 
     return {
         "slope": slope,
@@ -146,4 +86,8 @@ def agencity_signature(
         "beta_log": lb,
         "fit": fit,
         "regime": regime,
+        "interpretation_status": interpretation_status,
+        "slope_threshold": slope_threshold,
+        "n_valid_scales": int(np.count_nonzero(valid)),
+        "status": "multiscale diagnostic; not a canonical equation",
     }

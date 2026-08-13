@@ -1,63 +1,44 @@
-"""
-simple_compute.py
+"""Minimal reproducible AgencityLab computations on simple reference signals."""
 
-Example usage of AgencityLab:
-Comparison of different signals and their agencity behavior.
-"""
+from __future__ import annotations
 
 import numpy as np
-from agencitylab.api import compute_agencity, visualize_agencity
+
+from agencitylab import analyze_agencity, compute_agencity
 
 
-def generate_signals(xi):
-    """Generate different test signals."""
+def reference_signals(xi: np.ndarray) -> dict[str, np.ndarray]:
+    """Return deterministic signals useful for first-pass inspection."""
     return {
-        "Sinusoidal": np.sin(xi),
-        "White noise": np.random.randn(len(xi)),
-        "Sinus + noise": np.sin(xi) + 0.3 * np.random.randn(len(xi)),
-        "Constant": np.ones(len(xi)),
+        "rest": np.ones_like(xi),
+        "sinusoid": np.sin(xi),
+        "damped_oscillator": np.exp(-0.05 * xi) * np.sin(xi),
     }
 
 
-def run_experiment(xi, signals):
-    """Compute agencity for each signal and display results."""
-    results = {}
+def main() -> None:
+    xi = np.linspace(0.0, 30.0, 1201)
 
-    for name, u in signals.items():
-        result = compute_agencity(xi, u)
-        results[name] = result
-
-        summary = result.summary()
+    for name, u in reference_signals(xi).items():
+        result = compute_agencity(
+            u=u,
+            xi=xi,
+            A_ref=1.0,
+            tau=2.0,
+            w=1.5,
+            P_c=5.0,
+            coordinate_unit="s",
+            power_unit="W",
+        )
+        analysis = analyze_agencity(result)
 
         print(f"\n=== {name} ===")
-        print(
-            f"b_mean = {summary['b_mean']:.4f} | "
-            f"b_std = {summary['b_std']:.4f} | "
-            f"beta ∈ [{summary['beta_min']:.3f}, {summary['beta_max']:.3f}]"
-        )
-
-    return results
-
-
-def visualize_results(results):
-    """Visualize each result."""
-    for name, result in results.items():
-        print(f"\nDisplaying visualization for: {name}")
-        visualize_agencity(result, kind="timeseries")
-
-
-def main():
-    # Time / coordinate
-    xi = np.linspace(0, 10, 200)
-
-    # Generate signals
-    signals = generate_signals(xi)
-
-    # Run computations
-    results = run_experiment(xi, signals)
-
-    # Visualize
-    visualize_results(results)
+        print(f"samples       : {len(result)}")
+        print(f"tau, w        : {result.tau:g}, {result.memory_window:g}")
+        print(f"mean |b|      : {np.mean(np.abs(result.b)):.6g} {result.b_unit}")
+        print(f"mean J        : {np.mean(result.J):.6g}")
+        print(f"regime        : {analysis['regime']}")
+        print(f"real agencity : {analysis['real_agencity']['status']}")
 
 
 if __name__ == "__main__":

@@ -1,163 +1,113 @@
-"""
-User-facing public API for AgencityLab.
+"""Stable user-facing orchestration namespace for AgencityLab 1.0."""
 
-This package exposes the main entry points for end users:
-- compute
-- analysis
-- pipeline
-- batch
-- reporting / export
-- visualization
-- shortcuts
-- backend selection helpers (optional)
-"""
-
-# ============================================================
-# COMPUTE
-# ============================================================
-
-from .compute import compute_agencity, AgencityResult
-
-# ============================================================
-# ANALYSIS
-# ============================================================
+from agencitylab.analysis import ANALYSIS_SCHEMA_VERSION, RegimeCriteria
+from agencitylab.backends.selector import available_backends, get_backend
+from agencitylab.exceptions import (
+    AgencityError,
+    AgencityValidationError,
+    BatchItemError,
+    PhysicalParameterError,
+    StreamNotReadyError,
+    StreamStateError,
+    UnitValidationError,
+)
+from agencitylab.models import AgencityResult, ExperimentMetadata, RESULT_SCHEMA_VERSION
 
 from .analyze import (
     analyze_agencity,
-    textual_analysis,
-    analyze_regime,
-    analyze_stability,
-    analyze_information,
+    analyze_coherence,
     analyze_events,
-    analyze_transitions,
+    analyze_geometry,
+    analyze_information,
     analyze_multiscale,
+    analyze_regime,
+    analyze_regime_signature,
     analyze_signature,
+    analyze_stability,
+    analyze_transitions,
+    textual_analysis,
 )
-
-# ============================================================
-# PIPELINE
-# ============================================================
-
-from .pipeline_api import AgencityPipeline, pipeline
-
-# Backward-compatible aliases
-PipelineBuilder = AgencityPipeline
-pipeline_builder = pipeline
-
-# ============================================================
-# STREAMING
-# ============================================================
-
-from .streaming import AgencityStream, stream_agencity
-
-# ============================================================
-# BATCH
-# ============================================================
-
-from .batch import (
-    run_batch,
-    analyze_batch,
-    summarize_batch,
-    compare_batch,
-)
-
-# ============================================================
-# REPORT / EXPORT
-# ============================================================
-
-from .report import build_report, build_text_report, summarize, report_dict
-
+from .batch import analyze_batch, run_batch, summarize_batch
+from .compute import compute_agencity
 from .export import (
-    export_json,
+    SCIENTIFIC_UX_SCHEMA_VERSION,
     export_csv,
     export_excel,
+    export_json,
     export_pdf,
     export_report,
+    export_result_csv,
+    export_study_json,
 )
-
-# ============================================================
-# VISUALIZATION
-# ============================================================
-
-from .visualize import visualize_agencity
-
-# ============================================================
-# SHORTCUTS
-# ============================================================
-
-from .shortcuts import run, inspect, plot, summarize as quick_summary
-
-# ============================================================
-# BACKEND
-# ============================================================
-
-from agencitylab.backends.selector import get_backend
-
-try:
-    from agencitylab.backends.selector import available_backends
-except Exception:  # fallback safe
-    def available_backends():
-        return ["numpy"]
-
-# ============================================================
-# PUBLIC EXPORT
-# ============================================================
+from .extensions import (
+    RIEMANNIAN_EXTENSION_STATUS,
+    compute_agencity_spectrum,
+    compute_discrete_agencity,
+    compute_multivariate_agencity,
+    optimize_agencity_window,
+    riemannian_extension_status,
+)
+from .pipeline_api import AgencityPipeline, pipeline
+from .report import build_report, build_text_report, report_dict, summarize
+from .scientific import ScientificStudy, scientific_workflow
+from .streaming import AgencityStream, stream_agencity
+from .visualize import visualize_agencity, visualize_multiscale_spectrum
 
 __all__ = [
-    # compute
-    "compute_agencity",
+    "RESULT_SCHEMA_VERSION",
+    "ANALYSIS_SCHEMA_VERSION",
+    "SCIENTIFIC_UX_SCHEMA_VERSION",
+    "RegimeCriteria",
     "AgencityResult",
-
-    # analysis
+    "ExperimentMetadata",
+    "ScientificStudy",
+    "AgencityError",
+    "AgencityValidationError",
+    "PhysicalParameterError",
+    "UnitValidationError",
+    "BatchItemError",
+    "StreamStateError",
+    "StreamNotReadyError",
+    "compute_agencity",
+    "compute_agencity_spectrum",
+    "optimize_agencity_window",
+    "compute_discrete_agencity",
+    "compute_multivariate_agencity",
+    "riemannian_extension_status",
+    "RIEMANNIAN_EXTENSION_STATUS",
     "analyze_agencity",
     "textual_analysis",
     "analyze_regime",
+    "analyze_regime_signature",
+    "analyze_coherence",
+    "analyze_geometry",
     "analyze_stability",
     "analyze_information",
     "analyze_events",
     "analyze_transitions",
     "analyze_multiscale",
     "analyze_signature",
-
-    # pipeline
+    "scientific_workflow",
     "pipeline",
     "AgencityPipeline",
-    "PipelineBuilder",
-    "pipeline_builder",
-
-    # streaming
     "AgencityStream",
     "stream_agencity",
-
-    # batch
     "run_batch",
     "analyze_batch",
     "summarize_batch",
-    "compare_batch",
-
-    # report
     "build_report",
     "build_text_report",
     "summarize",
     "report_dict",
-
-    # export
     "export_json",
     "export_csv",
+    "export_result_csv",
+    "export_study_json",
     "export_excel",
     "export_pdf",
     "export_report",
-
-    # visualization
     "visualize_agencity",
-
-    # shortcuts
-    "run",
-    "inspect",
-    "plot",
-    "quick_summary",
-
-    # backend
+    "visualize_multiscale_spectrum",
     "get_backend",
     "available_backends",
 ]

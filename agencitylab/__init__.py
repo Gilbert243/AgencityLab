@@ -1,163 +1,92 @@
-"""AgencityLab package.
+"""Public package entry point for AgencityLab 1.0.
 
-This package provides the scientific framework for the Agencity theory.
-The public API is intentionally lightweight at import time.
+The package root is intentionally small. Canonical scalar computation is
+available directly through :func:`compute_agencity`; specialized functionality
+lives in explicit scientific namespaces such as :mod:`agencitylab.fields` and
+:mod:`agencitylab.gravity`.
+
+AgencityLab 1.0 is the first stable public API contract. Repository snapshots
+that preceded 1.0 are treated as development history and do not create legacy
+aliases at the package root.
 """
 
+from __future__ import annotations
+
+from importlib import import_module
+from typing import Any
+
+from .api.compute import compute_agencity
+from .exceptions import (
+    AgencityError,
+    AgencityValidationError,
+    PhysicalParameterError,
+    UnitValidationError,
+)
+from .models import (
+    AgencityResult,
+    DynamicalAgencityFieldSolution,
+    DynamicalAgencityFieldState,
+    ExperimentMetadata,
+    ObservableAgencityFieldResult,
+)
+from .scientific_status import ScientificStatus
 from .version import __version__
 
-"""
-High-level public API for AgencityLab.
+_LAZY_PUBLIC: dict[str, tuple[str, str | None]] = {
+    "analysis": ("agencitylab.analysis", None),
+    "api": ("agencitylab.api", None),
+    "applications": ("agencitylab.applications", None),
+    "extensions": ("agencitylab.extensions", None),
+    "fields": ("agencitylab.fields", None),
+    "gravity": ("agencitylab.gravity", None),
+    "models": ("agencitylab.models", None),
+    "quantum": ("agencitylab.quantum", None),
+    "thermodynamics": ("agencitylab.thermodynamics", None),
+    "analyze_agencity": ("agencitylab.api.analyze", "analyze_agencity"),
+    "compute_agencity_field": ("agencitylab.fields", "compute_agencity_field"),
+    "scientific_workflow": ("agencitylab.api.scientific", "scientific_workflow"),
+}
 
-This package exposes the simplest entry points for users.
 
-Includes:
-- compute
-- analysis
-- pipeline
-- streaming
-- batch processing
-- reporting & export
-- visualization
-- shortcuts
-- backend access (optional)
-"""
+def __getattr__(name: str) -> Any:
+    target = _LAZY_PUBLIC.get(name)
+    if target is None:
+        raise AttributeError(f"module 'agencitylab' has no attribute {name!r}")
 
-# ============================================================
-# COMPUTE
-# ============================================================
-from .api.compute import compute_agencity, AgencityResult
+    module_name, attribute = target
+    module = import_module(module_name)
+    value = module if attribute is None else getattr(module, attribute)
+    globals()[name] = value
+    return value
 
-# ============================================================
-# ANALYSIS
-# ============================================================
-from .api.analyze import (
-    analyze_agencity,
-    textual_analysis,
-    analyze_regime,
-    analyze_stability,
-    analyze_information,
-    analyze_events,
-    analyze_transitions,
-    analyze_multiscale,
-    analyze_signature,
-)
 
-# ============================================================
-# PIPELINE
-# ============================================================
-from .api.pipeline_api import AgencityPipeline, pipeline
+def __dir__() -> list[str]:
+    return sorted(set(globals()) | set(_LAZY_PUBLIC))
 
-# Backward-compatible aliases
-PipelineBuilder = AgencityPipeline
-pipeline_builder = pipeline
 
-# ============================================================
-# STREAMING (REAL-TIME)
-# ============================================================
-from .api.streaming import AgencityStream, stream_agencity
-
-# ============================================================
-# BATCH (RESEARCH / MULTI SIGNALS)
-# ============================================================
-from .api.batch import (
-    run_batch,
-    analyze_batch,
-    summarize_batch,
-    compare_batch,
-)
-
-# ============================================================
-# REPORT / EXPORT
-# ============================================================
-from .api.report import build_report, build_text_report, summarize
-from .api.export import (
-    export_json,
-    export_csv,
-    export_excel,
-    export_pdf,
-    export_report,
-)
-
-# ============================================================
-# VISUALIZATION
-# ============================================================
-from .api.visualize import visualize_agencity
-
-# ============================================================
-# SHORTCUTS (ULTRA SIMPLE API)
-# ============================================================
-from .api.shortcuts import run, inspect, plot, summarize as quick_summary
-
-# ============================================================
-# BACKEND (OPTIONAL USER CONTROL)
-# ============================================================
-from agencitylab.backends.selector import get_backend
-
-try:
-    from agencitylab.backends.selector import available_backends
-except Exception:  # fallback safe
-    def available_backends():
-        return ["numpy"]
-
-# ============================================================
-# PUBLIC EXPORT
-# ============================================================
 __all__ = [
     "__version__",
-    # ---- compute ----
     "compute_agencity",
+    "ScientificStatus",
     "AgencityResult",
-
-    # ---- analysis ----
+    "ExperimentMetadata",
+    "ObservableAgencityFieldResult",
+    "DynamicalAgencityFieldState",
+    "DynamicalAgencityFieldSolution",
+    "AgencityError",
+    "AgencityValidationError",
+    "PhysicalParameterError",
+    "UnitValidationError",
+    "analysis",
+    "api",
+    "applications",
+    "extensions",
+    "fields",
+    "gravity",
+    "models",
+    "quantum",
+    "thermodynamics",
     "analyze_agencity",
-    "textual_analysis",
-    "analyze_regime",
-    "analyze_stability",
-    "analyze_information",
-    "analyze_events",
-    "analyze_transitions",
-    "analyze_multiscale",
-    "analyze_signature",
-
-    # ---- pipeline ----
-    "pipeline",
-    "AgencityPipeline",
-    "PipelineBuilder",
-    "pipeline_builder",
-
-    # ---- streaming ----
-    "AgencityStream",
-    "stream_agencity",
-
-    # ---- batch ----
-    "run_batch",
-    "analyze_batch",
-    "summarize_batch",
-    "compare_batch",
-
-    # ---- report ----
-    "build_report",
-    "build_text_report",
-    "summarize",
-
-    # ---- export ----
-    "export_json",
-    "export_csv",
-    "export_excel",
-    "export_pdf",
-    "export_report",
-
-    # ---- visualization ----
-    "visualize_agencity",
-
-    # ---- shortcuts ----
-    "run",
-    "inspect",
-    "plot",
-    "quick_summary",
-
-    # ---- backend ----
-    "get_backend",
-    "available_backends",
+    "compute_agencity_field",
+    "scientific_workflow",
 ]

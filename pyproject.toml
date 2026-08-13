@@ -4,10 +4,10 @@ build-backend = "hatchling.build"
 
 [project]
 name = "agencitylab"
-version = "0.1.11"
+version = "1.0.0"
 description = "Scientific framework for the theory of Agencity"
 readme = { file = "README.md", content-type = "text/markdown" }
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = { text = "MIT" }
 
 authors = [
@@ -24,75 +24,111 @@ keywords = [
 ]
 
 classifiers = [
-  "Development Status :: 3 - Alpha",
+  "Development Status :: 5 - Production/Stable",
   "Intended Audience :: Science/Research",
   "Intended Audience :: Developers",
   "License :: OSI Approved :: MIT License",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Typing :: Typed",
   "Topic :: Scientific/Engineering",
   "Topic :: Scientific/Engineering :: Information Analysis",
 ]
 
-# ⚙️ Dépendances cœur (légères)
+# The canonical engine and stable public API require only NumPy. Optional
+# capabilities remain isolated so the core installation stays small.
 dependencies = [
   "numpy>=1.22",
-  "scipy>=1.9",
-  "pandas>=1.5",
 ]
 
-# 🔌 Dépendances optionnelles (modulaires et propres)
 [project.optional-dependencies]
-
+scientific = [
+  "scipy>=1.9",
+]
+data = [
+  "pandas>=1.5",
+  "xarray>=2023.1",
+]
 viz = [
   "matplotlib>=3.6",
-  "seaborn>=0.12",
-  "plotly>=5.0"
 ]
-
-app = [
-  "streamlit>=1.25"
+numba = [
+  "numba>=0.57",
 ]
-
-ml = [
+jax = [
   "jax>=0.4",
   "jaxlib>=0.4",
-  "numba>=0.57"
 ]
-
+export = [
+  "pandas>=1.5",
+  "openpyxl>=3.1",
+  "reportlab>=4.0",
+]
 docs = [
   "sphinx>=7.0",
-  "myst-parser>=2.0"
+  "myst-parser>=2.0",
 ]
-
 dev = [
   "pytest>=7.0",
   "pytest-cov>=4.0",
-  "black",
-  "ruff"
+  "scipy>=1.9",
+  "pandas>=1.5",
+  "xarray>=2023.1",
+  "matplotlib>=3.6",
+  "openpyxl>=3.1",
+  "reportlab>=4.0",
+  "ruff>=0.8",
+  "mypy>=1.11",
+  "build>=1.2",
+  "twine>=5.1",
 ]
-
 all = [
-  "agencitylab[viz,app,ml]"
+  "scipy>=1.9",
+  "pandas>=1.5",
+  "xarray>=2023.1",
+  "matplotlib>=3.6",
+  "jax>=0.4",
+  "jaxlib>=0.4",
+  "numba>=0.57",
+  "openpyxl>=3.1",
+  "reportlab>=4.0",
 ]
 
 [project.urls]
-Homepage = "https://github.com/Gilbert243/AgencityLab"
+Homepage = "https://github.com/somafgroup/AgencityLab"
 Documentation = "https://agencitylab.readthedocs.io"
-Source = "https://github.com/Gilbert243/AgencityLab"
-Issues = "https://github.com/Gilbert243/AgencityLab/issues"
-
-# 🧠 Outils
-
-[tool.black]
-line-length = 100
+Source = "https://github.com/somafgroup/AgencityLab"
+Issues = "https://github.com/somafgroup/AgencityLab/issues"
 
 [tool.ruff]
 line-length = 100
-select = ["E", "F", "W"]
+target-version = "py310"
+
+[tool.ruff.lint]
+# Repository-wide correctness baseline. CI additionally applies a stronger
+# public-surface gate (E/F/I/UP/B) to the stable 1.0 API and model modules.
+select = ["E9", "F63", "F7", "F82"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_unused_configs = true
+check_untyped_defs = true
+no_implicit_optional = true
+show_error_codes = true
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
-testpaths = ["agencitylab/tests"]
+testpaths = ["tests"]
 addopts = "-ra -q"
+
+[tool.coverage.run]
+source = ["agencitylab"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false

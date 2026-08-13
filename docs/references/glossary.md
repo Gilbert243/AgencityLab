@@ -1,12 +1,22 @@
 # Glossary
 
-- **xi**: generic coordinate
-- **u**: observed signal
-- **u\***: normalized signal
-- **X\***: reduced activation
-- **A\***: reduced activity
-- **M**: memory variable
-- **O**: organization variable
-- **beta**: structured agencement
-- **b**: Agencity observable
-- **P_c**: characteristic power
+- **xi / t**: observable coordinate, commonly time.
+- **u**: observed signal.
+- **A_ref**: physical/contextual reference amplitude used for normalization.
+- **u\***: normalized observable, `u / A_ref`.
+- **tau**: characteristic structural time.
+- **w**: CRM memory-window width; distinct from `tau`, with `w=tau` only as the omission convention in the stable API.
+- **X\***: reduced activation.
+- **A\***: reduced activity.
+- **CRM**: causal moving correlation over adjacent causal windows.
+- **M**: memory variable, `CRM[u*]`.
+- **O**: organisation variable, `CRM[u*, X*]`.
+- **D**: dynamic intensity.
+- **S**: structural intensity, `sqrt(M^2 + O^2)`.
+- **J**: logarithmic contrast, `ln((e + D)/(e + S))`.
+- **Theta**: structural orientation, `atan2(O, M)`.
+- **U**: unit structural direction `(M + iO)/S` when `S > 0`.
+- **beta**: intrinsic complex agencity state, `J U` for `S > 0` and `0` for `S = 0`.
+- **P_c**: physical/contextual characteristic power.
+- **b**: observable agencity flux, `P_c beta`.
+- **real-agencity diagnostic**: separate contextual assessment using structural validity, angular stability/coherence, and significance of `|b|`; it is not equivalent to `beta != 0`.

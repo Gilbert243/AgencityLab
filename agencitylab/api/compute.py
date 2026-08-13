@@ -1,606 +1,190 @@
-"""
-compute.py
-
-Canonical computation entry points for AgencityLab.
-
-This module:
-    - prepares inputs,
-    - resolves structural parameters,
-    - executes the canonical pipeline,
-    - returns a structured AgencityResult.
-
-Canonical pipeline:
-    u
-    → u*
-    → X*
-    → A*
-    → M
-    → O
-    → D,S
-    → J
-    → U
-    → beta
-    → b
-"""
+"""Public orchestration for the canonical Agencity ``u -> b`` pipeline."""
 
 from __future__ import annotations
 
-from typing import (
-    Any,
-    Dict,
-    Optional,
-)
-
 import numpy as np
+from numpy.typing import ArrayLike
 
-# ============================================================
-# BACKENDS
-# ============================================================
+from agencitylab.core.activation import activation, reduced_coordinate
+from agencitylab.core.activity import activity
+from agencitylab.core.agencity import agencity
+from agencitylab.core.beta import compute_beta
+from agencitylab.core.intensity import compute_intensities
+from agencitylab.core.memory import memory
+from agencitylab.core.organization import organization
+from agencitylab.core.validation import is_exactly_constant
+from agencitylab.exceptions import AgencityValidationError
+from agencitylab.models import AgencityResult
 
-from agencitylab.backends.selector import (
-    select_backend,
+from ._compute_support import (
+    MetadataInput,
+    PowerInput,
+    prepare_metadata,
+    resolve_characteristic_power,
+    resolve_characteristic_time,
+    resolve_memory_window,
+    resolve_normalized_observable,
 )
+from .validation import prepare_inputs
 
-# ============================================================
-# CONFIG
-# ============================================================
-
-from agencitylab.config.runtime import (
-    get_runtime_config,
-)
-
-from agencitylab.config.schema import (
-    validate_config,
-)
-
-# ============================================================
-# CORE
-# ============================================================
-
-from agencitylab.core.normalization import (
-    normalize_signal,
-)
-
-from agencitylab.core.activation import (
-    activation,
-)
-
-from agencitylab.core.activity import (
-    activity,
-)
-
-from agencitylab.core.tau import (
-    characteristic_time,
-)
-
-from agencitylab.core.memory import (
-    memory,
-)
-
-from agencitylab.core.organization import (
-    organization,
-)
-
-from agencitylab.core.intensity import (
-    compute_intensities,
-)
-
-from agencitylab.core.beta import (
-    compute_beta,
-)
-
-from agencitylab.core.agencity import (
-    agencity,
-)
-
-from agencitylab.core.power import (
-    characteristic_power,
-)
-
-# ============================================================
-# MODELS
-# ============================================================
-
-from agencitylab.models import (
-    AgencityResult,
-    ExperimentMetadata,
-)
-
-# ============================================================
-# API HELPERS
-# ============================================================
-
-from .validation import (
-    prepare_inputs,
-    validate_optional_tau,
-    validate_metadata,
-    validate_physical_context,
-)
-
-from .presets import (
-    resolve_compute_config,
-)
-
-# ============================================================
-# INTERNAL HELPERS
-# ============================================================
-
-def _evaluate_power(
-    P_c,
-    xi,
-):
-    """
-    Evaluate dynamic characteristic power.
-    """
-
-    if P_c is None:
-        return None
-
-    if callable(P_c):
-
-        return np.asarray(
-            P_c(xi)
-        )
-
-    arr = np.asarray(P_c)
-
-    if arr.ndim == 0:
-        return float(arr)
-
-    return arr.astype(
-        float,
-        copy=False,
-    )
-
-
-# ============================================================
-# MAIN API
-# ============================================================
 
 def compute_agencity(
-    data=None,
-    u=None,
-    xi=None,
+    u: ArrayLike,
+    xi: ArrayLike | None = None,
     *,
-    unit: Optional[str] = None,
-    observable_kind: Optional[str] = None,
-    domain: Optional[str] = None,
-    mechanism: Optional[str] = None,
-    system_type: Optional[str] = None,
-    environment: Optional[str] = None,
-    geometry: Optional[str] = None,
     A_ref: float | str | None = None,
     tau: float | str | None = "auto",
-    P_c: float | Any | None = "auto",
-    activity_factor: float | str | None = "auto",
-    resolution_scale: float | None = None,
-    preset: str | Dict[str, Any] = "default",
-    config: Optional[Dict[str, Any]] = None,
-    metadata: Optional[dict] = None,
+    w: float | None = None,
+    P_c: PowerInput = "auto",
+    unit: str | None = None,
+    coordinate_unit: str | None = None,
+    power_unit: str | None = None,
+    observable_kind: str | None = None,
+    domain: str | None = None,
+    mechanism: str | None = None,
+    system_type: str | None = None,
+    environment: str | None = None,
+    geometry: str | None = None,
+    metadata: MetadataInput = None,
     verbose: bool = False,
-    **overrides,
 ) -> AgencityResult:
+    """Compute the reference canonical scalar-signal Theory of Agencity pipeline.
+
+    Parameters
+    ----------
+    u:
+        Finite one-dimensional observable samples.
+    xi:
+        Strictly increasing coordinates. If omitted, sample indices are used.
+    A_ref, tau, w, P_c:
+        Physical/contextual parameters. ``A_ref``, ``tau`` and scalar ``P_c`` may
+        use an explicitly registered contextual convention when set to ``"auto"``.
+        ``P_c`` may also be a non-negative sampled profile or a callable evaluated
+        on ``xi``. No signal statistic is used to invent these physical values.
+    unit, coordinate_unit, power_unit:
+        Descriptive labels only; AgencityLab performs no implicit unit conversion.
+    metadata:
+        Optional reproducibility metadata.
+    verbose:
+        Emit diagnostic progress from the canonical numerical stages.
+
+    Notes
+    -----
+    The CRM width ``w`` is distinct from ``tau``. If ``w`` is omitted, the
+    implementation convention ``w = tau`` is recorded explicitly in metadata.
+
+    The 1.0 canonical reference pipeline is NumPy based. Experimental JAX and
+    Numba primitives live under :mod:`agencitylab.backends`; selecting one does
+    not masquerade as a different canonical computation backend.
     """
-    Compute canonical Agencity pipeline.
-    """
+    xi_was_provided = xi is not None
+    xi_array, u_array = prepare_inputs(u=u, xi=xi)
 
-    # ========================================================
-    # CONFIG
-    # ========================================================
-
-    runtime_cfg = get_runtime_config()
-
-    merged_config = {}
-
-    if runtime_cfg is not None:
-
-        merged_config.update(
-            runtime_cfg.to_dict()
-        )
-
-    if config is not None:
-
-        merged_config.update(config)
-
-    cfg = resolve_compute_config(
-        preset,
-        config=merged_config,
-        overrides=overrides,
-    )
-
-    cfg = validate_config(
-        cfg
-    ).to_dict()
-
-    # ========================================================
-    # BACKEND
-    # ========================================================
-
-    backend_name = cfg.get(
-        "backend",
-        "numpy",
-    )
-
-    prefer_gpu = bool(
-        cfg.get(
-            "prefer_gpu",
-            False,
-        )
-    )
-
-    backend = select_backend(
-        backend_name,
-        auto=(backend_name == "auto"),
-        prefer_gpu=prefer_gpu,
-    )
-
-    if verbose:
-
-        print(
-            "[backend] "
-            f"{backend['name']} "
-            f"(gpu={prefer_gpu})"
-        )
-
-    # ========================================================
-    # INPUTS
-    # ========================================================
-
-    xi, u = prepare_inputs(
-        data=data,
-        u=u,
-        xi=xi,
-    )
-
-    if verbose:
-
-        print(
-            "[compute] "
-            "Inputs prepared"
-        )
-
-        print(
-            "[compute] "
-            f"n_samples={len(u)}"
-        )
-
-    # ========================================================
-    # METADATA
-    # ========================================================
-
-    meta_dict = validate_physical_context(
+    metadata_model = prepare_metadata(
         metadata,
+        xi_was_provided=xi_was_provided,
         unit=unit,
+        coordinate_unit=coordinate_unit,
+        power_unit=power_unit,
         observable_kind=observable_kind,
         domain=domain,
-        reference_amplitude=A_ref,
-    )
-
-    # ========================================================
-    # STRUCTURAL PARAMETERS
-    # ========================================================
-
-    meta_dict["mechanism"] = (
-        mechanism
-        or meta_dict.get(
-            "mechanism",
-            "",
-        )
-    )
-
-    meta_dict["system_type"] = (
-        system_type
-        or meta_dict.get(
-            "system_type",
-            "",
-        )
-    )
-
-    meta_dict["environment"] = (
-        environment
-        or meta_dict.get(
-            "environment",
-            "",
-        )
-    )
-
-    meta_dict["geometry"] = (
-        geometry
-        or meta_dict.get(
-            "geometry",
-            "",
-        )
-    )
-
-    meta_dict["activity_factor"] = (
-        activity_factor
-        if activity_factor != "auto"
-        else meta_dict.get(
-            "activity_factor",
-            None,
-        )
-    )
-
-    # ========================================================
-    # RESOLUTION SCALE
-    # ========================================================
-
-    if resolution_scale is not None:
-
-        meta_dict["resolution_scale"] = (
-            float(resolution_scale)
-        )
-
-    meta = ExperimentMetadata.from_dict(
-        meta_dict
-    )
-
-    # ========================================================
-    # NORMALIZATION
-    # ========================================================
-
-    u_star, A_ref_used = normalize_signal(
-        u,
+        mechanism=mechanism,
+        system_type=system_type,
+        environment=environment,
+        geometry=geometry,
         A_ref=A_ref,
-        unit=meta.unit,
-        observable_kind=meta.observable_kind,
-        domain=meta.domain,
-        metadata=meta.to_dict(),
-        method=str(
-            cfg.get(
-                "normalization_method",
-                "A_ref",
-            )
-        ),
-        center=False,
-        axis=0,
+    )
+
+    u_star, A_ref_used = resolve_normalized_observable(
+        u_array,
+        A_ref=A_ref,
+        metadata=metadata_model,
         verbose=verbose,
     )
-
-    meta.reference_amplitude = float(
-        np.asarray(A_ref_used)
-        .reshape(-1)[0]
-    )
-
-    if verbose:
-
-        print(
-            "[compute] "
-            "Normalization complete"
-        )
-
-        print(
-            "[compute] "
-            f"A_ref="
-            f"{meta.reference_amplitude:.6g}"
-        )
-
-    # ========================================================
-    # ACTIVATION
-    # ========================================================
-
-    X_star = activation(
-        u_star,
-        axis=xi,
-        resolution_scale=(
-            meta.resolution_scale
-        ),
+    tau_eff = resolve_characteristic_time(
+        tau,
+        metadata=metadata_model,
         verbose=verbose,
     )
-
-    # ========================================================
-    # ACTIVITY
-    # ========================================================
-
-    A_star = activity(
-        X_star,
-        axis=xi,
-        resolution_scale=(
-            meta.resolution_scale
-        ),
-        verbose=verbose,
-    )
-
-    # ========================================================
-    # TAU
-    # ========================================================
-
-    tau_eff = characteristic_time(
-        tau=tau,
-        metadata=meta.to_dict(),
-        domain=meta.domain,
-        system=meta.system_type,
-        verbose=verbose,
-    )
-
-    meta.characteristic_time = tau_eff
-
-    # ========================================================
-    # REDUCED TIME
-    # ========================================================
-
-    eps = float(
-        cfg.get(
-            "epsilon",
-            1e-12,
-        )
-    )
-
-    t_star = (
-        xi
-        / max(tau_eff, eps)
-    )
-
-    if verbose:
-
-        print(
-            "[compute] "
-            f"tau={tau_eff:.6g}"
-        )
-
-    # ========================================================
-    # MEMORY
-    # ========================================================
-
-    M = memory(
-        A_star,
-        tau_eff,
-        axis=xi,
-        mechanism=meta.mechanism,
-        domain=meta.domain,
-        activity_factor=(
-            meta.activity_factor
-            if meta.activity_factor
-            is not None
-            else "auto"
-        ),
-        verbose=verbose,
-    )
-
-    # ========================================================
-    # ORGANIZATION
-    # ========================================================
-
-    O = organization(
-        X_star,
-        tau_eff,
-        axis=xi,
-        mechanism=meta.mechanism,
-        domain=meta.domain,
-        activity_factor=(
-            meta.activity_factor
-            if meta.activity_factor
-            is not None
-            else "auto"
-        ),
-        verbose=verbose,
-    )
-
-    # ========================================================
-    # INTENSITIES
-    # ========================================================
-
-    D, S = compute_intensities(
-        X_star,
-        A_star,
-        M,
-        O,
-        verbose=verbose,
-    )
-
-    # ========================================================
-    # BETA
-    # ========================================================
-
-    J, U, beta = compute_beta(
-        D,
-        S,
-        M,
-        O,
-        verbose=verbose,
-    )
-
-    # ========================================================
-    # POWER
-    # ========================================================
-
-    if P_c == "auto" or P_c is None:
-
-        P_eff = characteristic_power(
-            value=None,
-            tau=tau_eff,
-            system=meta.system_type,
-            domain=meta.domain,
-            A_ref=A_ref_used,
-            verbose=verbose,
-        )
-
-    else:
-
-        P_eff = _evaluate_power(
-            P_c,
-            xi,
-        )
-
-    meta.characteristic_power = (
-        float(P_eff)
-        if np.ndim(P_eff) == 0
-        else None
-    )
-
-    # ========================================================
-    # OBSERVABLE
-    # ========================================================
-
-    b = agencity(
-        beta,
-        P_eff,
-        verbose=verbose,
-    )
-
-    # ========================================================
-    # RESULT
-    # ========================================================
-
-    result = AgencityResult(
-
-        xi=xi,
-
-        u=u,
-
-        u_star=u_star,
-
-        X_star=X_star,
-
-        A_star=A_star,
-
+    memory_window = resolve_memory_window(
+        w,
         tau=tau_eff,
-
-        t_star=t_star,
-
-        M=M,
-
-        O=O,
-
-        D=D,
-
-        S=S,
-
-        J=J,
-
-        U=U,
-
-        beta=beta,
-
-        b_reduced=beta,
-
-        b=b,
-
-        P_c=P_eff,
-
-        A_ref=float(
-            meta.reference_amplitude
-            if meta.reference_amplitude
-            is not None
-            else 1.0
-        ),
-
-        unit=meta.unit,
-
-        observable_kind=meta.observable_kind,
-
-        domain=meta.domain,
-
-        metadata=meta,
-
-        config=dict(cfg),
+        metadata=metadata_model,
+    )
+    P_eff = resolve_characteristic_power(
+        P_c,
+        xi=xi_array,
+        tau=tau_eff,
+        metadata=metadata_model,
+        verbose=verbose,
     )
 
-    # ========================================================
-    # DONE
-    # ========================================================
+    t_star = reduced_coordinate(xi_array, tau_eff)
 
-    if verbose:
-        print("[compute] Done")
+    if is_exactly_constant(u_array):
+        if verbose:
+            print("[canonical] exact rest state detected; derivative/CRM stages bypassed")
+        zeros = np.zeros_like(u_star, dtype=float)
+        complex_zeros = np.zeros_like(u_star, dtype=complex)
+        X_star = zeros.copy()
+        A_star = zeros.copy()
+        M = zeros.copy()
+        O = zeros.copy()
+        D = zeros.copy()
+        S = zeros.copy()
+        J = zeros.copy()
+        U = complex_zeros.copy()
+        beta = complex_zeros.copy()
+        b = complex_zeros.copy()
+    else:
+        try:
+            X_star = activation(u_star, axis=t_star, verbose=verbose)
+            A_star = activity(X_star, axis=t_star, verbose=verbose)
+            M = memory(
+                u_star,
+                tau_eff,
+                axis=xi_array,
+                window=memory_window,
+                verbose=verbose,
+            )
+            O = organization(
+                u_star,
+                X_star,
+                tau_eff,
+                axis=xi_array,
+                window=memory_window,
+                verbose=verbose,
+            )
+            D, S = compute_intensities(X_star, A_star, M, O, verbose=verbose)
+            J, U, beta = compute_beta(D, S, M, O, verbose=verbose)
+            b = agencity(beta, P_eff, verbose=verbose)
+        except ValueError as exc:
+            raise AgencityValidationError(f"numerical pipeline failed: {exc}") from exc
 
-    return result
+    return AgencityResult(
+        xi=xi_array,
+        u=u_array,
+        u_star=u_star,
+        X_star=X_star,
+        A_star=A_star,
+        t_star=t_star,
+        tau=tau_eff,
+        P_c=P_eff,
+        A_ref=A_ref_used,
+        M=M,
+        O=O,
+        D=D,
+        S=S,
+        J=J,
+        U=U,
+        beta=beta,
+        b=b,
+        unit=metadata_model.unit,
+        coordinate_unit=metadata_model.coordinate_unit,
+        power_unit=metadata_model.power_unit,
+        observable_kind=metadata_model.observable_kind,
+        domain=metadata_model.domain,
+        system_type=metadata_model.system_type,
+        mechanism=metadata_model.mechanism,
+        metadata=metadata_model,
+    )

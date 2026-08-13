@@ -1,4 +1,21 @@
-import numpy as np
-def solve_field(initial, steps=10):
-    arr = np.asarray(initial, dtype=float)
-    return np.stack([arr for _ in range(steps)], axis=0)
+"""Deprecated historical field-solver compatibility boundary.
+
+AgencityLab 1.1.2 exposes explicit deterministic research simulators under
+``agencitylab.fields.dynamics``. The old generic ``solve_field`` placeholder is
+not assigned a hidden default equation.
+"""
+
+
+def solve_field(*args, **kwargs):
+    """Reject the retired generic solver placeholder.
+
+    Use ``simulate_klein_gordon()``, ``simulate_dissipative_klein_gordon()``,
+    or ``simulate_tdgl()`` explicitly.
+    """
+
+    del args, kwargs
+    raise NotImplementedError(
+        "solve_field() is a retired ambiguous compatibility placeholder; choose "
+        "simulate_klein_gordon(), simulate_dissipative_klein_gordon(), or "
+        "simulate_tdgl() explicitly."
+    )

@@ -1,8 +1,8 @@
-"""
-Operational modes for AgencityLab.
+"""Operational software modes.
 
-The mode controls the level of strictness, optional accelerators and
-experimental features that are allowed at runtime.
+Modes are software-policy labels for strictness, optional acceleration, and
+feature exposure. They do not select alternate scientific equations and do not
+supply physical parameters.
 """
 
 from __future__ import annotations
@@ -11,7 +11,7 @@ from enum import Enum
 
 
 class AgencityMode(str, Enum):
-    """Canonical operational modes for the framework."""
+    """Software execution mode; never a replacement for scientific status."""
 
     CANONICAL = "canonical"
     EXPERIMENTAL = "experimental"
@@ -20,16 +20,13 @@ class AgencityMode(str, Enum):
 
     @classmethod
     def from_value(cls, value: object) -> "AgencityMode":
-        """Parse a mode from a string or an existing enum value."""
         if isinstance(value, cls):
             return value
-
         if isinstance(value, str):
             normalized = value.strip().lower()
             for member in cls:
                 if member.value == normalized:
                     return member
-
         raise ValueError(
             "Unknown Agencity mode. Expected one of: canonical, experimental, fast, debug."
         )

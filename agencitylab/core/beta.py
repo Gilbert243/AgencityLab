@@ -1,96 +1,23 @@
-"""
-beta.py
-
-Structured agencity construction for AgencityLab.
-
-Canonical theory
-----------------
-    J = contrast(D, S)
-
-    U = orientation(M, O)
-
-    beta = J * U
-
-where:
-    J : scalar structural contrast
-    U : complex organizational orientation
-
-Physical interpretation
------------------------
-beta represents structured agencity.
-
-It combines:
-
-    - structural imbalance (J),
-    - organizational direction (U).
-
-Interpretation
---------------
-Large |beta| implies:
-    strong organized dynamical asymmetry.
-
-beta ≈ 0 may correspond to:
-    - noise,
-    - equilibrium,
-    - absence of structure,
-    - absence of orientation.
-
-Important
----------
-This implementation preserves the canonical theory while adding:
-
-    - structural null protection,
-    - robust diagnostics,
-    - optional saturation,
-    - optional clipping,
-    - detailed statistics.
-
-No canonical equation is modified.
-"""
+"""Canonical intrinsic agencity state ``beta = J U``."""
 
 from __future__ import annotations
 
 import numpy as np
 
-from .contrast import (
-    compute_contrast,
-)
-
-from .orientation import (
-    compute_orientation,
-)
-
-from .safeguards import (
-    EPS,
-    replace_non_finite,
-)
+from .contrast import compute_contrast
+from .orientation import compute_orientation
 
 
-# ============================================================
-# INTERNAL
-# ============================================================
-
-def _safe_beta_stats(beta_signal):
-    """
-    Compute robust beta diagnostics.
-    """
-
+def _beta_stats(beta_signal):
     magnitude = np.abs(beta_signal)
-
     return {
         "mean": float(np.mean(magnitude)),
         "std": float(np.std(magnitude)),
         "min": float(np.min(magnitude)),
         "max": float(np.max(magnitude)),
-        "nonzero_fraction": float(
-            np.mean(magnitude > EPS)
-        ),
+        "nonzero_fraction": float(np.mean(magnitude > 0.0)),
     }
 
-
-# ============================================================
-# BETA CONSTRUCTION
-# ============================================================
 
 def compute_beta(
     D,
@@ -105,88 +32,18 @@ def compute_beta(
     return_components=False,
     verbose=False,
 ):
+    """Compute canonical ``J``, ``U`` and ``beta``.
+
+    For ``S = 0`` the orientation returned by :func:`compute_orientation` is zero,
+    hence beta is exactly zero. No epsilon, saturation, or clipping is introduced.
     """
-    Compute structured agencity field.
+    del contrast_scale
+    if contrast_robust or beta_clip is not None:
+        raise ValueError("canonical beta cannot be saturated or clipped")
+    if null_threshold not in {None, 0, 0.0}:
+        raise ValueError("canonical beta uses exact S = 0, not a threshold")
 
-    Canonical definition
-    --------------------
-        beta = J * U
-
-    where:
-        J = contrast(D, S)
-        U = orientation(M, O)
-
-    Parameters
-    ----------
-    D :
-        Dynamic intensity.
-
-    S :
-        Structural intensity.
-
-    M :
-        Memory field.
-
-    O :
-        Organization field.
-
-    contrast_robust :
-        Robust contrast saturation.
-
-    contrast_scale :
-        Saturation scale.
-
-    beta_clip :
-        Optional clipping magnitude.
-
-    null_threshold :
-        Structural null threshold.
-
-    return_components :
-        Return additional diagnostics.
-
-    Returns
-    -------
-    J :
-        Structural contrast.
-
-    U :
-        Organizational orientation.
-
-    beta :
-        Structured agencity field.
-    """
-
-    # ========================================================
-    # CONTRAST
-    # ========================================================
-
-    if verbose:
-
-        print(
-            "[beta] "
-            "Computing contrast J"
-        )
-
-    J = compute_contrast(
-        D,
-        S,
-        robust=contrast_robust,
-        robust_scale=contrast_scale,
-        verbose=verbose,
-    )
-
-    # ========================================================
-    # ORIENTATION
-    # ========================================================
-
-    if verbose:
-
-        print(
-            "[beta] "
-            "Computing orientation U"
-        )
-
+    J = compute_contrast(D, S, verbose=verbose)
     U, S_internal = compute_orientation(
         M,
         O,
@@ -194,166 +51,26 @@ def compute_beta(
         return_intensity=True,
         verbose=verbose,
     )
+    supplied_S = np.asarray(S, dtype=float)
+    if supplied_S.shape != S_internal.shape or not np.allclose(supplied_S, S_internal, rtol=1e-12, atol=0.0):
+        raise ValueError("S must equal sqrt(M^2 + O^2)")
 
-    # ========================================================
-    # COMBINATION
-    # ========================================================
-
+    beta_signal = np.asarray(J * U, dtype=complex)
+    stats = _beta_stats(beta_signal)
     if verbose:
-
-        print(
-            "[beta] "
-            "Combining J and U"
-        )
-
-    beta_signal = J * U
-
-    # ========================================================
-    # OPTIONAL CLIPPING
-    # ========================================================
-
-    if beta_clip is not None:
-
-        beta_clip = abs(
-            float(beta_clip)
-        )
-
-        magnitude = np.abs(
-            beta_signal
-        )
-
-        mask = magnitude > beta_clip
-
-        if np.any(mask):
-
-            beta_signal = beta_signal.copy()
-
-            beta_signal[mask] = (
-                beta_signal[mask]
-                * (
-                    beta_clip
-                    / (
-                        magnitude[mask]
-                        + EPS
-                    )
-                )
-            )
-
-    # ========================================================
-    # CLEANUP
-    # ========================================================
-
-    beta_signal = replace_non_finite(
-        beta_signal,
-        0.0,
-    )
-
-    beta_signal = np.asarray(
-        beta_signal,
-        dtype=complex,
-    )
-
-    # ========================================================
-    # DIAGNOSTICS
-    # ========================================================
-
-    stats = _safe_beta_stats(
-        beta_signal
-    )
-
-    if verbose:
-
-        print(
-            "[beta] "
-            f"|beta| mean="
-            f"{stats['mean']:.6f}"
-        )
-
-        print(
-            "[beta] "
-            f"|beta| std="
-            f"{stats['std']:.6f}"
-        )
-
-        print(
-            "[beta] "
-            f"|beta| min="
-            f"{stats['min']:.6f}"
-        )
-
-        print(
-            "[beta] "
-            f"|beta| max="
-            f"{stats['max']:.6f}"
-        )
-
-        print(
-            "[beta] "
-            f"nonzero_fraction="
-            f"{stats['nonzero_fraction']:.6f}"
-        )
-
-    # ========================================================
-    # RETURN
-    # ========================================================
+        print(f"[beta] |beta| mean={stats['mean']:.6g}")
 
     if return_components:
-
-        return {
-            "J": J,
-            "U": U,
-            "S": S_internal,
-            "beta": beta_signal,
-            "stats": stats,
-        }
-
+        return {"J": J, "U": U, "S": S_internal, "beta": beta_signal, "stats": stats}
     return J, U, beta_signal
 
 
-# ============================================================
-# PUBLIC API
-# ============================================================
-
-def beta(
-    D,
-    S,
-    M,
-    O,
-    *,
-    contrast_robust=False,
-    contrast_scale=10.0,
-    beta_clip=None,
-    null_threshold=None,
-    verbose=False,
-):
-    """
-    Public API returning only beta.
-    """
-
-    _, _, out = compute_beta(
-        D,
-        S,
-        M,
-        O,
-        contrast_robust=contrast_robust,
-        contrast_scale=contrast_scale,
-        beta_clip=beta_clip,
-        null_threshold=null_threshold,
-        verbose=verbose,
-    )
-
+def beta(D, S, M, O, **kwargs):
+    """Return only the canonical intrinsic agencity state."""
+    _, _, out = compute_beta(D, S, M, O, **kwargs)
     return out
 
 
-def structured_agencity(
-    *args,
-    **kwargs,
-):
-    """
-    Alias for theoretical compatibility.
-    """
-
-    return beta(
-        *args,
-        **kwargs,
-    )
+def structured_agencity(*args, **kwargs):
+    """Compatibility alias for :func:`beta`."""
+    return beta(*args, **kwargs)
