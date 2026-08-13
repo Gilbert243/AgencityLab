@@ -1,8 +1,9 @@
 """Unified Agencity thermodynamics research API.
 
-This package-local API has scientific status ``research``. New code should use
-``agencitylab.thermodynamics`` explicitly. Top-level names published by earlier
-1.1.x releases are retained only as deprecated compatibility aliases.
+This package-local API has scientific status ``research``. The 1.0 software
+contract exposes accepted thermodynamic research functions through the explicit
+``agencitylab.thermodynamics`` namespace; pre-1.0 placeholder helpers are not
+part of the package.
 """
 
 from agencitylab.scientific_status import ScientificStatus
