@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 import agencitylab
+import agencitylab.thermodynamics as thermodynamics_api
 from agencitylab.fields.dynamics import simulate_dissipative_klein_gordon
 from agencitylab.fields.numerics import PeriodicBoundary, UniformRectilinearGrid
 from agencitylab.fields.physics import QuarticAgencityPotential
@@ -49,16 +50,20 @@ from agencitylab.thermodynamics.laws import (
 )
 
 
-def test_thermodynamics_remains_research_when_selected_apis_are_globally_exported():
-    assert agencitylab.__version__ == "1.1.7"
+def test_thermodynamics_remains_research_in_its_explicit_namespace():
+    assert agencitylab.__version__ == "1.0.0"
     assert DISSIPATION_STATUS is ScientificStatus.RESEARCH
     assert TEMPERATURE_STATUS is ScientificStatus.RESEARCH
     assert ENTROPY_STATUS is ScientificStatus.RESEARCH
     assert LAWS_STATUS is ScientificStatus.RESEARCH
-    assert agencitylab.field_agencial_entropy is field_agencial_entropy
-    assert agencitylab.phase_law_prediction is phase_law_prediction
-    assert agencitylab.dissipation_density is dissipation_density
-    assert agencitylab.temperature_dependent_lambda is temperature_dependent_lambda
+    assert thermodynamics_api.field_agencial_entropy is field_agencial_entropy
+    assert thermodynamics_api.phase_law_prediction is phase_law_prediction
+    assert thermodynamics_api.dissipation_density is dissipation_density
+    assert thermodynamics_api.temperature_dependent_lambda is temperature_dependent_lambda
+    assert not hasattr(agencitylab, "field_agencial_entropy")
+    assert not hasattr(agencitylab, "phase_law_prediction")
+    assert not hasattr(agencitylab, "dissipation_density")
+    assert not hasattr(agencitylab, "temperature_dependent_lambda")
 
 
 def test_zero_velocity_gives_exact_zero_dissipation_and_entropy_production():
