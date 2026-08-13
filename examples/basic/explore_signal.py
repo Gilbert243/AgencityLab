@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from agencitylab import analyze_agencity, compute_agencity, visualize_agencity
+from agencitylab import analyze_agencity, compute_agencity
+from agencitylab.api import visualize_agencity
 
 
 def generate_signals(xi: np.ndarray) -> dict[str, np.ndarray]:
