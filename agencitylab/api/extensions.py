@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import numpy as np
 
 from agencitylab.core.agencity import agencity
@@ -16,10 +18,13 @@ from agencitylab.core.multiscale import (
 )
 from agencitylab.core.organization import organization
 from agencitylab.core.validation import validate_positive_scalar, validate_signal
+from agencitylab.models import AgencityResult, ExperimentMetadata
 
 from .compute import compute_agencity
 
-RIEMANNIAN_EXTENSION_STATUS = "experimental: intrinsic kinematic primitives implemented; detailed analysis is deferred"
+RIEMANNIAN_EXTENSION_STATUS = (
+    "experimental: intrinsic kinematic primitives implemented; detailed analysis is deferred"
+)
 
 
 def compute_agencity_spectrum(
@@ -100,9 +105,20 @@ def compute_discrete_agencity(
     A_ref,
     tau,
     P_c,
+    w=None,
     t0: float = 0.0,
-    **kwargs,
-):
+    unit: str | None = None,
+    coordinate_unit: str | None = None,
+    power_unit: str | None = None,
+    observable_kind: str | None = None,
+    domain: str | None = None,
+    mechanism: str | None = None,
+    system_type: str | None = None,
+    environment: str | None = None,
+    geometry: str | None = None,
+    metadata: dict[str, Any] | ExperimentMetadata | None = None,
+    verbose: bool = False,
+) -> AgencityResult:
     """Compute the explicit uniformly sampled discrete construction of Volume 2.
 
     Interior activation and activity use the Volume-2 stencils directly rather
@@ -132,64 +148,97 @@ def compute_discrete_agencity(
         raise ValueError("t0 must be finite")
     xi = t0 + delta * np.arange(values.size, dtype=float)
 
-    # Reuse the stable public path for physical/context validation and metadata.
-    # The derivative-dependent fields are recomputed below from the explicit
-    # Volume-2 stencils, so no second reference canonical pipeline is introduced.
-    result = compute_agencity(
+    # Reuse the stable public path only for physical/context resolution and the
+    # canonical non-derivative data model. The derivative-dependent arrays are
+    # recomputed below from the explicit Volume-2 stencils.
+    base = compute_agencity(
         u=values,
         xi=xi,
         A_ref=A_ref,
         tau=tau,
+        w=w,
         P_c=P_c,
-        **kwargs,
+        unit=unit,
+        coordinate_unit=coordinate_unit,
+        power_unit=power_unit,
+        observable_kind=observable_kind,
+        domain=domain,
+        mechanism=mechanism,
+        system_type=system_type,
+        environment=environment,
+        geometry=geometry,
+        metadata=metadata,
+        verbose=verbose,
     )
 
-    delta_star = delta / result.tau
-    X_star = volume2_first_difference(result.u_star, delta_star)
-    A_star = volume2_second_difference(result.u_star, delta_star)
+    delta_star = delta / base.tau
+    X_star = volume2_first_difference(base.u_star, delta_star)
+    A_star = volume2_second_difference(base.u_star, delta_star)
 
     if np.all(values == values[0]):
-        # The canonical exact rest convention already populated all downstream
-        # arrays with exact zeros. The explicit stencils are also exactly zero.
-        result.X_star = X_star
-        result.A_star = A_star
+        M = base.M
+        O = base.O
+        D = base.D
+        S = base.S
+        J = base.J
+        U = base.U
+        beta = base.beta
+        b = base.b
     else:
-        memory_window = result.memory_window
-        M = memory(result.u_star, result.tau, axis=result.xi, window=memory_window)
+        memory_window = base.memory_window
+        M = memory(base.u_star, base.tau, axis=base.xi, window=memory_window)
         O = organization(
-            result.u_star,
+            base.u_star,
             X_star,
-            result.tau,
-            axis=result.xi,
+            base.tau,
+            axis=base.xi,
             window=memory_window,
         )
         D, S = compute_intensities(X_star, A_star, M, O)
         J, U, beta = compute_beta(D, S, M, O)
-        b = agencity(beta, result.P_c)
+        b = agencity(beta, base.P_c)
 
-        result.X_star = X_star
-        result.A_star = A_star
-        result.M = M
-        result.O = O
-        result.D = D
-        result.S = S
-        result.J = J
-        result.U = U
-        result.theta = np.angle(U)
-        result.beta = beta
-        result.b_reduced = beta
-        result.b = b
-
-    result.config["formulation"] = "volume2_discrete"
-    result.config["derivative_scheme"] = "explicit centered Volume-2 stencils"
-    result.config["boundary_scheme"] = "second-order one-sided finite differences"
-    result.config["delta"] = delta
-    result.config["delta_star"] = delta_star
-    result.metadata.extra["discrete_formulation"] = "Volume 2 explicit centered differences"
-    result.metadata.extra["discrete_boundary_scheme"] = (
-        "second-order one-sided boundaries; three-point fallback for N=3"
+    metadata_model = ExperimentMetadata.from_dict(base.metadata)
+    metadata_model.extra.update(
+        {
+            "discrete_formulation": "Volume 2 explicit centered differences",
+            "discrete_derivative_scheme": "explicit centered Volume-2 stencils",
+            "discrete_boundary_scheme": (
+                "second-order one-sided boundaries; three-point fallback for N=3"
+            ),
+            "discrete_delta": float(delta),
+            "discrete_delta_star": float(delta_star),
+        }
     )
-    return result
+
+    return AgencityResult(
+        xi=base.xi,
+        u=base.u,
+        u_star=base.u_star,
+        X_star=X_star,
+        A_star=A_star,
+        t_star=base.t_star,
+        tau=base.tau,
+        P_c=base.P_c,
+        A_ref=base.A_ref,
+        M=M,
+        O=O,
+        D=D,
+        S=S,
+        J=J,
+        U=U,
+        beta=beta,
+        b=b,
+        theta=np.angle(U),
+        unit=base.unit,
+        coordinate_unit=base.coordinate_unit,
+        power_unit=base.power_unit,
+        observable_kind=base.observable_kind,
+        domain=base.domain,
+        system_type=base.system_type,
+        mechanism=base.mechanism,
+        metadata=metadata_model,
+    )
 
 
 def riemannian_extension_status() -> dict:
