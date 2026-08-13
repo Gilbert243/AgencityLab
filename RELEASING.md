@@ -7,7 +7,7 @@ Trusted Publishing. The repository does not require a long-lived PyPI API token.
 
 Configure a PyPI Trusted Publisher for:
 
-- owner: `somafgroup`
+- owner: `Gilbert243`
 - repository: `AgencityLab`
 - workflow: `release.yml`
 - environment: `pypi`
