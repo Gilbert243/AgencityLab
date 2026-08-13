@@ -2,7 +2,8 @@ import json
 
 import numpy as np
 
-from agencitylab import (
+from agencitylab import compute_agencity
+from agencitylab.api import (
     RegimeCriteria,
     analyze_agencity,
     analyze_coherence,
@@ -10,7 +11,6 @@ from agencitylab import (
     analyze_geometry,
     analyze_regime,
     analyze_transitions,
-    compute_agencity,
 )
 
 
@@ -77,7 +77,6 @@ def test_geometry_is_intrinsic_to_beta_not_time_varying_characteristic_power():
 
 def test_regime_api_defaults_to_undetermined_for_non_null_result():
     result = _sine_result()
-
     assert analyze_regime(result) == "undetermined"
 
 
@@ -99,7 +98,7 @@ def test_regime_criteria_are_serialized_in_structured_report():
     json.dumps(report)
 
 
-def test_event_and_transition_api_preserve_pre_v05_summary_keys():
+def test_event_and_transition_api_expose_structured_summary_keys():
     result = _sine_result()
 
     events = analyze_events(result)
