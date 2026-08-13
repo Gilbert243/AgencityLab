@@ -10,8 +10,6 @@ Scientific status of this thermodynamic implementation: research.
 
 from __future__ import annotations
 
-import warnings
-
 import numpy as np
 
 from agencitylab.fields.numerics import UniformRectilinearGrid, integrate_spatial
@@ -53,11 +51,10 @@ def field_agencial_entropy(
     """Return ``(a / 2) * integral |phi|**2 dV`` from Volume 2 Eq. (18.5).
 
     The function supports real and complex fields and reuses the existing
-    spatial quadrature contract.  No sign constraint is silently imposed on
+    spatial quadrature contract. No sign constraint is silently imposed on
     ``a``; the source statement ``S_ag >= 0`` follows under an appropriate
     positive-``a`` physical context.
     """
-
     field = _finite_field(phi, name="phi")
     coefficient = _finite_real_scalar(a, name="a")
     intensity = np.asarray(np.abs(field) ** 2, dtype=float)
@@ -74,7 +71,6 @@ def contrast_agencial_entropy(J, j_max: float, k_b: float):
     The logarithm requires ``|J| < J_max`` for a finite real-valued result.
     This definition is distinct from :func:`field_agencial_entropy`.
     """
-
     contrast = np.asarray(J)
     if not np.issubdtype(contrast.dtype, np.number) or np.issubdtype(
         contrast.dtype, np.bool_
@@ -93,24 +89,3 @@ def contrast_agencial_entropy(J, j_max: float, k_b: float):
         raise ValueError("contrast entropy requires |J| < j_max")
     result = -boltzmann * np.log1p(-ratio)
     return float(result) if result.ndim == 0 else result
-
-
-def agential_entropy(x):
-    """Legacy Shannon-style placeholder unrelated to either accepted entropy.
-
-    Kept only for backwards compatibility.  It is not an alias for either
-    field or contrast agencial entropy because those definitions are
-    physically and mathematically different.
-    """
-
-    warnings.warn(
-        "agential_entropy is a deprecated Shannon-style placeholder; use "
-        "field_agencial_entropy or contrast_agencial_entropy explicitly",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    values = np.asarray(x, dtype=float)
-    probabilities = np.abs(values)
-    probabilities = probabilities / (probabilities.sum() + 1e-12)
-    probabilities = probabilities[probabilities > 0]
-    return float(-np.sum(probabilities * np.log(probabilities)))
