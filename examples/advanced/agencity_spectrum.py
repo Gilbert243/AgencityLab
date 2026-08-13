@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from agencitylab import compute_agencity, compute_agencity_spectrum
+from agencitylab import compute_agencity
+from agencitylab.api import compute_agencity_spectrum
 
 
 def main() -> None:
