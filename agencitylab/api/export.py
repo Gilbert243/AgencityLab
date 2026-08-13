@@ -1,38 +1,38 @@
 """Research-facing export API for AgencityLab.
 
 CSV exports of :class:`AgencityResult` are sample-wise scientific tables.
-JSON exports preserve the result serialization contract and can bundle the
-structured diagnostic report for reproducible studies.
+JSON exports preserve the stable result serialization contract and may bundle
+structured diagnostics for reproducible studies.
 """
 
 from __future__ import annotations
 
 from dataclasses import asdict, is_dataclass
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any
 
 import numpy as np
 
 from agencitylab.io.csv import dump_csv
 from agencitylab.io.json import dump_json
 
-SCIENTIFIC_UX_SCHEMA_VERSION = "0.7"
+SCIENTIFIC_UX_SCHEMA_VERSION = "1.0"
 
 
-def _ensure_path(path: Union[str, Path]) -> Path:
+def _ensure_path(path: str | Path) -> Path:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     return path
 
 
-def _flatten_for_table(data: Any, parent_key: str = "", sep: str = ".") -> Dict[str, Any]:
-    """Flatten nested values for the historical report-table exporters."""
+def _flatten_for_table(data: Any, parent_key: str = "", sep: str = ".") -> dict[str, Any]:
+    """Flatten nested report values for generic table exporters."""
     if hasattr(data, "to_dict") and callable(data.to_dict):
         data = data.to_dict()
     elif is_dataclass(data):
         data = asdict(data)
 
-    items: Dict[str, Any] = {}
+    items: dict[str, Any] = {}
     if isinstance(data, dict):
         for key, value in data.items():
             name = f"{parent_key}{sep}{key}" if parent_key else str(key)
@@ -54,31 +54,26 @@ def _flatten_for_table(data: Any, parent_key: str = "", sep: str = ".") -> Dict[
 
 def export_json(
     data: Any,
-    path: Union[str, Path],
+    path: str | Path,
     *,
     indent: int = 2,
     sort_keys: bool = True,
 ) -> Path:
     """Export a result, report, or JSON-compatible study payload."""
-    return dump_json(
-        data,
-        _ensure_path(path),
-        indent=indent,
-        sort_keys=sort_keys,
-    )
+    return dump_json(data, _ensure_path(path), indent=indent, sort_keys=sort_keys)
 
 
-def export_result_csv(result, path: Union[str, Path]) -> Path:
+def export_result_csv(result: Any, path: str | Path) -> Path:
     """Export one row per sample with canonical scalar quantities and complex parts."""
     if not hasattr(result, "to_dataframe"):
         raise TypeError("export_result_csv expects an AgencityResult-like object")
-    path = _ensure_path(path)
+    output = _ensure_path(path)
     frame = result.to_dataframe()
-    frame.to_csv(path, index=False)
-    return path
+    frame.to_csv(output, index=False)
+    return output
 
 
-def export_csv(data: Any, path: Union[str, Path]) -> Path:
+def export_csv(data: Any, path: str | Path) -> Path:
     """Export a result as a sample table, or a generic report as flattened CSV."""
     if hasattr(data, "to_dataframe") and callable(data.to_dataframe):
         return export_result_csv(data, path)
@@ -86,13 +81,13 @@ def export_csv(data: Any, path: Union[str, Path]) -> Path:
 
 
 def export_study_json(
-    result,
-    analysis: dict,
-    path: Union[str, Path],
+    result: Any,
+    analysis: dict[str, Any],
+    path: str | Path,
     *,
     text_report: str | None = None,
 ) -> Path:
-    """Export a reproducible result + diagnostics bundle without figure objects."""
+    """Export a reproducible canonical-result + diagnostics bundle."""
     payload = {
         "scientific_ux_schema_version": SCIENTIFIC_UX_SCHEMA_VERSION,
         "result": result.to_dict() if hasattr(result, "to_dict") else result,
@@ -102,53 +97,53 @@ def export_study_json(
     return export_json(payload, path)
 
 
-def export_excel(data: Any, path: Union[str, Path]) -> Path:
-    """Export a report dictionary to Excel (.xlsx)."""
-    path = _ensure_path(path)
+def export_excel(data: Any, path: str | Path) -> Path:
+    """Export a result or report dictionary to Excel (.xlsx)."""
+    output = _ensure_path(path)
     try:
         import pandas as pd
     except ImportError as exc:  # pragma: no cover - optional dependency
-        raise ImportError("pandas is required for Excel export") from exc
+        raise ImportError("pandas is required for Excel export; install agencitylab[export]") from exc
     if hasattr(data, "to_dataframe") and callable(data.to_dataframe):
-        data.to_dataframe().to_excel(path, index=False)
+        data.to_dataframe().to_excel(output, index=False)
     else:
-        pd.DataFrame([_flatten_for_table(data)]).to_excel(path, index=False)
-    return path
+        pd.DataFrame([_flatten_for_table(data)]).to_excel(output, index=False)
+    return output
 
 
-def export_pdf(text_report: str, path: Union[str, Path]) -> Path:
+def export_pdf(text_report: str, path: str | Path) -> Path:
     """Export a text report to PDF using the optional reportlab dependency."""
-    path = _ensure_path(path)
+    output = _ensure_path(path)
     try:
         from reportlab.lib.styles import getSampleStyleSheet
         from reportlab.platypus import Preformatted, SimpleDocTemplate
     except ImportError as exc:  # pragma: no cover - optional dependency
-        raise ImportError("reportlab is required for PDF export") from exc
-    doc = SimpleDocTemplate(str(path))
+        raise ImportError("reportlab is required for PDF export; install agencitylab[export]") from exc
+    doc = SimpleDocTemplate(str(output))
     styles = getSampleStyleSheet()
     doc.build([Preformatted(str(text_report), styles["Code"])])
-    return path
+    return output
 
 
 def export_report(
     report: Any,
-    path: Union[str, Path],
+    path: str | Path,
     *,
-    format: Optional[str] = None,
+    format: str | None = None,
 ) -> Path:
     """Export a report using a format inferred from the suffix when omitted."""
-    path = Path(path)
-    fmt = (format or path.suffix.lstrip(".")).lower()
+    output = Path(path)
+    fmt = (format or output.suffix.lstrip(".")).lower()
     if fmt == "json":
-        return export_json(report, path)
+        return export_json(report, output)
     if fmt == "csv":
-        return export_csv(report, path)
+        return export_csv(report, output)
     if fmt in {"xlsx", "xls", "excel"}:
-        return export_excel(report, path)
+        return export_excel(report, output)
     if fmt == "pdf":
         if not isinstance(report, str):
             from agencitylab.api.report import build_text_report
 
             report = build_text_report(report)
-        return export_pdf(report, path)
+        return export_pdf(report, output)
     raise ValueError(f"Unsupported export format: {fmt}")
