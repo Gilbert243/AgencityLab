@@ -14,7 +14,7 @@ from agencitylab.core.memory import memory
 from agencitylab.core.organization import organization
 from agencitylab.core.validation import is_exactly_constant
 from agencitylab.exceptions import AgencityValidationError
-from agencitylab.models import AgencityResult, ExperimentMetadata
+from agencitylab.models import AgencityResult
 
 from ._compute_support import (
     MetadataInput,
