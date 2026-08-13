@@ -139,8 +139,8 @@ class ExperimentMetadata:
     @classmethod
     def from_dict(
         cls,
-        data: dict[str, Any] | "ExperimentMetadata" | None,
-    ) -> "ExperimentMetadata":
+        data: dict[str, Any] | ExperimentMetadata | None,
+    ) -> ExperimentMetadata:
         """Create metadata while preserving unknown descriptive fields in ``extra``."""
         if data is None:
             return cls()
@@ -161,7 +161,7 @@ class ExperimentMetadata:
         known["extra"] = extra
         return cls(**known)
 
-    def with_updates(self, **updates: Any) -> "ExperimentMetadata":
+    def with_updates(self, **updates: Any) -> ExperimentMetadata:
         payload = self.to_dict()
         payload.update(updates)
         return ExperimentMetadata.from_dict(payload)
