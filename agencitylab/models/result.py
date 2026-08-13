@@ -137,7 +137,7 @@ class AgencityResult:
         self._synchronize_metadata()
 
         if self.theta is None:
-            self.theta = np.angle(self.U)
+            self.theta = np.asarray(np.angle(self.U), dtype=float)
         else:
             theta = _finite_1d(self.theta, name="theta", dtype=float)
             if theta.size != n:
