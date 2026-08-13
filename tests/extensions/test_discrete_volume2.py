@@ -51,8 +51,10 @@ def test_discrete_api_quadratic_uses_reduced_volume2_derivatives_exactly():
     # below only admits ordinary floating cancellation at the largest sample.
     np.testing.assert_allclose(result.X_star, t, rtol=0.0, atol=2e-13)
     np.testing.assert_allclose(result.A_star, 2.0, rtol=0.0, atol=5e-12)
-    assert result.config["formulation"] == "volume2_discrete"
-    assert result.config["delta_star"] == pytest.approx(delta / 2.0)
+    assert result.metadata.extra["discrete_formulation"] == (
+        "Volume 2 explicit centered differences"
+    )
+    assert result.metadata.extra["discrete_delta_star"] == pytest.approx(delta / 2.0)
 
 
 def test_sinus_interior_transfer_matches_volume2_amplitude_and_phase():
