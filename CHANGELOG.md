@@ -2,6 +2,36 @@
 
 All notable changes to AgencityLab are documented here.
 
+## 1.1.7 - 2026-08-13
+
+### Changed
+
+- Consolidated the recommended public API around a small package top level and explicit `analysis`, `fields`, `thermodynamics`, `gravity`, `quantum`, and `applications.cosmology` namespaces.
+- Retired the scientifically misleading historical `agencitylab.dynamics.system` equations instead of preserving their tanh-based `beta` and discrete-beta-variation `b` as a false canonical model.
+- Reduced ambiguous top-level discovery while preserving published 1.1.x specialized names as lazy compatibility aliases.
+- Removed dead packaged YAML model/config files, stale packaged example duplicates, empty `dynamics/canonical` placeholders, and the obsolete root `main.py` entry point.
+- Made runtime configuration explicitly software-only: physical/contextual parameters remain inputs to the scientific API that owns them.
+- Added `docs/api_map.md` and reorganized the README around the canonical user path before specialized research/speculative layers.
+- Kept NumPy as the only mandatory dependency and retained the historical `ml` extra as a compatibility alias.
+- Retained `Development Status :: 5 - Production/Stable` as a statement about the stable software contract only, not scientific validation.
+
+### Compatibility
+
+- `compute_agencity`, principal result models, `ScientificStatus`, common exceptions, `compute_agencity_field`, `analyze_agencity`, and `scientific_workflow` remain available from the package root.
+- Earlier specialized top-level names remain available lazily in the 1.x line and emit `DeprecationWarning` only when explicitly accessed; plain `import agencitylab` does not warn.
+- Stable batch, streaming, report, export, visualization, pipeline, discrete, multivariate, and related workflows remain available under `agencitylab.api`.
+- Historical `agencitylab.dynamics.rk4_step` forwards to the authoritative generic `agencitylab.fields.numerics.rk4_step` implementation.
+- Historical physical-looking config keys are accepted temporarily as deprecated metadata but are ignored by computation.
+- The old Agencity-specific dynamical RHS is a necessary scientific break: calls now raise explicitly because no accepted theory defines that tanh/discrete-beta system as canonical.
+
+### Scientific integrity
+
+- No canonical equation was modified: CRM, `M`, `O`, `D`, `S`, `J`, `Theta`, `beta`, `b`, `A_ref`, `tau`, `w`, and `P_c` retain their accepted definitions.
+- No observable/autonomous-field bridge, quartic potential, KG/TDGL equation, thermodynamic relation, gravity convention/equation, quantum primitive, or cosmological equation was changed.
+- Observable `beta_obs` and autonomous `phi` remain distinct; the two agencial entropy definitions remain distinct; Chapter-16 and Chapter-19 metric signatures remain explicitly distinct.
+- Scientific statuses remain unchanged: canonical, experimental, research, and speculative layers are not promoted by this software refactor.
+- The retained numerical-equivalence benchmark remains a release gate so architectural changes cannot silently alter canonical results.
+
 ## 1.1.6 - 2026-08-12
 
 ### Added

@@ -1,8 +1,8 @@
 """Unified Agencity thermodynamics research API.
 
-This package-local API has scientific status ``research``. Version 1.1.3 also
-re-exports a selected subset of principal evaluators from top-level
-:mod:`agencitylab`; the complete thermodynamic contract remains organized here.
+This package-local API has scientific status ``research``. New code should use
+``agencitylab.thermodynamics`` explicitly. Top-level names published by earlier
+1.1.x releases are retained only as deprecated compatibility aliases.
 """
 
 from agencitylab.scientific_status import ScientificStatus
