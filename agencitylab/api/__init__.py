@@ -27,7 +27,7 @@ from .analyze import (
     analyze_transitions,
     textual_analysis,
 )
-from .batch import analyze_batch, compare_batch, run_batch, summarize_batch
+from .batch import analyze_batch, run_batch, summarize_batch
 from .compute import compute_agencity
 from .export import (
     SCIENTIFIC_UX_SCHEMA_VERSION,
@@ -95,7 +95,6 @@ __all__ = [
     "run_batch",
     "analyze_batch",
     "summarize_batch",
-    "compare_batch",
     "build_report",
     "build_text_report",
     "summarize",
