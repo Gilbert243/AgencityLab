@@ -15,8 +15,8 @@ def _result():
     xi = np.arange(256, dtype=float)
     u = np.sin(0.07 * xi)
     return compute_agencity(
-        u=u,
-        xi=xi,
+        u,
+        xi,
         A_ref=1.0,
         tau=16.0,
         w=16.0,
@@ -51,7 +51,7 @@ def smoke_viz() -> None:
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    from agencitylab import visualize_agencity
+    from agencitylab.api import visualize_agencity
 
     figure = visualize_agencity(_result(), kind="overview", show=False)
     assert figure is not None
@@ -59,7 +59,7 @@ def smoke_viz() -> None:
 
 
 def smoke_export() -> None:
-    from agencitylab import export_excel, export_pdf
+    from agencitylab.api import export_excel, export_pdf
 
     result = _result()
     with tempfile.TemporaryDirectory() as directory:
