@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from agencitylab import compute_discrete_agencity
+from agencitylab.api import compute_discrete_agencity
 from agencitylab.core.discrete import volume2_first_difference, volume2_second_difference
 
 
