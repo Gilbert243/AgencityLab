@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional
+from typing import Any
 
 import numpy as np
 
@@ -15,58 +15,40 @@ from .compute import compute_agencity
 from .validation import validate_metadata
 
 
-@dataclass
+@dataclass(slots=True)
 class AgencityStream:
     """Rolling scalar Agencity processor.
 
-    The first five fields preserve the pre-v0.3 constructor order. Canonical
-    physical parameters may now be supplied once on the stream object instead of
-    being repeated on every update.
+    The stream retains sampled history and recomputes the canonical result over
+    the retained buffer. Physical/contextual parameters are explicit stream
+    attributes. Diagnostics are stored separately in ``last_analysis``.
     """
 
-    window_size: Optional[int] = None
-    preset: str = "default"
-    config: Dict[str, Any] = field(default_factory=dict)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    window_size: int | None = None
     analyze: bool = True
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     A_ref: float | str | None = None
     tau: float | str | None = "auto"
     w: float | None = None
-    P_c: float | str | None = "auto"
-    unit: Optional[str] = None
-    coordinate_unit: Optional[str] = None
-    power_unit: Optional[str] = None
+    P_c: Any = "auto"
+    unit: str | None = None
+    coordinate_unit: str | None = None
+    power_unit: str | None = None
 
     _xi_buffer: list[np.ndarray] = field(default_factory=list, init=False, repr=False)
     _u_buffer: list[np.ndarray] = field(default_factory=list, init=False, repr=False)
-    last_result: Optional[AgencityResult] = None
-    last_analysis: Optional[Dict[str, Any]] = None
-    last_error: Optional[str] = None
+    last_result: AgencityResult | None = None
+    last_analysis: dict[str, Any] | None = None
+    last_error: str | None = None
 
     def __post_init__(self) -> None:
         if self.window_size is not None:
             if not isinstance(self.window_size, int) or self.window_size < 3:
                 raise StreamStateError("window_size must be an integer >= 3 or None")
-        if not isinstance(self.config, dict):
-            raise StreamStateError("config must be a dictionary")
-        self.config = dict(self.config)
         self.metadata = validate_metadata(self.metadata)
 
-    def set_preset(self, preset: str):
-        self.preset = str(preset)
-        return self
-
-    def set_config(self, **kwargs):
-        self.config.update(kwargs)
-        return self
-
-    def set_backend(self, backend: str = "auto", *, prefer_gpu: bool = False):
-        self.config["backend"] = backend
-        self.config["prefer_gpu"] = bool(prefer_gpu)
-        return self
-
-    def set_metadata(self, **kwargs):
+    def set_metadata(self, **kwargs: Any) -> "AgencityStream":
         merged = dict(self.metadata)
         merged.update(kwargs)
         self.metadata = validate_metadata(merged)
@@ -75,14 +57,14 @@ class AgencityStream:
     def set_physical_context(
         self,
         *,
-        A_ref=None,
-        tau=None,
-        w=None,
-        P_c=None,
-        unit=None,
-        coordinate_unit=None,
-        power_unit=None,
-    ):
+        A_ref: float | str | None = None,
+        tau: float | str | None = None,
+        w: float | None = None,
+        P_c: Any = None,
+        unit: str | None = None,
+        coordinate_unit: str | None = None,
+        power_unit: str | None = None,
+    ) -> "AgencityStream":
         """Update persistent canonical physical/contextual parameters."""
         if A_ref is not None:
             self.A_ref = A_ref
@@ -100,7 +82,7 @@ class AgencityStream:
             self.power_unit = power_unit
         return self
 
-    def clear(self):
+    def clear(self) -> "AgencityStream":
         self._xi_buffer.clear()
         self._u_buffer.clear()
         self.last_result = None
@@ -127,7 +109,7 @@ class AgencityStream:
             start = float(existing[-1] + step)
         return start + step * np.arange(size, dtype=float)
 
-    def _append_chunk(self, xi, u) -> None:
+    def _append_chunk(self, xi: Any, u: Any) -> None:
         try:
             values = np.asarray(u, dtype=float)
         except Exception as exc:
@@ -170,8 +152,8 @@ class AgencityStream:
             self._xi_buffer = [axis_all]
             self._u_buffer = [values_all]
 
-    def _compute_kwargs(self, overrides: Dict[str, Any]) -> Dict[str, Any]:
-        kwargs = {
+    def _compute_kwargs(self, overrides: dict[str, Any]) -> dict[str, Any]:
+        kwargs: dict[str, Any] = {
             "A_ref": self.A_ref,
             "tau": self.tau,
             "w": self.w,
@@ -183,7 +165,7 @@ class AgencityStream:
         kwargs.update(overrides)
         return kwargs
 
-    def _compute_current(self, *, verbose: bool, overrides: Dict[str, Any]):
+    def _compute_current(self, *, verbose: bool, overrides: dict[str, Any]) -> AgencityResult:
         values = self._all_u()
         axis = self._all_xi()
         if values.size < 3:
@@ -193,10 +175,8 @@ class AgencityStream:
 
         try:
             return compute_agencity(
-                u=values,
-                xi=axis,
-                preset=self.preset,
-                config=dict(self.config),
+                values,
+                axis,
                 metadata=self.metadata,
                 verbose=verbose,
                 **self._compute_kwargs(overrides),
@@ -211,20 +191,20 @@ class AgencityStream:
 
     def update(
         self,
-        u_chunk,
-        xi_chunk=None,
+        u_chunk: Any,
+        xi_chunk: Any = None,
         *,
         verbose: bool = False,
-        run_analysis: Optional[bool] = None,
-        **kwargs,
-    ):
+        run_analysis: bool | None = None,
+        **compute_overrides: Any,
+    ) -> AgencityResult:
         """Append one chunk and return the rolling result when the buffer is ready."""
         self._append_chunk(xi_chunk, u_chunk)
         if verbose:
             print(f"[stream] buffer size = {self._all_u().size}")
 
         try:
-            result = self._compute_current(verbose=verbose, overrides=kwargs)
+            result = self._compute_current(verbose=verbose, overrides=compute_overrides)
         except Exception as exc:
             self.last_error = str(exc)
             raise
@@ -232,59 +212,43 @@ class AgencityStream:
         self.last_error = None
         self.last_result = result
         should_analyze = self.analyze if run_analysis is None else bool(run_analysis)
-        if should_analyze:
-            self.last_analysis = analyze_agencity(result, verbose=verbose)
-            result.attach_analysis(self.last_analysis)
-            result.signature = self.last_analysis.get("signature")
-            result.multiscale = self.last_analysis.get("multiscale")
-        else:
-            self.last_analysis = None
+        self.last_analysis = analyze_agencity(result, verbose=verbose) if should_analyze else None
         return result
 
-    def push(self, u_chunk, xi_chunk=None, *, verbose: bool = False, **kwargs):
-        """Compatibility alias for :meth:`update`."""
-        return self.update(u_chunk, xi_chunk=xi_chunk, verbose=verbose, **kwargs)
-
-    def flush(self, *, verbose: bool = False, **kwargs):
+    def flush(self, *, verbose: bool = False, **compute_overrides: Any) -> AgencityResult:
         """Compute on the current buffer without appending new samples."""
         if not self._u_buffer:
             raise StreamNotReadyError("stream buffer is empty")
-        result = self._compute_current(verbose=verbose, overrides=kwargs)
+        result = self._compute_current(verbose=verbose, overrides=compute_overrides)
         self.last_result = result
         self.last_error = None
-        if self.analyze:
-            self.last_analysis = analyze_agencity(result, verbose=verbose)
-            result.attach_analysis(self.last_analysis)
-            result.signature = self.last_analysis.get("signature")
-            result.multiscale = self.last_analysis.get("multiscale")
+        self.last_analysis = analyze_agencity(result, verbose=verbose) if self.analyze else None
         return result
 
-    def summary(self) -> Dict[str, Any]:
+    def summary(self) -> dict[str, Any]:
         return {} if self.last_result is None else self.last_result.summary()
 
-    def snapshot(self) -> Dict[str, Any]:
-        """Return a compact, serialization-safe stream state snapshot."""
+    def snapshot(self) -> dict[str, Any]:
+        """Return a compact serialization-safe stream state snapshot."""
         return {
             "buffer_length": int(self._all_u().size),
             "window_size": self.window_size,
-            "preset": self.preset,
             "has_result": self.last_result is not None,
             "has_analysis": self.last_analysis is not None,
             "last_error": self.last_error,
-            "config": dict(self.config),
             "metadata": dict(self.metadata),
         }
 
 
 def stream_agencity(
-    u_chunk,
-    xi_chunk=None,
+    u_chunk: Any,
+    xi_chunk: Any = None,
     *,
-    stream: Optional[AgencityStream] = None,
+    stream: AgencityStream | None = None,
     verbose: bool = False,
-    **kwargs,
-):
-    """Convenience function for one streaming update."""
+    **kwargs: Any,
+) -> AgencityResult:
+    """Perform one update on an existing or newly created stream."""
     if stream is None:
         stream = AgencityStream()
     return stream.update(u_chunk, xi_chunk=xi_chunk, verbose=verbose, **kwargs)
