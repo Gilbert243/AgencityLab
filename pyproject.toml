@@ -99,10 +99,10 @@ all = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/somafgroup/AgencityLab"
+Homepage = "https://github.com/Gilbert243/AgencityLab"
 Documentation = "https://agencitylab.readthedocs.io"
-Source = "https://github.com/somafgroup/AgencityLab"
-Issues = "https://github.com/somafgroup/AgencityLab/issues"
+Source = "https://github.com/Gilbert243/AgencityLab"
+Issues = "https://github.com/Gilbert243/AgencityLab/issues"
 
 [tool.ruff]
 line-length = 100
