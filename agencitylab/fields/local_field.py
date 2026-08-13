@@ -54,7 +54,7 @@ def _resolve_spatial_parameter(value: Any, spatial_shape: tuple[int, ...], name:
     if arr.shape != spatial_shape:
         raise PhysicalParameterError(
             f"{name} must be a scalar or have exact spatial shape {spatial_shape}; "
-            "time-dependent values are not accepted in v1.1"
+            "time-dependent values are not accepted in 1.0"
         )
     if not np.all(np.isfinite(arr)) or np.any(arr <= 0.0):
         raise PhysicalParameterError(f"{name} must contain strictly positive finite values")
@@ -205,7 +205,6 @@ def compute_agencity_field(
             tau=float(tau_flat[point]),
             w=float(w_flat[point]),
             P_c=power_flat[:, point],
-            config={"backend": "numpy"},
         )
         for name in real_names:
             real_outputs[name][:, point] = getattr(scalar, name)
