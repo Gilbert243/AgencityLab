@@ -115,7 +115,7 @@ def test_discrete_api_uses_volume2_stencils_not_continuous_gradient_chain():
         P_c=3.0,
     )
     assert not np.allclose(result.A_star, continuous_sampled.A_star)
-    assert result.config["formulation"] == "volume2_discrete"
+    assert result.metadata["discrete_formulation"]["formulation"] == "volume2_discrete"
 
 
 def test_multivariate_aggregation_is_pc_weighted_and_flux_additive():
