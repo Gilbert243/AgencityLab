@@ -2,8 +2,7 @@ import numpy as np
 import pytest
 
 from agencitylab import PhysicalParameterError, compute_agencity
-from agencitylab.core.agencity import agencity, agencity_criteria, compute_full_agencity
-from agencitylab.core.coherence import coherence_diagnostic
+from agencitylab.core.agencity import agencity
 from agencitylab.core.contrast import compute_contrast
 from agencitylab.core.normalization import normalize_signal
 
@@ -118,33 +117,7 @@ def test_zero_structure_remains_exact_null_branch_far_below_common_epsilons():
     np.testing.assert_array_equal(result.b, 0.0j)
 
 
-def test_legacy_full_pipeline_delegates_to_reference_and_accepts_w_not_equal_tau():
-    xi, u = _sample_signal()
-    reference = compute_agencity(
-        u=u,
-        xi=xi,
-        A_ref=1.0,
-        tau=1.0,
-        w=0.5,
-        P_c=2.0,
-    )
-    with pytest.warns(DeprecationWarning, match="legacy compatibility wrapper"):
-        legacy = compute_full_agencity(
-            xi,
-            u,
-            A_ref=1.0,
-            tau=1.0,
-            w=0.5,
-            P_c=2.0,
-        )
-    assert legacy["canonical_reference"] == "agencitylab.compute_agencity"
-    assert "not an independent canonical pipeline" in legacy["status"]
-    assert legacy["w"] == 0.5
-    for name in ("M", "O", "D", "S", "J", "U", "beta", "b"):
-        np.testing.assert_allclose(legacy[name], getattr(reference, name))
-
-
-def test_real_agencity_is_absent_from_reference_canonical_result():
+def test_reference_result_contains_no_diagnostic_state():
     xi, u = _sample_signal()
     result = compute_agencity(
         u=u,
@@ -154,12 +127,5 @@ def test_real_agencity_is_absent_from_reference_canonical_result():
         w=0.5,
         P_c=1.0,
     )
-    assert result.analysis == {}
+    assert not hasattr(result, "analysis")
     assert not hasattr(result, "real_agencity")
-
-    with pytest.warns(DeprecationWarning, match="legacy diagnostic"):
-        legacy = agencity_criteria(result.M, result.O, result.S, result.b)
-    assert legacy["status"].startswith("legacy diagnostic")
-
-    with pytest.warns(DeprecationWarning, match="legacy diagnostic"):
-        coherence_diagnostic(result.M, result.O)
