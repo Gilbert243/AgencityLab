@@ -31,11 +31,11 @@ from typing import Any, Callable
 
 import numpy as np
 
-from agencitylab import (
+from agencitylab import compute_agencity
+from agencitylab.api import (
     AgencityStream,
     StreamNotReadyError,
     analyze_agencity,
-    compute_agencity,
     compute_agencity_spectrum,
     compute_multivariate_agencity,
     run_batch,
