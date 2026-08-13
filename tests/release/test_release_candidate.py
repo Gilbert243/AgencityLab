@@ -23,8 +23,11 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def _signal(n: int = 801):
-    xi = np.linspace(0.0, 20.0, n)
-    u = np.sin(xi) + 0.15 * np.sin(2.0 * xi)
+    # Half-unit sampling keeps all release-test CRM windows (1.5, 2.0, 3.0)
+    # exact integer multiples of the sampling interval. This is a test fixture,
+    # not a change to CRM window semantics.
+    xi = 0.5 * np.arange(n, dtype=float)
+    u = np.sin(0.2 * xi) + 0.15 * np.sin(0.4 * xi)
     return xi, u
 
 
