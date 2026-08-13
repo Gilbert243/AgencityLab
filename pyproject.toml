@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "agencitylab"
-version = "1.1.6"
+version = "1.1.7"
 description = "Scientific framework for the theory of Agencity"
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.10"
@@ -24,6 +24,8 @@ keywords = [
 ]
 
 classifiers = [
+  # This classifier describes the stable software contract, not empirical
+  # validation of experimental, research, or speculative scientific layers.
   "Development Status :: 5 - Production/Stable",
   "Intended Audience :: Science/Research",
   "Intended Audience :: Developers",

@@ -2,11 +2,11 @@
 
 AgencityLab is an open-source Python framework implementing and testing the **Theory of Agencity**.
 
-**Current software status: 1.1.6.** Version 1.0 freezes the documented stable scalar software contract. The 1.1.x line adds explicitly labelled experimental, research, and speculative capabilities without redefining the canonical observable. Software stability is distinct from empirical validation of the theory.
+**Current software version: 1.1.7.** The canonical scalar software contract is stable. Observable-field orchestration is experimental; autonomous-field, thermodynamic and gravitational layers are research; quantum and cosmological layers are speculative. Software stability is not empirical validation of any scientific claim.
 
 ## Canonical observable
 
-The central observable is
+The reference observable is
 
 ```text
 b(t) = P_c(t) * beta(t)
@@ -26,232 +26,131 @@ Theta = atan2(O, M)
 J = ln((e + D) / (e + S)),  e = exp(1)
 ```
 
-For `S > 0`:
-
-```text
-U = (M + i O) / S
-beta = J * U
-b = P_c * beta
-```
-
-For `S = 0`, the canonical convention is `U = 0` and `beta = 0`. `P_c` is finite and non-negative; `P_c = 0` gives `b = 0` exactly. Numerical epsilon is not inserted into these valid equations.
+For `S > 0`, `U = (M + i O) / S`, `beta = J * U`, and `b = P_c * beta`. For `S = 0`, the canonical convention is `U = 0` and `beta = 0`. No epsilon is inserted into these valid equations.
 
 ## Installation
 
-The stable canonical engine and default public API require only NumPy:
+The canonical engine and normal public API require only NumPy:
 
 ```bash
 pip install agencitylab
 ```
 
-Optional capabilities are isolated:
-
-```bash
-pip install "agencitylab[scientific]"
-pip install "agencitylab[data]"
-pip install "agencitylab[viz]"
-pip install "agencitylab[export]"
-pip install "agencitylab[docs]"
-pip install "agencitylab[numba]"  # experimental
-pip install "agencitylab[jax]"    # experimental
-```
-
-Numba and JAX do not replace the complete stable NumPy reference pipeline.
+Optional capabilities remain isolated in extras such as `scientific`, `data`, `viz`, `export`, `numba`, and `jax`. SciPy is not a mandatory dependency.
 
 ## Quickstart
 
 ```python
 import numpy as np
-import agencitylab
+import agencitylab as al
 
 xi = np.linspace(0.0, 20.0, 801)
 u = np.sin(xi)
 
-result = agencitylab.compute_agencity(
+result = al.compute_agencity(
     u=u,
     xi=xi,
     A_ref=1.0,
     tau=2.0,
     w=1.5,
     P_c=5.0,
-    coordinate_unit="s",
-    power_unit="W",
 )
 
 print(result.b)
-print(result.metadata.agencitylab_version)
 ```
 
-`compute_agencity()` is the sole reference canonical end-to-end pipeline. `A_ref`, `tau`, `w`, and `P_c` are physical/contextual inputs. The stable compute path does not silently infer them from ordinary signal statistics. `tau` and CRM width `w` are distinct. If `w` is omitted, AgencityLab records and uses the implementation fallback `w=tau`; this is not a universal identity.
+`compute_agencity()` is the sole reference canonical end-to-end scalar pipeline. `A_ref`, `tau`, `w`, and `P_c` are physical/contextual inputs; they are not supplied by a global runtime configuration. If `w` is omitted, the implementation fallback `w=tau` is recorded explicitly and is not a universal theoretical identity.
 
-Diagnostics are separate:
+## Scientific API map
+
+AgencityLab uses a small top level and explicit scientific namespaces:
 
 ```python
-analysis = agencitylab.analyze_agencity(result)
-print(analysis["real_agencity"]["status"])
+import agencitylab as al
+
+result = al.compute_agencity(...)
+analysis = al.analysis.analyze_agencity(result)
+field = al.fields.compute_agencity_field(...)
 ```
 
-For the complete visualisation/export walkthrough, install `agencitylab[viz,export]` and see `docs/tutorials/quickstart.md`.
+| Task | Recommended namespace | Status |
+| --- | --- | --- |
+| Canonical scalar computation | `agencitylab.compute_agencity` | canonical |
+| Diagnostics and interpretation | `agencitylab.analysis` | diagnostic |
+| Observable spatial field | `agencitylab.fields.compute_agencity_field` | experimental |
+| Autonomous field / classical field physics | `agencitylab.fields` | research |
+| Thermodynamics | `agencitylab.thermodynamics` | research |
+| Classical gravity | `agencitylab.gravity` | research |
+| Quantum field primitives | `agencitylab.quantum` | speculative |
+| Homogeneous cosmology | `agencitylab.applications.cosmology` | speculative |
 
-## Observable and autonomous spatial fields
+See [`docs/api_map.md`](docs/api_map.md) for the complete navigation map and compatibility policy.
 
-Version 1.1 adds an explicit field stack without changing the scalar core.
+## Compatibility policy for the 1.x line
 
-`compute_agencity_field()` applies the canonical temporal pipeline independently at each spatial location and returns `beta_obs(x,t)` and `b_obs(x,t)`. This orchestration has scientific status **experimental**; CRM remains temporal only.
+Earlier 1.1.x releases exposed many specialized symbols directly from `agencitylab`. Those locations remain available as lazy compatibility aliases in 1.1.7, but explicit access emits `DeprecationWarning` and points to the owning namespace. A plain `import agencitylab` does not emit deprecation warnings.
 
-Promotion to the autonomous research field is explicit:
+For example, new code should use:
+
+```python
+import agencitylab.gravity as gravity
+eta = gravity.minkowski_metric()
+```
+
+rather than `agencitylab.minkowski_metric()`.
+
+Stable scalar workflows such as batch, streaming, reports, exports, pipelines, and visualization remain available under `agencitylab.api`; this release changes navigation, not their scientific semantics.
+
+## Observable and autonomous fields
+
+`agencitylab.fields.compute_agencity_field()` applies the canonical temporal pipeline independently at each spatial location and returns observable `beta_obs(x,t)` and `b_obs(x,t)`. It remains **experimental**.
+
+Promotion to the autonomous research field remains explicit:
 
 ```text
 phi = sqrt(P_c * tau) * beta_obs
 ```
 
-via `phi_from_observable_field()` or `beta_to_phi()`. `compute_agencity_field()` never performs this promotion automatically.
+Observable `beta_obs` and autonomous `phi` are distinct objects and are not renamed or silently merged.
 
-Version 1.1.2 exposes the research classical-field layer built on the shared quartic potential and NumPy numerical infrastructure:
+The classical field equations, quartic potential, coherent structures, and field topology remain **research**. Gravity retains its Chapter-19 `(-,+,+,+)` convention while flat Chapter-16 field dynamics retain `(+,-,-,-)`; this release does not reconcile those signatures.
 
-- `simulate_klein_gordon()`;
-- `simulate_dissipative_klein_gordon()`;
-- `simulate_tdgl()`;
-- `domain_wall_profile()` / `domain_wall_residual()`;
-- `vortex_field()` / `vortex_radial_residual()`;
-- `phase_winding()` and `field_zero_mask()`.
+## Runtime configuration is not physics
 
-The autonomous field, its PDE dynamics, and coherent-structure references are **research** interfaces. Their implementation and numerical tests are not empirical confirmation of the underlying field-theory extension.
+`agencitylab.config` now contains software/runtime options only. Historical configuration keys that looked like global physical defaults are accepted temporarily only as deprecated metadata and cannot modify the canonical calculation. Physical quantities such as `A_ref`, `tau`, `w`, `P_c`, `Gamma`, `lambda`, `mu`, temperature parameters, `xi`, and `G` must be supplied explicitly to the scientific API that owns them.
 
-## Thermodynamics and classical gravity
+Historical YAML model/config files that were not consumed by the runtime were removed from the distributed package so they cannot be mistaken for an alternative source of theory.
 
-Version 1.1.3 integrates two additional **research** layers on the same shared field contracts.
+## Legacy dynamics boundary
 
-Thermodynamics provides source-defined evaluators for dissipation `Gamma |phi_dot|^2`, entropy production, temperature-dependent `lambda(T)`, distinct field and contrast agencial entropies, energy-balance and second-law residuals, Modulus Law and Phase Law evaluation, plus the explicitly conditional Volume-1 Landauer relations. The reported Phase-Law fit is available only as a named empirical reference; it is not a universal constant set.
+The old `agencitylab.dynamics.system` implementation was not canonical. **The theory states `beta = J * U` and `b = P_c * beta`, while the legacy implementation used tanh-based beta factors and a discrete beta variation.** Those legacy equations are retired rather than preserved for compatibility. Generic dynamical-systems utilities remain where they have independent numerical value, and the duplicated historical RK4 location forwards to the authoritative generic RK4 primitive in `agencitylab.fields.numerics`.
 
-Classical gravity provides limited Chapter-19/23 primitives: Minkowski geometry, matter/action densities, minimal stress-energy, Einstein-equation residuals, nonminimal action/field coupling, and an optional externally supplied U(1) gauge potential. It does **not** provide an Einstein solver, autonomous gauge dynamics, or a nonminimal stress-energy tensor when the accepted source does not fully specify one.
+## Scientific status
 
-The gravity source convention is explicitly `(-,+,+,+)`, while the Chapter-16 flat dynamics remain `(+,-,-,-)`. AgencityLab preserves this source-level convention difference rather than silently changing signs to force equality.
+- **canonical** — scalar Theory pipeline and its accepted identities;
+- **experimental** — orchestration/numerical extensions not promoted to canonical theory;
+- **research** — autonomous field, coherent, thermodynamic and gravity models;
+- **speculative** — quantum/agenton and cosmological extensions.
 
-Selected principal research APIs are available from the top-level package, while the full contracts remain organized under `agencitylab.thermodynamics` and `agencitylab.gravity`.
+Diagnostics consume canonical results and do not redefine them. In particular, `beta != 0` is not by itself a criterion for coherent or “real” agencity.
 
-## Quantum and cosmological extensions
+## Packaging and software stability
 
-Version 1.1.4 adds two explicitly **speculative** layers. They implement source formulas for computational study; they are not experimental evidence for quantum Agencity, agentons, inflation, or dark energy.
-
-`agencitylab.quantum` provides the Chapter-21 broken-symmetry radial/Goldstone masses and dispersions, explicit propagators with caller-supplied regulator, finite Fock-space approximations with the truncation defect exposed, the constant-bridge Agencity uncertainty bound, and only the explicitly stated leading one-loop quartic beta-function term. It does not provide generic path integrals, a vacuum-energy prescription, or a scattering engine.
-
-`agencitylab.applications.cosmology` provides the homogeneous flat-FLRW field energy density and pressure, Friedmann residuals, and a deterministic RK4 reference solver. The first Friedmann equation is retained as a numerical constraint diagnostic rather than silently projected after every step. The negative minimum of the minimal broken quartic potential is preserved; no positive vacuum offset or cosmological constant is invented to make it resemble observed dark energy.
-
-Selected principal speculative APIs are available at package top level, while the complete contracts remain under `agencitylab.quantum` and `agencitylab.applications.cosmology`.
-
-## Theory-completeness extensions in 1.1.5
-
-Version 1.1.5 implements additional formulas already present in the accepted Volume-2 theory rather than introducing a new research programme.
-
-The Chapter-15 postulated effective field called `beta` is exposed separately under `agencitylab.fields.effective_beta`. Its reaction-diffusion-advection equation is **research** and is not the canonical computation of `beta_obs` from an observable. API names such as `diffusion_coefficient` and `saturation_coefficient` avoid collisions with the canonical dynamic intensity `D` and flux `b`.
-
-The Chapter-16 `(+,-,-,-)` flat-field layer now includes the Lagrangian density, symmetric energy-momentum tensor, U(1) Noether current, phase-current form, and radial-equation residual. Appendix B's separate beta-field Lagrangian/equation/current/tensor are retained under explicit `appendix_b_beta_*` names instead of being silently identified with the `phi = sqrt(P_c tau) beta` normalization.
-
-The explicitly incomplete Riemannian extension now implements only the intrinsic Definition-12.4 kinematics supplied by the source: metric inner product, speed, and `sqrt(g(X,X)+g(A,X)^2)` for caller-supplied covariant acceleration. It remains **experimental** and does not invent a full manifold CRM pipeline. Chapter-13 `Phi1` and `Phi3` evaluators are also available under `agencitylab.extensions`; `Phi3` requires caller-supplied angle bins because the theory does not prescribe a universal binning rule. Chapter 17's dimensionless coherent-field rescaling, coherence length, effective potential, and static residual are available from `agencitylab.fields.coherent`.
-
-Source ambiguities are recorded instead of guessed. The printed Chapter-15 phase equation does not algebraically match the direct complex equation without an additional factor; the extracted Chapter-8 cycle-area typography is ambiguous; and Volume 2 explicitly leaves a closed autonomous equation for `b` as future work. AgencityLab therefore does not silently manufacture any of these missing conventions.
-
-## Functional-completeness extensions in 1.1.6
-
-Version 1.1.6 adds source-defined mathematical/reference formulas found by a second completeness audit without modifying the canonical scalar engine.
-
-`agencitylab.extensions` now exposes the historical Chapter-14 intensity candidates: the sum form, its logarithm, the raw dynamic/structural ratio, and the common offset expression printed by the source. These are **experimental reference formulas** only. Their singularities are exposed instead of repaired with epsilon, and they never replace canonical `J = ln((e+D)/(e+S))` in `compute_agencity()`.
-
-`agencitylab.analysis` adds the Chapter-4 logarithmic-contrast sensitivity with respect to the fixed offset, the exact Chapter-10 multiplicative `P_c` perturbation identity, and the Chapter-11 recoverable inverse signature. The inverse helper requires known strictly positive `P_c`, recovers `beta`, `|J|`, and structural direction only modulo sign, and never claims to reconstruct the original observable or individual `D` and `S` values.
-
-The source prints the offset expression at the end of Section 14.3 and the `I3` expression in Section 14.4 in algebraically identical form. AgencityLab implements that common printed expression once rather than inventing a distinction not supported by the accepted document. The canonical constant remains `e = exp(1)` and is not made tunable.
-
-## Stable v1.0 API
-
-The principal stable scalar interfaces are:
-
-- `compute_agencity()`;
-- `AgencityResult`, `ExperimentMetadata`;
-- `analyze_agencity()` and documented named diagnostics;
-- `run_batch()`, `analyze_batch()`;
-- `AgencityStream`, `stream_agencity()`;
-- `compute_agencity_spectrum()`;
-- `compute_discrete_agencity()`;
-- `compute_multivariate_agencity()`;
-- documented exports and visualisations;
-- `ScientificStudy`, `scientific_workflow()`;
-- `AgencityPipeline`, `pipeline()`.
-
-The exact boundary is documented in `docs/stable_api.md`.
-
-`compute_discrete_agencity()` is not an alias for the continuous sampled gradient chain. It implements the explicit Volume-2 centred first and second differences, with documented one-sided endpoint conventions. The mathematical/numerical distinction is described in `docs/theory_mapping.md`.
-
-### Semantic Versioning and research APIs
-
-Starting with 1.0.0, intentional breaking changes to the stable scalar public contract require a major version. Backwards-compatible stable functionality normally belongs to a minor release and stable bug fixes to patch releases.
-
-The 1.1.x development line deliberately contains **experimental/research/speculative interfaces** that are outside the frozen v1.0 canonical stability guarantee. Those labelled interfaces may be added or refined within 1.1.x patch releases while the stable canonical scalar contract remains protected. Their scientific status must remain explicit.
-
-## Canonical, diagnostic, experimental, research
-
-**Stable canonical computation.** `agencitylab/core/` contains deterministic mathematical operators; normal user workflows use `compute_agencity()` as the unique reference orchestration. NumPy is the stable complete backend.
-
-**Diagnostic analysis.** `agencitylab/analysis/` consumes computed results. Coherence, angular variance, real-agencity criteria, curvature, winding, events, transitions, signatures, regimes, reports, robustness relations, and recoverable inverse signatures do not redefine the canonical state. In particular, `beta != 0` is not the definition of coherent or real agencity. Contextual structural, angular-stability, `|b|`, and persistence criteria remain diagnostic inputs and never modify `beta`.
-
-Historical coherence/real-agencity helpers under `agencitylab.core` remain only as deprecated legacy diagnostics. Historical `compute_full_agencity()` is a compatibility wrapper around the public reference pipeline, not a second canonical implementation.
-
-**Experimental.** Observable spatial orchestration, generic field numerics, Numba/JAX primitive layers, signal-derived window optimisation, `Phi1`/`Phi3` selection criteria, the limited Riemannian kinematic extension, and historical Chapter-14 intensity candidates are explicitly outside the stable canonical contract.
-
-**Research / speculative.** Autonomous `phi` dynamics, the separate Chapter-15 effective-beta model, flat-field conservation laws, coherent structures, thermodynamic and gravitational extensions are research layers. Quantum/agenton and cosmological extensions are speculative.
-
-## Reproducibility
-
-`AgencityResult` preserves the coordinate, observable, canonical intermediate arrays, physical/contextual parameters, unit/context labels, backend information, and producing AgencityLab version. Complex `beta` and `b` are preserved by JSON serialization; stable CSV export exposes real and imaginary components explicitly.
-
-Research field solutions preserve spatial axes, model parameters, parameter provenance, numerical method, boundary handling, scientific status, and units convention through `DynamicalAgencityFieldSolution`. `FlatFLRWSolution` records its numerical trajectory and Friedmann constraint residual for reproducible speculative cosmology experiments.
-
-This metadata supports traceability but does not make the inverse problem injective: the original observable cannot in general be reconstructed uniquely from `b` alone.
-
-## Batch, streaming and extensions
-
-Batch computations preserve input order and allow independent physical parameters per item. Supported serial/threaded execution is tested for scientific equivalence.
-
-Streaming is retained-history recomputation. With full history its final result is tested against one-shot computation. A finite `window_size` intentionally changes the retained-history problem; the current implementation does not claim a constant-memory online recurrence.
-
-Multiscale analysis scans explicit `tau` values and may use independent `w` values. It does not conflate characteristic time, CRM memory width, sampling interval, or physical parameter estimation. Discrete and multivariate constructions are part of the documented stable computational API. The Riemannian layer exposes only the source-defined intrinsic primitives and remains experimental; its detailed manifold analysis is still explicitly deferred by the source.
-
-## Scientific validation
-
-The deterministic regression suite covers exact rest, sinusoidal structure, passive damping, Van der Pol oscillation, negative-damping instability, filtered Ornstein-Uhlenbeck dynamics, and Lorenz dynamics. It also checks canonical identities, invariances/limits, CRM equivalence, edge cases, batch/streaming/multiscale consistency, discrete stencils and convergence, packaging, public workflows, classical field equations, coherent-structure references, thermodynamic identities/evaluators, gravity tensor/equation contracts, quantum primitive identities, homogeneous FLRW contracts, and cross-layer field contracts.
-
-These checks verify implementation and numerical behaviour against accepted equations and mathematical consequences. They are not a user-independent falsification protocol and are not empirical confirmation of the Theory of Agencity or its research/speculative extensions.
+NumPy remains the only required dependency. The historical `ml` extra remains as a compatibility alias for the narrower `numba` and `jax` extras. The PyPI classifier `Development Status :: 5 - Production/Stable` describes the stable **software contract**; it does not promote experimental, research, or speculative scientific claims.
 
 ## Documentation
 
-- `docs/overview.md`
+Start with:
+
+- `docs/api_map.md`
 - `docs/stable_api.md`
-- `docs/observable_fields.md`
-- `docs/dynamical_field_foundations.md`
-- `docs/classical_field_dynamics.md`
-- `docs/effective_beta_and_conservation.md`
-- `docs/coherent_structures.md`
-- `docs/mathematical_extensions.md`
-- `docs/thermodynamics.md`
-- `docs/gravity.md`
-- `docs/quantum.md`
-- `docs/cosmology.md`
-- `docs/tutorials/quickstart.md`
-- `docs/tutorials/full_pipeline.md`
-- `docs/agencity_analysis.md`
-- `docs/multiscale_extensions.md`
 - `docs/theory_mapping.md`
 - `docs/scientific_validation.md`
-- `docs/engineering_performance.md`
-- `docs/release_readiness.md`
+- `docs/tutorials/quickstart.md`
 
-Documentation is built in CI with significant Sphinx warnings treated as errors.
+Specialized documentation includes observable/autonomous fields, coherent structures, thermodynamics, gravity, quantum, and cosmology pages.
 
-## Limitations
-
-AgencityLab remains research software beyond its stable scalar computation contract. Results depend on the observable and physically/contextually justified parameters. Sampling and preprocessing decisions must be explicit. Sensitivity to `w` is scientifically meaningful. The inverse problem is non-injective. Current streaming is not constant-memory. Accelerated backends are experimental. Autonomous-field, effective-beta, thermodynamic, and gravitational extensions retain research status; limited Riemannian primitives and historical intensity candidates remain experimental; quantum and cosmological extensions remain speculative. Gravity is not a general numerical-relativity framework, and the cosmology package is not an observational inference framework. Source formulas that are incomplete or internally ambiguous are documented rather than silently completed by software convention.
-
-## Development and contribution
+## Development
 
 Supported Python versions are **3.10, 3.11, and 3.12**.
 
@@ -263,12 +162,8 @@ sphinx-build -W --keep-going -b html docs docs/_build/html
 python -m build
 ```
 
-See `CONTRIBUTING.md` for scientific-change rules, branch/PR workflow, tests, and versioning policy.
+See `CONTRIBUTING.md` for scientific-change rules and the GitHub workflow.
 
-## Citation
+## Citation and license
 
-Scientific users should cite the software metadata in `CITATION.cff`. No DOI or affiliation is asserted unless it is provided by the project.
-
-## License
-
-AgencityLab is distributed under the MIT License. See `LICENSE`.
+Scientific users should cite `CITATION.cff`. AgencityLab is distributed under the MIT License.

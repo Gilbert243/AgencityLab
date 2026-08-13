@@ -1,7 +1,8 @@
-"""
-Preset configurations for AgencityLab public API.
+"""Software and diagnostic presets for the public API.
 
-Presets define user-facing defaults for compute and analysis behaviors.
+Compute presets never provide physical values such as ``A_ref``, ``tau``,
+``w`` or ``P_c``. Analysis thresholds remain diagnostic choices rather than
+universal scientific constants.
 """
 
 from __future__ import annotations
@@ -12,63 +13,40 @@ from typing import Any, Dict, Optional
 
 PRESETS: Dict[str, Dict[str, Dict[str, Any]]] = {
     "default": {
-        "compute": {
-            "normalization_method": "A_ref",
-            "A_ref": None,
-            "tau_threshold": 0.5,
-            "power_method": "rms",
-        },
+        "compute": {"normalization_method": "A_ref"},
         "analysis": {
             "event_threshold": 3.0,
             "transition_threshold": 2.0,
             "spectrum_component": "magnitude",
         },
-        "description": "Balanced default preset for general use.",
+        "description": "Default software behaviour with explicit physical inputs.",
     },
     "fast": {
-        "compute": {
-            "normalization_method": "A_ref",
-            "A_ref": None,
-            "tau_threshold": 0.5,
-            "power_method": "rms",
-        },
+        "compute": {"normalization_method": "A_ref"},
         "analysis": {
             "event_threshold": 3.5,
             "transition_threshold": 2.5,
             "spectrum_component": "magnitude",
         },
-        "description": "Lightweight preset for quick experiments.",
+        "description": "Lighter diagnostic settings; canonical equations are unchanged.",
     },
     "research": {
-        "compute": {
-            "normalization_method": "A_ref",
-            "A_ref": None,
-            "tau_threshold": 0.5,
-            "power_method": "variance",
-        },
+        "compute": {"normalization_method": "A_ref"},
         "analysis": {
             "event_threshold": 2.5,
             "transition_threshold": 1.8,
             "spectrum_component": "phase",
         },
-        "description": "More sensitive preset for scientific exploration.",
+        "description": "More sensitive diagnostic settings; not a physics preset.",
     },
     "multiscale": {
-        "compute": {
-            "normalization_method": "A_ref",
-            "A_ref": None,
-            "tau_threshold": 0.5,
-            "power_method": "rms",
-            "multiscale_scales": tuple(
-                float(x) for x in __import__("numpy").exp(__import__("numpy").linspace(__import__("numpy").log(0.5), __import__("numpy").log(2.5), 12))
-            ),
-        },
+        "compute": {"normalization_method": "A_ref"},
         "analysis": {
             "event_threshold": 3.0,
             "transition_threshold": 2.0,
             "spectrum_component": "magnitude",
         },
-        "description": "Preset tuned for multiscale studies.",
+        "description": "Diagnostic preset for explicit multiscale studies.",
     },
 }
 
@@ -82,9 +60,6 @@ def has_preset(name: str) -> bool:
 
 
 def get_preset(name: str = "default") -> Dict[str, Dict[str, Any]]:
-    """
-    Return a deep copy of a preset definition.
-    """
     name = str(name)
     if name not in PRESETS:
         raise KeyError(f"Unknown preset '{name}'. Available: {list_presets()}")
@@ -97,22 +72,16 @@ def resolve_compute_config(
     config: Optional[Dict[str, Any]] = None,
     overrides: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
-    """
-    Merge preset compute config with user config and overrides.
-    """
     if isinstance(preset, dict):
         base = deepcopy(preset)
     else:
         base = deepcopy(get_preset(preset)["compute"])
-
     if config is not None:
         if not isinstance(config, dict):
             raise ValueError("config must be a dictionary or None")
         base.update(config)
-
     if overrides:
         base.update(overrides)
-
     return base
 
 
@@ -122,29 +91,20 @@ def resolve_analysis_config(
     config: Optional[Dict[str, Any]] = None,
     overrides: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
-    """
-    Merge preset analysis config with user config and overrides.
-    """
     if isinstance(preset, dict):
         base = deepcopy(preset)
     else:
         base = deepcopy(get_preset(preset)["analysis"])
-
     if config is not None:
         if not isinstance(config, dict):
             raise ValueError("config must be a dictionary or None")
         base.update(config)
-
     if overrides:
         base.update(overrides)
-
     return base
 
 
 def describe_preset(name: str = "default") -> Dict[str, Any]:
-    """
-    Return preset metadata.
-    """
     preset = get_preset(name)
     return {
         "name": name,

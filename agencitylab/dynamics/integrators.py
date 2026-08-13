@@ -1,49 +1,56 @@
-"""
-Numerical integrators for AgencityLab dynamics.
+"""Generic ODE integration helpers retained for compatibility.
 
-The base layer provides a minimal Euler solver, a classic RK4 step and a
-thin wrapper around scipy.integrate.solve_ivp when SciPy is available.
+The authoritative fixed-step RK4 primitive is
+``agencitylab.fields.numerics.rk4_step``. This module keeps the historical
+``rk4_step`` location as a deprecated forwarding wrapper and retains the unique
+Euler and optional-SciPy convenience solvers.
 """
 
 from __future__ import annotations
 
-from typing import Callable, Optional, Tuple
+from typing import Callable
+import warnings
 
 import numpy as np
 
 
 def solve_euler(rhs: Callable[[float, np.ndarray], np.ndarray], y0, xi_grid):
-    """
-    Integrate an ODE with the explicit Euler method.
-    """
+    """Integrate an ODE with the explicit Euler method."""
+
     xi_grid = np.asarray(xi_grid, dtype=float)
     y0 = np.asarray(y0, dtype=float)
-
     if xi_grid.ndim != 1:
         raise ValueError("xi_grid must be one-dimensional.")
+    if xi_grid.size == 0:
+        raise ValueError("xi_grid must not be empty.")
 
     trajectory = np.zeros((xi_grid.size, y0.size), dtype=float)
     trajectory[0] = y0
-
     for i in range(1, xi_grid.size):
         h = float(xi_grid[i] - xi_grid[i - 1])
-        trajectory[i] = trajectory[i - 1] + h * np.asarray(rhs(xi_grid[i - 1], trajectory[i - 1]), dtype=float)
-
+        trajectory[i] = trajectory[i - 1] + h * np.asarray(
+            rhs(xi_grid[i - 1], trajectory[i - 1]), dtype=float
+        )
     return trajectory
 
 
-def rk4_step(rhs: Callable[[float, np.ndarray], np.ndarray], xi: float, y: np.ndarray, h: float) -> np.ndarray:
-    """
-    Perform a single Runge-Kutta 4 step.
-    """
-    y = np.asarray(y, dtype=float)
+def rk4_step(
+    rhs: Callable[[float, np.ndarray], np.ndarray],
+    xi: float,
+    y: np.ndarray,
+    h: float,
+) -> np.ndarray:
+    """Deprecated forwarding alias to the authoritative generic RK4 primitive."""
 
-    k1 = np.asarray(rhs(xi, y), dtype=float)
-    k2 = np.asarray(rhs(xi + 0.5 * h, y + 0.5 * h * k1), dtype=float)
-    k3 = np.asarray(rhs(xi + 0.5 * h, y + 0.5 * h * k2), dtype=float)
-    k4 = np.asarray(rhs(xi + h, y + h * k3), dtype=float)
+    warnings.warn(
+        "agencitylab.dynamics.rk4_step is deprecated; use "
+        "agencitylab.fields.numerics.rk4_step.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    from agencitylab.fields.numerics.integrators import rk4_step as authoritative_rk4_step
 
-    return y + (h / 6.0) * (k1 + 2.0 * k2 + 2.0 * k3 + k4)
+    return authoritative_rk4_step(rhs, xi, y, h)
 
 
 def solve_ivp_wrapper(
@@ -54,10 +61,8 @@ def solve_ivp_wrapper(
     rtol: float = 1e-6,
     atol: float = 1e-9,
 ):
-    """
-    Integrate an ODE using scipy.integrate.solve_ivp if SciPy is installed.
-    Falls back to Euler when SciPy is not available.
-    """
+    """Use SciPy ``solve_ivp`` when installed, otherwise fall back to Euler."""
+
     try:
         from scipy.integrate import solve_ivp  # type: ignore
     except Exception:
@@ -65,9 +70,10 @@ def solve_ivp_wrapper(
 
     xi_grid = np.asarray(xi_grid, dtype=float)
     y0 = np.asarray(y0, dtype=float)
-
     if xi_grid.ndim != 1:
         raise ValueError("xi_grid must be one-dimensional.")
+    if xi_grid.size == 0:
+        raise ValueError("xi_grid must not be empty.")
 
     sol = solve_ivp(
         fun=lambda t, y: rhs(t, y),
@@ -78,8 +84,6 @@ def solve_ivp_wrapper(
         rtol=rtol,
         atol=atol,
     )
-
     if not sol.success:
         raise RuntimeError(f"solve_ivp failed: {sol.message}")
-
     return sol.y.T

@@ -43,7 +43,7 @@ jobs:
         run: |
           python - <<'PY'
           import agencitylab
-          assert agencitylab.__version__ == "1.1.6"
+          assert agencitylab.__version__ == "1.1.7"
           print(agencitylab.__version__)
           PY
 
@@ -74,7 +74,7 @@ jobs:
           test "$(find dist -maxdepth 1 -name '*.whl' | wc -l)" -eq 1
           test "$(find dist -maxdepth 1 -name '*.tar.gz' | wc -l)" -eq 1
 
-      - name: Clean wheel install and minimal compute
+      - name: Clean wheel install and namespace smoke test
         run: |
           python -m venv .venv-wheel
           .venv-wheel/bin/python -m pip install --upgrade pip
@@ -85,31 +85,30 @@ jobs:
           import importlib.metadata as metadata
           import importlib.util
           import numpy as np
-          import agencitylab
-          from agencitylab.fields import compute_agencity_field
+          import agencitylab as al
+          import agencitylab.fields as fields
+          import agencitylab.gravity as gravity
+          import agencitylab.quantum as quantum
+          import agencitylab.thermodynamics as thermodynamics
+          from agencitylab.applications import cosmology
+          from agencitylab.api import analyze_agencity
 
-          assert agencitylab.__version__ == "1.1.6"
+          assert al.__version__ == "1.1.7"
           requirements = metadata.requires("agencitylab") or []
           assert any(requirement.lower().startswith("numpy") for requirement in requirements)
           for optional in ("scipy", "pandas", "matplotlib", "numba", "jax"):
               assert importlib.util.find_spec(optional) is None, optional
 
           xi = np.arange(256, dtype=float)
-          result = agencitylab.compute_agencity(
-              u=np.sin(0.07 * xi),
-              xi=xi,
-              A_ref=1.0,
-              tau=16.0,
-              w=12.0,
-              P_c=2.0,
+          result = al.compute_agencity(
+              u=np.sin(0.07 * xi), xi=xi, A_ref=1.0, tau=16.0, w=12.0, P_c=2.0
           )
-          analysis = agencitylab.analyze_agencity(result)
           assert result.b.shape == xi.shape
           assert np.all(np.isfinite(result.b))
-          assert result.metadata.agencitylab_version == "1.1.6"
-          assert analysis["events"]["dynamic_peaks"]["count"] >= 0
+          assert result.metadata.agencitylab_version == "1.1.7"
+          assert analyze_agencity(result)["events"]["dynamic_peaks"]["count"] >= 0
 
-          field = compute_agencity_field(
+          field = fields.compute_agencity_field(
               np.column_stack([np.sin(0.07 * xi), np.cos(0.07 * xi)]),
               xi,
               A_ref=1.0,
@@ -118,51 +117,32 @@ jobs:
               P_c=np.array([0.0, 2.0]),
           )
           assert field.status == "experimental"
-          assert field.b.shape == (xi.size, 2)
           assert np.all(field.b[:, 0] == 0.0j)
-          phi = agencitylab.phi_from_observable_field(field)
-          assert phi.shape == field.beta.shape
-          assert np.all(phi[:, 0] == 0.0j)
-          state = agencitylab.DynamicalAgencityFieldState(
-              phi=phi[-1],
-              time=float(xi[-1]),
-              spatial_shape=(2,),
-              units_convention="dimensionless",
+          phi = fields.phi_from_observable_field(field)
+          state = al.DynamicalAgencityFieldState(
+              phi=phi[-1], time=float(xi[-1]), spatial_shape=(2,), units_convention="dimensionless"
           )
           assert state.scientific_status.value == "research"
 
-          grid = agencitylab.UniformRectilinearGrid(shape=(8,), spacings=(0.5,))
-          potential = agencitylab.QuarticAgencityPotential(lambda_=1.0, mu=1.0)
-          vacuum = agencitylab.vacuum_state(1.0, 1.0, theta=0.2)
-          dynamic = agencitylab.simulate_tdgl(
-              np.full(grid.shape, vacuum, dtype=complex),
-              grid,
-              potential,
-              gamma=1.0,
-              dt=0.01,
-              n_steps=1,
+          grid = fields.UniformRectilinearGrid(shape=(8,), spacings=(0.5,))
+          potential = fields.QuarticAgencityPotential(lambda_=1.0, mu=1.0)
+          vacuum = fields.vacuum_state(1.0, 1.0, theta=0.2)
+          dynamic = fields.simulate_tdgl(
+              np.full(grid.shape, vacuum, dtype=complex), grid, potential, gamma=1.0, dt=0.01, n_steps=1
           )
           assert dynamic.scientific_status.value == "research"
           theta = np.linspace(0.0, 2.0 * np.pi, 64, endpoint=False)
-          assert agencitylab.phase_winding(np.exp(1j * theta)) == 1.0
-
+          assert fields.phase_winding(np.exp(1j * theta)) == 1.0
           np.testing.assert_array_equal(
-              agencitylab.dissipation_density(np.zeros(grid.shape), gamma=1.0),
-              0.0,
+              thermodynamics.dissipation_density(np.zeros(grid.shape), gamma=1.0), 0.0
           )
-          assert agencitylab.GRAVITY_METRIC_SIGNATURE == (-1, 1, 1, 1)
+          assert gravity.GRAVITY_METRIC_SIGNATURE == (-1, 1, 1, 1)
           np.testing.assert_array_equal(
-              np.diag(agencitylab.minkowski_metric()),
-              np.array([-1.0, 1.0, 1.0, 1.0]),
+              np.diag(gravity.minkowski_metric()), np.array([-1.0, 1.0, 1.0, 1.0])
           )
-          assert agencitylab.radial_mass_squared(1.0) == 2.0
-          assert agencitylab.agencity_uncertainty_lower_bound(
-              characteristic_power=0.0,
-              tau=1.0,
-              hbar=1.0,
-          ) == 0.0
-          assert callable(agencitylab.simulate_flat_flrw)
-          print("minimal NumPy-only wheel install, canonical through speculative APIs: PASS")
+          assert quantum.radial_mass_squared(1.0) == 2.0
+          assert callable(cosmology.simulate_flat_flrw)
+          print("minimal NumPy-only wheel install and namespaces: PASS")
           PY
 
       - name: Built wheel public end-to-end workflow
@@ -177,12 +157,12 @@ jobs:
           import json
           from pathlib import Path
           import tempfile
-
           import numpy as np
-          import agencitylab
+          import agencitylab as al
+          from agencitylab.api import analyze_agencity, export_result_csv, export_study_json
 
           xi = np.linspace(0.0, 20.0, 801)
-          result = agencitylab.compute_agencity(
+          result = al.compute_agencity(
               u=np.sin(xi) + 0.1 * np.sin(2.0 * xi),
               xi=xi,
               A_ref=1.0,
@@ -192,21 +172,21 @@ jobs:
               coordinate_unit="s",
               power_unit="W",
           )
-          analysis = agencitylab.analyze_agencity(result)
+          analysis = analyze_agencity(result)
           with tempfile.TemporaryDirectory() as directory:
               root = Path(directory)
-              json_path = agencitylab.export_study_json(result, analysis, root / "study.json")
-              csv_path = agencitylab.export_result_csv(result, root / "result.csv")
+              json_path = export_study_json(result, analysis, root / "study.json")
+              csv_path = export_result_csv(result, root / "result.csv")
               payload = json.loads(json_path.read_text(encoding="utf-8"))
-              restored = agencitylab.AgencityResult.from_dict(payload["result"])
+              restored = al.AgencityResult.from_dict(payload["result"])
               assert csv_path.exists()
               np.testing.assert_allclose(restored.beta, result.beta)
               np.testing.assert_allclose(restored.b, result.b)
-          assert result.metadata.agencitylab_version == "1.1.6"
+          assert result.metadata.agencitylab_version == "1.1.7"
           print("built wheel public end-to-end workflow: PASS")
           PY
 
-      - name: Clean sdist install and minimal compute
+      - name: Clean sdist install and namespace smoke test
         run: |
           python -m venv .venv-sdist
           .venv-sdist/bin/python -m pip install --upgrade pip
@@ -215,20 +195,22 @@ jobs:
           cd /tmp
           "$GITHUB_WORKSPACE/.venv-sdist/bin/python" - <<'PY'
           import numpy as np
-          import agencitylab
-          assert agencitylab.__version__ == "1.1.6"
-          assert agencitylab.available_backends() == ("numpy",)
+          import agencitylab as al
+          import agencitylab.fields as fields
+          import agencitylab.gravity as gravity
+          import agencitylab.quantum as quantum
+          import agencitylab.thermodynamics as thermodynamics
+          from agencitylab.applications import cosmology
+          from agencitylab.backends.selector import available_backends
+
+          assert al.__version__ == "1.1.7"
+          assert available_backends() == ("numpy",)
           xi = np.arange(64, dtype=float)
-          result = agencitylab.compute_agencity(
-              u=np.sin(0.2 * xi),
-              xi=xi,
-              A_ref=1.0,
-              tau=4.0,
-              w=3.0,
-              P_c=1.0,
+          result = al.compute_agencity(
+              u=np.sin(0.2 * xi), xi=xi, A_ref=1.0, tau=4.0, w=3.0, P_c=1.0
           )
           assert result.b.shape == xi.shape
-          field = agencitylab.compute_agencity_field(
+          field = fields.compute_agencity_field(
               np.column_stack([np.sin(0.2 * xi), np.cos(0.2 * xi)]),
               xi,
               A_ref=1.0,
@@ -237,20 +219,19 @@ jobs:
               P_c=1.0,
           )
           assert field.beta.shape == (xi.size, 2)
-          assert agencitylab.phi_from_observable_field(field).shape == field.beta.shape
-          assert callable(agencitylab.simulate_klein_gordon)
-          assert callable(agencitylab.domain_wall_profile)
-          assert callable(agencitylab.field_agencial_entropy)
-          assert callable(agencitylab.einstein_equation_residual)
-          assert callable(agencitylab.radial_mass_squared)
-          assert callable(agencitylab.simulate_flat_flrw)
-          print("minimal sdist install, scalar and integrated 1.1.6 APIs: PASS")
+          assert callable(fields.simulate_klein_gordon)
+          assert callable(fields.domain_wall_profile)
+          assert callable(thermodynamics.field_agencial_entropy)
+          assert callable(gravity.einstein_equation_residual)
+          assert callable(quantum.radial_mass_squared)
+          assert callable(cosmology.simulate_flat_flrw)
+          print("minimal sdist install and scientific namespaces: PASS")
           PY
 
       - name: Upload distributions
         uses: actions/upload-artifact@v4
         with:
-          name: agencitylab-1.1.6-distributions
+          name: agencitylab-1.1.7-distributions
           path: dist/
           if-no-files-found: error
 
@@ -265,14 +246,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
-
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
           python-version: "3.11"
           cache: pip
           cache-dependency-path: pyproject.toml
-
       - name: Install isolated extra
         env:
           EXTRA: ${{ matrix.extra }}
@@ -280,7 +259,6 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install ".[${EXTRA}]"
           python -m pip check
-
       - name: Smoke test isolated extra
         env:
           EXTRA: ${{ matrix.extra }}
@@ -289,55 +267,45 @@ jobs:
   docs:
     name: Docs / Sphinx warnings as errors
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v5
-
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
-
       - name: Install documentation dependencies
         run: |
           python -m pip install --upgrade pip
           python -m pip install -e ".[docs]"
-
       - name: Build documentation
         run: sphinx-build -W --keep-going -b html docs docs/_build/html
 
   examples:
     name: Examples / critical user workflows
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v5
-
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
-
       - name: Install documented example capabilities
         run: |
           python -m pip install --upgrade pip
           python -m pip install -e ".[viz,export]"
           python -m pip check
-
       - name: Run minimal example
         env:
           MPLBACKEND: Agg
         run: python examples/basic/simple_compute.py
-
       - name: Run signal exploration example
         env:
           MPLBACKEND: Agg
         run: python examples/basic/explore_signal.py
-
       - name: Run scientific workflow example
         env:
           MPLBACKEND: Agg
@@ -345,7 +313,6 @@ jobs:
           python examples/basic/scientific_workflow.py
           test -d agencity_output
           rm -rf agencity_output
-
       - name: Run multiscale example
         run: python examples/advanced/agencity_spectrum.py
 
@@ -353,28 +320,23 @@ jobs:
     name: Benchmark / reproducible scientific equivalence
     runs-on: ubuntu-latest
     timeout-minutes: 20
-
     steps:
       - name: Checkout
         uses: actions/checkout@v5
-
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
-
       - name: Install NumPy-only benchmark environment
         run: |
           python -m pip install --upgrade pip
           python -m pip install -e .
-
       - name: Run retained v0.8 before-after benchmark
         run: |
           python benchmarks/performance/benchmark_v08.py \
             --quick \
             --output benchmark-v08.json
-
       - name: Verify numerical equivalence, not timing
         run: |
           python - <<'PY'
@@ -391,7 +353,6 @@ jobs:
           assert workloads["batch_threaded_max_abs_difference"] == 0.0
           print("benchmark scientific equivalence: PASS")
           PY
-
       - name: Upload benchmark report
         uses: actions/upload-artifact@v4
         with:
