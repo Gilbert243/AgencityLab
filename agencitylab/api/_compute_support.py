@@ -137,15 +137,19 @@ def resolve_memory_window(
     """Resolve the CRM width while keeping the ``w = tau`` fallback explicit."""
     if w is None:
         memory_window = tau
+        mode = "w=tau default"
         convention = "w was unspecified; implementation convention w = tau was used"
     else:
         try:
             memory_window = validate_positive_scalar(w, name="w")
         except ValueError as exc:
             raise PhysicalParameterError(str(exc)) from exc
+        mode = "explicit"
         convention = "w was supplied explicitly and preserved"
 
     metadata.memory_window = float(memory_window)
+    metadata.extra["memory_window"] = float(memory_window)
+    metadata.extra["memory_window_mode"] = mode
     metadata.extra["memory_window_convention"] = convention
     return float(memory_window)
 
