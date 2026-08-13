@@ -1,7 +1,7 @@
 """Diagnostic evaluators for the thermodynamic laws of Agencity.
 
 The Modulus Law and Phase Law are evaluated against supplied data; they never
-modify canonical ``b``.  Scientific status: research.  The Phase-Law reference
+modify canonical ``b``. Scientific status: research. The Phase-Law reference
 fit is an empirical reference reported in Volume 2, not a universal constant.
 """
 
@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Any, Mapping
-import warnings
 
 import numpy as np
 
@@ -91,7 +90,6 @@ class PhaseLawFit:
 
     def to_dict(self) -> dict[str, Any]:
         """Return a lightweight serializable metadata representation."""
-
         return {
             "alpha": self.alpha,
             "beta_fit": self.beta_fit,
@@ -108,10 +106,9 @@ def thermal_reference_phase_fit() -> PhaseLawFit:
     """Return the named empirical thermal-system fit reported in Volume 2.
 
     The reported values are ``alpha ~= 0.82``, ``beta ~= -1.50`` and
-    ``R^2 ~= 0.87`` for the thermal systems studied in the manuscript.  They are
+    ``R^2 ~= 0.87`` for the thermal systems studied in the manuscript. They are
     not universal constants and are never used as silent defaults.
     """
-
     reference = "Volume 2, Chapter 18, Eq. (18.8)"
     provenance = {
         name: ParameterProvenance(
@@ -133,10 +130,9 @@ def thermal_reference_phase_fit() -> PhaseLawFit:
 def second_law_residual(dS_ag_dt, dS_therm_dt, total_sigma):
     """Evaluate ``dS_ag/dt + dS_therm/dt - integral(sigma) dV``.
 
-    A zero residual matches Volume 2 Eq. (18.6).  The value is diagnostic and
+    A zero residual matches Volume 2 Eq. (18.6). The value is diagnostic and
     is never clipped: negative values from inconsistent data remain visible.
     """
-
     agencial_rate = _finite_real_array(dS_ag_dt, name="dS_ag_dt")
     thermal_rate = _finite_real_array(dS_therm_dt, name="dS_therm_dt")
     production = _finite_real_array(total_sigma, name="total_sigma")
@@ -156,10 +152,9 @@ def modulus_law_margin(b, p_diss, t_amb, sdot_int):
     """Return the Volume 2 Eq. (18.7) margin without altering ``b``.
 
     The evaluated margin is
-    ``abs(b) - (P_diss + T_amb * Sdot_int)``.  No term is clipped, so both
+    ``abs(b) - (P_diss + T_amb * Sdot_int)``. No term is clipped, so both
     positive and negative internal-entropy rates remain scientifically visible.
     """
-
     agencity = np.asarray(b)
     if not np.issubdtype(agencity.dtype, np.number) or np.issubdtype(
         agencity.dtype, np.bool_
@@ -188,7 +183,6 @@ def modulus_law_margin(b, p_diss, t_amb, sdot_int):
 
 def modulus_law_satisfied(b, p_diss, t_amb, sdot_int):
     """Return whether the evaluated Modulus-Law margin is non-negative."""
-
     result = np.asarray(modulus_law_margin(b, p_diss, t_amb, sdot_int) >= 0.0)
     return bool(result) if result.ndim == 0 else result
 
@@ -225,14 +219,13 @@ def phase_law_prediction(
     """Evaluate the Phase-Law fitted prediction from Volume 2 Eq. (18.8).
 
     The source manuscript denotes the imaginary field component by ``O`` in
-    this section.  That symbol is *not* the canonical CRM organisation ``O``.
-    This API therefore accepts no argument named ``O``.  It evaluates only
+    this section. That symbol is *not* the canonical CRM organisation ``O``.
+    This API therefore accepts no argument named ``O``. It evaluates only
     ``alpha * log10(P_diss / (T_amb * |Sdot_int|)) + beta_fit``.
 
-    The ratio must be finite and strictly positive.  In particular,
+    The ratio must be finite and strictly positive. In particular,
     ``Sdot_int == 0`` is mathematically undefined and is rejected without EPS.
     """
-
     alpha_value, beta_value = _resolve_phase_coefficients(
         alpha=alpha,
         beta_fit=beta_fit,
@@ -271,7 +264,6 @@ def phase_law_residual(
     fit: PhaseLawFit | None = None,
 ):
     """Return supplied imaginary-field component minus Phase-Law prediction."""
-
     component = _finite_real_array(phase_component, name="phase_component")
     prediction = np.asarray(
         phase_law_prediction(
@@ -297,7 +289,6 @@ def phi_imaginary_component(phi) -> np.ndarray:
     This helper exists specifically to avoid confusing the manuscript's
     Chapter-18 symbol ``O`` with canonical CRM organisation ``O``.
     """
-
     field = np.asarray(phi)
     if not np.issubdtype(field.dtype, np.number) or np.issubdtype(
         field.dtype, np.bool_
@@ -306,15 +297,3 @@ def phi_imaginary_component(phi) -> np.ndarray:
     if not np.all(np.isfinite(field)):
         raise ValueError("phi must contain only finite values")
     return np.asarray(np.imag(field), dtype=float)
-
-
-def second_law_check(entropy_series):
-    """Legacy monotonic-series placeholder, not Volume 2 Eq. (18.6)."""
-
-    warnings.warn(
-        "second_law_check is a legacy monotonicity heuristic; use "
-        "second_law_residual for the Chapter-18 relation",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    return all(x2 >= x1 for x1, x2 in zip(entropy_series, entropy_series[1:]))
