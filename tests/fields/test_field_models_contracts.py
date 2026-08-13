@@ -3,7 +3,8 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from agencitylab.fields import AgencityField, ObservableAgencityFieldResult, compute_agencity_field
+import agencitylab.fields as fields_api
+from agencitylab.fields import ObservableAgencityFieldResult, compute_agencity_field
 from agencitylab.models.field_extensions import (
     DynamicalAgencityFieldSolution,
     DynamicalAgencityFieldState,
@@ -248,8 +249,8 @@ def test_solution_dictionary_round_trip_keeps_large_arrays_as_arrays():
     assert restored.parameter_provenance["mu"].reference == "Volume 2"
 
 
-def test_observable_field_compatibility_alias_and_status_are_unchanged():
-    assert AgencityField is ObservableAgencityFieldResult
+def test_observable_field_contract_has_no_pre_1_0_alias():
+    assert not hasattr(fields_api, "AgencityField")
     t = np.arange(16, dtype=float)
     u = np.column_stack([np.sin(0.2 * t), np.cos(0.2 * t)])
     result = compute_agencity_field(u, t, A_ref=1.0, tau=4.0, w=3.0, P_c=1.0)
