@@ -1,7 +1,7 @@
-"""Scientific metadata model for AgencityLab.
+"""Scientific reproducibility metadata for AgencityLab.
 
-Metadata carries physical/contextual information required to reproduce a
-computation. Unit fields are labels only: AgencityLab does not silently convert
+Metadata carries contextual information required to reproduce a computation.
+Unit fields are descriptive labels only: AgencityLab never silently converts
 magnitudes between unit systems.
 """
 
@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field, fields
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Any
 
 import numpy as np
 
@@ -22,24 +22,24 @@ def _clean_text(value: Any, *, name: str) -> str:
     return value.strip()
 
 
-def _positive_optional(value: Any, *, name: str) -> Optional[float]:
+def _positive_optional(value: Any, *, name: str) -> float | None:
     if value is None:
         return None
     try:
         out = float(value)
-    except Exception as exc:  # pragma: no cover - defensive
+    except Exception as exc:
         raise ValueError(f"{name} must be numeric") from exc
     if not np.isfinite(out) or out <= 0.0:
         raise ValueError(f"{name} must be strictly positive")
     return out
 
 
-def _nonnegative_optional(value: Any, *, name: str) -> Optional[float]:
+def _nonnegative_optional(value: Any, *, name: str) -> float | None:
     if value is None:
         return None
     try:
         out = float(value)
-    except Exception as exc:  # pragma: no cover - defensive
+    except Exception as exc:
         raise ValueError(f"{name} must be numeric") from exc
     if not np.isfinite(out) or out < 0.0:
         raise ValueError(f"{name} must be non-negative and finite")
@@ -47,7 +47,6 @@ def _nonnegative_optional(value: Any, *, name: str) -> Optional[float]:
 
 
 def _agencity_flux_unit(power_unit: str) -> str:
-    """Return the theory-facing flux label corresponding to a power unit."""
     return f"{power_unit}·nat" if power_unit else ""
 
 
@@ -55,24 +54,13 @@ def _agencity_flux_unit(power_unit: str) -> str:
 class ExperimentMetadata:
     """Reproducibility metadata for one Agencity computation.
 
-    ``unit`` labels the observable and therefore also ``A_ref``.
-    ``coordinate_unit`` labels ``xi`` and therefore also ``tau`` and ``w``.
-    ``power_unit`` labels ``P_c``. The observable agencity flux ``b`` carries the
-    corresponding informational-power label ``power_unit · nat`` (for example,
-    ``W·nat``). These labels are descriptive contracts; no automatic unit
-    conversion is performed.
+    ``unit`` labels ``u`` and ``A_ref``; ``coordinate_unit`` labels ``xi``,
+    ``tau`` and ``w``; ``power_unit`` labels ``P_c``. The agencity flux ``b``
+    therefore carries the informational-power label ``power_unit·nat``.
 
-    ``characteristic_power`` stores a scalar physical ``P_c >= 0`` when one
-    exists. A time-varying externally supplied ``P_c(t)`` lives on
-    ``AgencityResult.P_c`` and is identified through metadata ``extra`` rather
-    than being collapsed to a scalar.
-
-    ``agencitylab_version`` records the software version that produced a result.
-    It is populated by the public compute API and retained by serialization.
-
-    ``activity_factor`` and ``resolution_scale`` remain serializable for legacy
-    compatibility and observational metadata, but they do not modify the
-    canonical computation path.
+    ``characteristic_power`` stores a scalar physical ``P_c >= 0``. A sampled
+    time-varying ``P_c`` remains on :class:`AgencityResult` and is identified in
+    ``extra`` rather than being collapsed to a scalar.
     """
 
     title: str = ""
@@ -89,14 +77,10 @@ class ExperimentMetadata:
     unit: str = ""
     power_unit: str = ""
 
-    reference_amplitude: Optional[float] = None
-    characteristic_time: Optional[float] = None
-    characteristic_power: Optional[float] = None
-    memory_window: Optional[float] = None
-
-    # Legacy/observational metadata. These do not alter canonical equations.
-    activity_factor: Optional[float] = None
-    resolution_scale: Optional[float] = None
+    reference_amplitude: float | None = None
+    characteristic_time: float | None = None
+    characteristic_power: float | None = None
+    memory_window: float | None = None
 
     system_type: str = ""
     mechanism: str = ""
@@ -107,10 +91,8 @@ class ExperimentMetadata:
     component_units: list[str] = field(default_factory=list)
     component_kinds: list[str] = field(default_factory=list)
 
-    created_at: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
-    extra: Dict[str, Any] = field(default_factory=dict)
+    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    extra: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         for name in (
@@ -149,20 +131,17 @@ class ExperimentMetadata:
             self.characteristic_power, name="characteristic_power"
         )
         self.memory_window = _positive_optional(self.memory_window, name="memory_window")
-        self.activity_factor = _positive_optional(
-            self.activity_factor, name="activity_factor"
-        )
-        self.resolution_scale = _positive_optional(
-            self.resolution_scale, name="resolution_scale"
-        )
 
-    def to_dict(self) -> Dict[str, Any]:
-        """Return a serialization-safe dictionary."""
+    def to_dict(self) -> dict[str, Any]:
+        """Return a serialization-safe detached dictionary."""
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any] | "ExperimentMetadata" | None) -> "ExperimentMetadata":
-        """Create metadata while preserving unknown fields in ``extra``."""
+    def from_dict(
+        cls,
+        data: dict[str, Any] | "ExperimentMetadata" | None,
+    ) -> "ExperimentMetadata":
+        """Create metadata while preserving unknown descriptive fields in ``extra``."""
         if data is None:
             return cls()
         if isinstance(data, cls):
@@ -171,8 +150,8 @@ class ExperimentMetadata:
             raise ValueError("metadata must be a dictionary, ExperimentMetadata, or None")
 
         payload = dict(data)
-        allowed = {f.name for f in fields(cls)}
-        known: Dict[str, Any] = {}
+        allowed = {item.name for item in fields(cls)}
+        known: dict[str, Any] = {}
         for key in list(payload):
             if key in allowed:
                 known[key] = payload.pop(key)
@@ -183,7 +162,6 @@ class ExperimentMetadata:
         return cls(**known)
 
     def with_updates(self, **updates: Any) -> "ExperimentMetadata":
-        """Return a validated copy with selected fields updated."""
         payload = self.to_dict()
         payload.update(updates)
         return ExperimentMetadata.from_dict(payload)
@@ -197,18 +175,12 @@ class ExperimentMetadata:
     def has_characteristic_power(self) -> bool:
         return self.characteristic_power is not None
 
-    def has_activity_factor(self) -> bool:
-        return self.activity_factor is not None
-
-    def has_resolution_scale(self) -> bool:
-        return self.resolution_scale is not None
-
     @property
     def agencity_unit(self) -> str:
-        """Unit label for the observable flux ``b``."""
+        """Unit label for the observable agencity flux ``b``."""
         return _agencity_flux_unit(self.power_unit)
 
-    def reference_context(self) -> Dict[str, Any]:
+    def reference_context(self) -> dict[str, Any]:
         return {
             "unit": self.unit,
             "observable_kind": self.observable_kind,
@@ -216,40 +188,33 @@ class ExperimentMetadata:
             "A_ref": self.reference_amplitude,
         }
 
-    def tau_context(self) -> Dict[str, Any]:
+    def tau_context(self) -> dict[str, Any]:
         return {
             "domain": self.domain,
             "system": self.system_type,
             "tau": self.characteristic_time,
         }
 
-    def power_context(self) -> Dict[str, Any]:
+    def power_context(self) -> dict[str, Any]:
         return {
             "domain": self.domain,
             "system": self.system_type,
-            "Pc": self.characteristic_power,
+            "P_c": self.characteristic_power,
         }
 
-    def activity_context(self) -> Dict[str, Any]:
-        """Legacy context retained for serialization compatibility."""
-        return {
-            "domain": self.domain,
-            "mechanism": self.mechanism,
-            "A_fact": self.activity_factor,
-        }
-
-    def unit_contract(self) -> Dict[str, str]:
-        """Describe the stable v0.3 unit-label contract."""
+    def unit_contract(self) -> dict[str, str]:
+        """Describe the stable 1.0 unit-label contract."""
         return {
             "u": self.unit,
             "A_ref": self.unit,
             "xi": self.coordinate_unit,
             "tau": self.coordinate_unit,
+            "w": self.coordinate_unit,
             "P_c": self.power_unit,
             "b": self.agencity_unit,
         }
 
-    def summary(self) -> Dict[str, Any]:
+    def summary(self) -> dict[str, Any]:
         return {
             "agencitylab_version": self.agencitylab_version,
             "domain": self.domain,
@@ -261,11 +226,9 @@ class ExperimentMetadata:
             "system_type": self.system_type,
             "mechanism": self.mechanism,
             "tau": self.characteristic_time,
-            "Pc": self.characteristic_power,
+            "P_c": self.characteristic_power,
             "A_ref": self.reference_amplitude,
             "memory_window": self.memory_window,
-            "A_fact": self.activity_factor,
-            "resolution_scale": self.resolution_scale,
         }
 
     def __repr__(self) -> str:
@@ -274,6 +237,6 @@ class ExperimentMetadata:
             f"domain='{self.domain}', observable_kind='{self.observable_kind}', "
             f"unit='{self.unit}', coordinate_unit='{self.coordinate_unit}', "
             f"power_unit='{self.power_unit}', system_type='{self.system_type}', "
-            f"tau={self.characteristic_time}, Pc={self.characteristic_power}, "
+            f"tau={self.characteristic_time}, P_c={self.characteristic_power}, "
             f"A_ref={self.reference_amplitude})"
         )
