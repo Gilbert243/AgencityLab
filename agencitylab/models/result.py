@@ -288,7 +288,7 @@ class AgencityResult:
         return result_to_dict(self, schema_version=RESULT_SCHEMA_VERSION)
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "AgencityResult":
+    def from_dict(cls, data: dict[str, Any]) -> AgencityResult:
         from agencitylab.io.result_serialization import result_from_dict
 
         return result_from_dict(cls, data, schema_version=RESULT_SCHEMA_VERSION)
@@ -309,7 +309,7 @@ class AgencityResult:
         return save(self.to_dict(), path)
 
     @classmethod
-    def load_json(cls, path: str | Path) -> "AgencityResult":
+    def load_json(cls, path: str | Path) -> AgencityResult:
         from agencitylab.io.load import load
 
         return cls.from_dict(load(path))
