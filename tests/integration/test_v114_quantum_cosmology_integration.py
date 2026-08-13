@@ -8,20 +8,23 @@ import pytest
 import agencitylab
 from agencitylab.applications import cosmology
 from agencitylab.fields.physics import QuarticAgencityPotential, vacuum_amplitude
+import agencitylab.quantum as quantum
 from agencitylab.quantum import SCIENTIFIC_STATUS as QUANTUM_STATUS
 from agencitylab.scientific_status import ScientificStatus
 
 
-def test_public_speculative_exports_remain_explicitly_speculative() -> None:
+def test_speculative_apis_are_explicitly_namespaced() -> None:
     assert QUANTUM_STATUS is ScientificStatus.SPECULATIVE
     assert cosmology.SCIENTIFIC_STATUS is ScientificStatus.SPECULATIVE
-    assert callable(agencitylab.radial_mass_squared)
-    assert callable(agencitylab.annihilation_operator)
-    assert callable(agencitylab.agencity_uncertainty_lower_bound)
-    assert callable(agencitylab.simulate_flat_flrw)
-    assert agencitylab.FlatFLRWSolution.__module__.startswith(
+    assert callable(quantum.radial_mass_squared)
+    assert callable(quantum.annihilation_operator)
+    assert callable(quantum.agencity_uncertainty_lower_bound)
+    assert callable(cosmology.simulate_flat_flrw)
+    assert cosmology.FlatFLRWSolution.__module__.startswith(
         "agencitylab.applications.cosmology"
     )
+    assert not hasattr(agencitylab, "radial_mass_squared")
+    assert not hasattr(agencitylab, "simulate_flat_flrw")
 
 
 def test_shared_quartic_potential_connects_classical_quantum_and_cosmology() -> None:
@@ -29,8 +32,8 @@ def test_shared_quartic_potential_connects_classical_quantum_and_cosmology() -> 
     vacuum = vacuum_amplitude(potential.lambda_, potential.mu)
 
     assert vacuum == pytest.approx(2.0)
-    assert agencitylab.radial_mass_squared(potential.lambda_) == pytest.approx(4.0)
-    assert float(agencitylab.homogeneous_energy_density(vacuum, 0.0, potential)) == pytest.approx(
+    assert quantum.radial_mass_squared(potential.lambda_) == pytest.approx(4.0)
+    assert float(cosmology.homogeneous_energy_density(vacuum, 0.0, potential)) == pytest.approx(
         -2.0
     )
 
@@ -38,7 +41,7 @@ def test_shared_quartic_potential_connects_classical_quantum_and_cosmology() -> 
 def test_broken_quartic_negative_vacuum_is_not_repaired_for_flrw() -> None:
     potential = QuarticAgencityPotential(lambda_=1.0, mu=1.0)
     vacuum = vacuum_amplitude(1.0, 1.0)
-    rho = float(agencitylab.homogeneous_energy_density(vacuum, 0.0, potential))
+    rho = float(cosmology.homogeneous_energy_density(vacuum, 0.0, potential))
 
     assert rho == pytest.approx(-0.25)
     with pytest.raises(ValueError, match="negative rho"):
@@ -51,7 +54,7 @@ def test_broken_quartic_negative_vacuum_is_not_repaired_for_flrw() -> None:
 
 def test_quantum_fock_cutoff_defect_is_visible_not_hidden() -> None:
     cutoff = 5
-    annihilation = agencitylab.annihilation_operator(cutoff)
+    annihilation = quantum.annihilation_operator(cutoff)
     creation = annihilation.conj().T
     commutator = annihilation @ creation - creation @ annihilation
 
@@ -60,7 +63,7 @@ def test_quantum_fock_cutoff_defect_is_visible_not_hidden() -> None:
 
 
 def test_uncertainty_bound_preserves_zero_characteristic_power() -> None:
-    assert agencitylab.agencity_uncertainty_lower_bound(
+    assert quantum.agencity_uncertainty_lower_bound(
         characteristic_power=0.0,
         tau=2.0,
         hbar=1.0,
@@ -69,7 +72,7 @@ def test_uncertainty_bound_preserves_zero_characteristic_power() -> None:
 
 def test_flrw_solver_reports_constraint_instead_of_projecting_it() -> None:
     potential = QuarticAgencityPotential(lambda_=-1.0, mu=1.0)
-    solution = agencitylab.simulate_flat_flrw(
+    solution = cosmology.simulate_flat_flrw(
         phi0=0.2 + 0.1j,
         phi_dot0=0.0,
         scale_factor0=1.0,
