@@ -9,6 +9,10 @@ identifiers are not part of the stable public compatibility contract.
 
 ## Unreleased
 
+No changes yet.
+
+## 1.1.0 — 2026-08-14
+
 ### Reference library
 
 - Added the public namespace `agencitylab.reference` with distinct signal,
