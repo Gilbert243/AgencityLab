@@ -8,227 +8,50 @@ observed outputs.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-
 import numpy as np
-from scipy.integrate import solve_ivp
-from scipy.ndimage import gaussian_filter1d
-
-from agencitylab import compute_agencity
+from agencitylab.reference import scenarios
+from agencitylab.reference.scenarios import ReferenceScenario
 
 
-@dataclass(frozen=True)
-class ReferenceSignal:
-    """One fixed physical/numerical context for a validation signal."""
-
-    name: str
-    xi: np.ndarray
-    u: np.ndarray
-    A_ref: float
-    tau: float
-    P_c: float = 1.0
-    expected_period: float | None = None
-    note: str = ""
-
-    def compute(self):
-        """Evaluate the public canonical API on this reference signal."""
-        return compute_agencity(
-            u=self.u,
-            xi=self.xi,
-            A_ref=self.A_ref,
-            tau=self.tau,
-            P_c=self.P_c,
-        )
+def rest_reference(*, samples_per_tau: int = 64) -> ReferenceScenario:
+    return scenarios.rest(samples_per_tau=samples_per_tau)
 
 
-def _grid(tau: float, cycles: int, samples_per_tau: int) -> np.ndarray:
-    dt = float(tau) / int(samples_per_tau)
-    return np.arange(cycles * samples_per_tau + 1, dtype=float) * dt
+def sine_reference(*, samples_per_tau: int = 64, cycles: int = 10) -> ReferenceScenario:
+    return scenarios.sinusoidal(samples_per_tau=samples_per_tau, cycles=cycles)
 
 
-def rest_reference(*, samples_per_tau: int = 64) -> ReferenceSignal:
-    tau = 1.0
-    xi = _grid(tau, 8, samples_per_tau)
-    return ReferenceSignal(
-        name="rest",
-        xi=xi,
-        u=np.full_like(xi, 2.5),
-        A_ref=1.0,
-        tau=tau,
-        note="Exact constant sampled rest state.",
-    )
+def damped_reference(*, samples_per_tau: int = 64, cycles: int = 12) -> ReferenceScenario:
+    return scenarios.damped(samples_per_tau=samples_per_tau, cycles=cycles)
 
 
-def sine_reference(*, samples_per_tau: int = 64, cycles: int = 10) -> ReferenceSignal:
-    tau = 2.0 * np.pi
-    xi = _grid(tau, cycles, samples_per_tau)
-    return ReferenceSignal(
-        name="sine",
-        xi=xi,
-        u=np.sin(xi),
-        A_ref=1.0,
-        tau=tau,
-        expected_period=tau,
-        note="Unit sinusoid with the structural time equal to one period.",
-    )
+def van_der_pol_reference(*, samples_per_tau: int = 64) -> ReferenceScenario:
+    return scenarios.van_der_pol(samples_per_tau=samples_per_tau)
 
 
-def damped_reference(*, samples_per_tau: int = 64, cycles: int = 12) -> ReferenceSignal:
-    zeta = 0.1
-    omega0 = 1.0
-    omega = omega0 * np.sqrt(1.0 - zeta**2)
-    tau = 2.0 * np.pi / omega
-    xi = _grid(tau, cycles, samples_per_tau)
-    u = np.exp(-zeta * xi) * np.sin(omega * xi)
-    return ReferenceSignal(
-        name="damped",
-        xi=xi,
-        u=u,
-        A_ref=1.0,
-        tau=tau,
-        expected_period=tau,
-        note="Underdamped passive oscillator with zeta=0.1 and omega0=1.",
-    )
+def unstable_reference(*, samples_per_tau: int = 64, cycles: int = 10) -> ReferenceScenario:
+    return scenarios.unstable(samples_per_tau=samples_per_tau, cycles=cycles)
 
 
-def van_der_pol_reference(*, samples_per_tau: int = 64) -> ReferenceSignal:
-    mu = 1.0
-    tau = 2.0 * np.pi
-    burn_cycles = 10
-    output_cycles = 12
-    full_xi = _grid(tau, burn_cycles + output_cycles, samples_per_tau)
-
-    def rhs(_t, state):
-        x, velocity = state
-        return (velocity, mu * (1.0 - x * x) * velocity - x)
-
-    solution = solve_ivp(
-        rhs,
-        (float(full_xi[0]), float(full_xi[-1])),
-        (2.0, 0.0),
-        t_eval=full_xi,
-        rtol=1e-9,
-        atol=1e-11,
-    )
-    if not solution.success:
-        raise RuntimeError(f"Van der Pol reference integration failed: {solution.message}")
-
-    start = burn_cycles * samples_per_tau
-    xi = full_xi[start:] - full_xi[start]
-    u = solution.y[0, start:]
-    return ReferenceSignal(
-        name="van_der_pol",
-        xi=xi,
-        u=u,
-        A_ref=2.0,
-        tau=tau,
-        expected_period=6.663286859,
-        note="Van der Pol mu=1 after a fixed burn-in; tau=2*pi follows the reference analysis.",
-    )
+def filtered_ou_reference(*, samples_per_tau: int = 50) -> ReferenceScenario:
+    return scenarios.stochastic(seed=20260810, samples_per_tau=samples_per_tau)
 
 
-def unstable_reference(*, samples_per_tau: int = 64, cycles: int = 10) -> ReferenceSignal:
-    alpha = 0.1
-    omega0 = 1.0
-    omega = np.sqrt(omega0**2 - alpha**2)
-    tau = 2.0 * np.pi / omega
-    xi = _grid(tau, cycles, samples_per_tau)
-    u = np.exp(alpha * xi) * np.sin(omega * xi)
-    return ReferenceSignal(
-        name="unstable",
-        xi=xi,
-        u=u,
-        A_ref=1.0,
-        tau=tau,
-        expected_period=tau,
-        note="Negative-damping linear oscillator with alpha=0.1 and omega0=1.",
-    )
+def lorenz_reference(*, samples_per_tau: int = 50) -> ReferenceScenario:
+    return scenarios.lorenz(samples_per_tau=samples_per_tau)
 
 
-def filtered_ou_reference(*, samples_per_tau: int = 50) -> ReferenceSignal:
-    tau = 1.0
-    burn_cycles = 8
-    output_cycles = 30
-    full_xi = _grid(tau, burn_cycles + output_cycles, samples_per_tau)
-    dt = tau / samples_per_tau
-    theta = 2.0
-    sigma = 0.35
-    rng = np.random.default_rng(20260810)
-    process = np.zeros_like(full_xi)
-    for index in range(1, process.size):
-        process[index] = (
-            process[index - 1]
-            - theta * process[index - 1] * dt
-            + sigma * np.sqrt(dt) * rng.normal()
-        )
-
-    filtered = gaussian_filter1d(process, sigma=4.0, mode="nearest")
-    start = burn_cycles * samples_per_tau
-    xi = full_xi[start:] - full_xi[start]
-    u = filtered[start:]
-    return ReferenceSignal(
-        name="filtered_ou",
-        xi=xi,
-        u=u,
-        A_ref=1.0,
-        tau=tau,
-        note="Seeded Ornstein-Uhlenbeck process followed by a fixed Gaussian low-pass filter.",
-    )
-
-
-def lorenz_reference(*, samples_per_tau: int = 50) -> ReferenceSignal:
-    tau = 1.0
-    burn_cycles = 10
-    output_cycles = 30
-    full_xi = _grid(tau, burn_cycles + output_cycles, samples_per_tau)
-    sigma = 10.0
-    rho = 28.0
-    beta = 8.0 / 3.0
-
-    def rhs(_t, state):
-        x, y, z = state
-        return (
-            sigma * (y - x),
-            x * (rho - z) - y,
-            x * y - beta * z,
-        )
-
-    solution = solve_ivp(
-        rhs,
-        (float(full_xi[0]), float(full_xi[-1])),
-        (1.0, 1.0, 1.0),
-        t_eval=full_xi,
-        rtol=1e-9,
-        atol=1e-11,
-    )
-    if not solution.success:
-        raise RuntimeError(f"Lorenz reference integration failed: {solution.message}")
-
-    start = burn_cycles * samples_per_tau
-    xi = full_xi[start:] - full_xi[start]
-    u = solution.y[0, start:]
-    return ReferenceSignal(
-        name="lorenz",
-        xi=xi,
-        u=u,
-        A_ref=20.0,
-        tau=tau,
-        note="Classical Lorenz parameters sigma=10, rho=28, beta=8/3; observable u=x.",
-    )
-
-
-def reference_suite() -> dict[str, ReferenceSignal]:
+def reference_suite() -> dict[str, ReferenceScenario]:
     """Return the fixed v0.4 reference battery."""
-    cases = (
-        rest_reference(),
-        sine_reference(),
-        damped_reference(),
-        van_der_pol_reference(),
-        unstable_reference(),
-        filtered_ou_reference(),
-        lorenz_reference(),
-    )
-    return {case.name: case for case in cases}
+    return {
+        "rest": rest_reference(),
+        "sine": sine_reference(),
+        "damped": damped_reference(),
+        "van_der_pol": van_der_pol_reference(),
+        "unstable": unstable_reference(),
+        "filtered_ou": filtered_ou_reference(),
+        "lorenz": lorenz_reference(),
+    }
 
 
 def structural_mask(result) -> np.ndarray:

@@ -39,6 +39,7 @@ def test_top_level_discovery_is_small_and_namespace_first():
     assert "compute_agencity" in al.__all__
     assert "fields" in al.__all__
     assert "gravity" in al.__all__
+    assert "reference" in al.__all__
     assert len(al.__all__) < 30
     for specialized in (
         "minkowski_metric",
@@ -62,12 +63,14 @@ def test_primary_scientific_namespaces_import_cleanly():
         "agencitylab.gravity",
         "agencitylab.quantum",
         "agencitylab.applications",
+        "agencitylab.reference",
         "agencitylab.applications.cosmology",
     )
     for name in names:
         assert importlib.import_module(name) is not None
     assert al.analysis is importlib.import_module("agencitylab.analysis")
     assert al.fields is importlib.import_module("agencitylab.fields")
+    assert al.reference is importlib.import_module("agencitylab.reference")
 
 
 def test_pre1_incorrect_dynamics_and_obsolete_model_are_absent():

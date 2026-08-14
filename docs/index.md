@@ -37,6 +37,7 @@ release_readiness
 :maxdepth: 2
 :caption: Reference and tutorials
 
+reference_library
 theory/agencity
 theory/equations
 theory/principles
