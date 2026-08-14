@@ -113,7 +113,7 @@ jobs:
         run: |
           python - <<'PY'
           import agencitylab
-          assert agencitylab.__version__ == "1.0.0"
+          assert agencitylab.__version__ == "1.1.0"
           print(agencitylab.__version__)
           PY
       - name: Pytest
@@ -163,7 +163,7 @@ jobs:
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
         with:
-          name: agencitylab-1.0-coverage
+          name: agencitylab-1.1-coverage
           path: coverage.xml
           if-no-files-found: error
 
@@ -215,7 +215,7 @@ jobs:
           import numpy as np
           import agencitylab as al
 
-          assert al.__version__ == "1.0.0"
+          assert al.__version__ == "1.1.0"
           assert Path(al.__file__).with_name("py.typed").is_file()
           xi = np.arange(128, dtype=float)
           result = al.compute_agencity(
@@ -223,7 +223,7 @@ jobs:
           )
           assert result.b.shape == xi.shape
           assert np.all(np.isfinite(result.b))
-          assert result.metadata.agencitylab_version == "1.0.0"
+          assert result.metadata.agencitylab_version == "1.1.0"
           assert al.reference.datasets.available_builtin() == ("canonical_regimes_v1",)
           assert len(al.reference.datasets.load("canonical_regimes_v1")) == 3
           print("wheel smoke test: PASS")
@@ -243,7 +243,7 @@ jobs:
           import agencitylab.quantum as quantum
           import agencitylab.thermodynamics as thermodynamics
 
-          assert al.__version__ == "1.0.0"
+          assert al.__version__ == "1.1.0"
           xi = np.arange(64, dtype=float)
           result = al.compute_agencity(
               np.sin(0.2 * xi), xi, A_ref=1.0, tau=4.0, w=3.0, P_c=1.0
@@ -260,7 +260,7 @@ jobs:
       - name: Upload distributions
         uses: actions/upload-artifact@v4
         with:
-          name: agencitylab-1.0.0-distributions
+          name: agencitylab-1.1.0-distributions
           path: dist/
           if-no-files-found: error
 

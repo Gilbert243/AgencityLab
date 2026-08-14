@@ -76,7 +76,8 @@ to empirical validation of the Theory of Agencity.
 - [x] Wheel and sdist pass `twine check` before publication.
 - [x] PyPI publication uses GitHub OIDC Trusted Publishing rather than a long-lived API token.
 - [x] The publish job requests `id-token: write` only where required and is scoped to the `pypi` environment.
-- [ ] The external PyPI Trusted Publisher / GitHub `pypi` environment must be configured by repository maintainers before the first actual publication.
+- [x] The external PyPI Trusted Publisher and GitHub `pypi` environment were
+  verified by the successful 1.0.0 publication.
 
 ## Performance and numerical regression
 
