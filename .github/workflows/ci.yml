@@ -42,6 +42,12 @@ jobs:
             agencitylab/api/validation.py \
             agencitylab/models/result.py \
             agencitylab/models/metadata.py \
+            agencitylab/reference/__init__.py \
+            agencitylab/reference/signals.py \
+            agencitylab/reference/scenarios.py \
+            agencitylab/reference/datasets.py \
+            agencitylab/reference/registry.py \
+            agencitylab/reference/_download.py \
             agencitylab/io/result_serialization.py \
             agencitylab/io/adapters.py
       - name: Reject pre-1.0 deprecation machinery
@@ -75,6 +81,12 @@ jobs:
             agencitylab/api/validation.py \
             agencitylab/models/result.py \
             agencitylab/models/metadata.py \
+            agencitylab/reference/__init__.py \
+            agencitylab/reference/signals.py \
+            agencitylab/reference/scenarios.py \
+            agencitylab/reference/datasets.py \
+            agencitylab/reference/registry.py \
+            agencitylab/reference/_download.py \
             agencitylab/exceptions.py \
             agencitylab/scientific_status.py
 
@@ -125,7 +137,7 @@ jobs:
           python -m pip install --no-deps -e .
           python -m pip check
       - name: Run minimum-dependency core contract
-        run: python -m pytest tests/core tests/architecture
+        run: python -m pytest tests/core tests/architecture tests/reference
 
   coverage:
     name: Quality / coverage baseline
@@ -173,6 +185,24 @@ jobs:
           python -m twine check dist/*
           test "$(find dist -maxdepth 1 -name '*.whl' | wc -l)" -eq 1
           test "$(find dist -maxdepth 1 -name '*.tar.gz' | wc -l)" -eq 1
+          python - <<'PY'
+          from pathlib import Path
+          import tarfile
+          import zipfile
+
+          wheel = next(Path("dist").glob("*.whl"))
+          sdist = next(Path("dist").glob("*.tar.gz"))
+          with zipfile.ZipFile(wheel) as archive:
+              names = set(archive.namelist())
+              assert "agencitylab/reference/data/registry.json" in names
+              assert "agencitylab/reference/data/canonical_regimes_v1.csv" in names
+          with tarfile.open(sdist, "r:gz") as archive:
+              names = archive.getnames()
+              assert any(name.endswith("/agencitylab/reference/data/registry.json") for name in names)
+              assert any(name.endswith("/reference_datasets/registry.json") for name in names)
+              assert any(name.endswith("/reference_datasets/chaotic/lorenz_reference_v1.csv") for name in names)
+          print("reference package resources: PASS")
+          PY
       - name: Clean wheel install smoke test
         run: |
           python -m venv .venv-wheel
@@ -194,6 +224,8 @@ jobs:
           assert result.b.shape == xi.shape
           assert np.all(np.isfinite(result.b))
           assert result.metadata.agencitylab_version == "1.0.0"
+          assert al.reference.datasets.available_builtin() == ("canonical_regimes_v1",)
+          assert len(al.reference.datasets.load("canonical_regimes_v1")) == 3
           print("wheel smoke test: PASS")
           PY
       - name: Clean sdist install smoke test
@@ -221,6 +253,8 @@ jobs:
           assert callable(gravity.minkowski_metric)
           assert callable(quantum.radial_mass_squared)
           assert callable(thermodynamics.field_agencial_entropy)
+          assert al.reference.signals.sinusoid().u.size > 0
+          assert len(al.reference.datasets.load("canonical_regimes_v1")) == 3
           print("sdist namespace smoke test: PASS")
           PY
       - name: Upload distributions

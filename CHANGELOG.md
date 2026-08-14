@@ -7,6 +7,21 @@ snapshots created before 1.0 are treated as the `0.x` development line even
 when temporary internal version metadata used other numbers. Those development
 identifiers are not part of the stable public compatibility contract.
 
+## Unreleased
+
+### Reference library
+
+- Added the public namespace `agencitylab.reference` with distinct signal,
+  dataset, and reproducible scenario APIs.
+- Added NumPy-only reference generators for rest, sinusoidal, damped, Van der
+  Pol, unstable, stochastic OU, smoothed OU, and Lorenz observables.
+- Added offline embedded reference data, an extensible repository registry,
+  checksum-verified explicit downloads, safe simple-format loaders, and a
+  user-cache policy that never writes into `site-packages`.
+- Rationalized the scientific benchmark battery to consume the reusable
+  reference scenarios without changing canonical equations or historical
+  scientific assertions.
+
 ## 1.0.0 — 2026-08-13
 
 ### Stable software contract

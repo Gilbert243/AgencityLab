@@ -43,6 +43,7 @@ computed through one reference scalar pipeline.
 | `compute_agencity()` | Reference scalar end-to-end computation | canonical |
 | `agencitylab.analysis` | Coherence, transitions, geometry, signatures | diagnostic |
 | `agencitylab.api` | Stable workflows, batch, streaming, orchestration | software API |
+| `agencitylab.reference` | Observable generators, datasets, reproducible scenarios | reference/test utility |
 | `agencitylab.fields` | Observable spatial fields and autonomous field models | experimental / research |
 | `agencitylab.thermodynamics` | Thermodynamic constructions | research |
 | `agencitylab.gravity` | Classical gravity extensions | research |
@@ -158,6 +159,7 @@ import agencitylab as al
 result = al.compute_agencity(...)
 analysis = al.analysis.analyze_agencity(result)
 field = al.fields.compute_agencity_field(...)
+signal = al.reference.signals.sinusoid()
 ```
 
 See [`docs/api_map.md`](docs/api_map.md) for the complete navigation map and [`docs/stable_api.md`](docs/stable_api.md) for the stable 1.0 contract.
@@ -246,6 +248,7 @@ agencitylab/
 ├── analysis/        diagnostics and interpretation
 ├── api/             stable user-facing orchestration
 ├── models/          results and reproducibility metadata
+├── reference/       signals, datasets and scientific scenarios
 ├── fields/          experimental and research field extensions
 ├── thermodynamics/  research thermodynamic layer
 ├── gravity/         research gravity layer
