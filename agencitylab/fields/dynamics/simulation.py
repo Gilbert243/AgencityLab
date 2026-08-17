@@ -41,6 +41,7 @@ from .klein_gordon import klein_gordon_acceleration
 from .tdgl import tdgl_rhs
 
 SCIENTIFIC_STATUS = ScientificStatus.RESEARCH
+FLAT_FIELD_METRIC_SIGNATURE = (1, -1, -1, -1)
 
 
 def _validate_time_controls(dt: float, n_steps: int) -> tuple[float, int]:
@@ -196,6 +197,8 @@ def _make_solution(
         "integrator": integrator,
         "formal_time_order": integrator_order,
         "fixed_step": True,
+        "metric_signature": FLAT_FIELD_METRIC_SIGNATURE,
+        "metric_convention": "Chapter 16 flat field (+,-,-,-)",
         **_boundary_solver_metadata(boundary),
     }
     return DynamicalAgencityFieldSolution(

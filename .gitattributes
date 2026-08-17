@@ -1,0 +1,4 @@
+# Checksum-addressed reference datasets must have platform-independent bytes.
+agencitylab/reference/data/*.csv text eol=lf
+reference_datasets/**/*.csv text eol=lf
+reference_datasets/**/*.json text eol=lf
