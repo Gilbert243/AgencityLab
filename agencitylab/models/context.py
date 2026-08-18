@@ -44,12 +44,22 @@ class Context:
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize the context to a dictionary."""
+        signal = self.signal
+        result = self.result
         return {
             "name": self.name,
             "metadata": dict(self.metadata),
             "config": dict(self.config),
-            "signal": self.signal.to_dict() if hasattr(self.signal, "to_dict") else self.signal,
-            "result": self.result.to_dict() if hasattr(self.result, "to_dict") else self.result,
+            "signal": (
+                signal.to_dict()
+                if signal is not None and hasattr(signal, "to_dict")
+                else signal
+            ),
+            "result": (
+                result.to_dict()
+                if result is not None and hasattr(result, "to_dict")
+                else result
+            ),
             "analysis": dict(self.analysis),
             "report": self.report,
             "artifacts": dict(self.artifacts),

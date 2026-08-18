@@ -13,7 +13,7 @@ from __future__ import annotations
 import csv
 from dataclasses import asdict, is_dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Sequence, Union
+from typing import Any, Dict, List, Mapping, Sequence, Union, cast
 
 import numpy as np
 
@@ -23,7 +23,7 @@ def _to_plain(value: Any) -> Any:
         return _to_plain(value.to_dict())
 
     if is_dataclass(value):
-        return _to_plain(asdict(value))
+        return _to_plain(asdict(cast(Any, value)))
 
     if isinstance(value, np.ndarray):
         return value.tolist()

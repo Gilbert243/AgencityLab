@@ -89,6 +89,8 @@ jobs:
             agencitylab/reference/_download.py \
             agencitylab/exceptions.py \
             agencitylab/scientific_status.py
+      - name: Type-check complete package
+        run: mypy agencitylab
 
   tests:
     name: Tests / Python ${{ matrix.python-version }}

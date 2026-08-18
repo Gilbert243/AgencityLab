@@ -30,30 +30,30 @@ def build_embedding_signal(
     if arr.ndim != 2:
         raise ValueError("vectors must be 2D (n_samples, n_features)")
 
-    mode = mode.lower().strip()
+    normalized_mode = str(mode).lower().strip()
 
     # =========================
     # 🔥 1. FULL INFORMATION (RECOMMENDED)
     # =========================
-    if mode == "raw":
+    if normalized_mode == "raw":
         return arr  # shape (n, d)
 
     # =========================
     # ⚠️ LOSSY MODES
     # =========================
-    if mode == "norm":
+    if normalized_mode == "norm":
         return np.linalg.norm(arr, axis=1)
 
-    if mode == "mean":
+    if normalized_mode == "mean":
         return np.mean(arr, axis=1)
 
-    if mode == "sum":
+    if normalized_mode == "sum":
         return np.sum(arr, axis=1)
 
     # =========================
     # 🔬 PCA REDUCTION (SMART)
     # =========================
-    if mode == "pca":
+    if normalized_mode == "pca":
         # centrage
         X = arr - np.mean(arr, axis=0)
 

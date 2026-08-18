@@ -97,8 +97,13 @@ class DataPipeline:
     def build(self) -> SignalData:
         """Return a canonical SignalData object."""
         self._require_signal()
+        assert self.xi is not None and self.u is not None
         self.steps.append("build")
-        return SignalData(xi=self.xi.copy(), u=self.u.copy(), metadata=dict(self.metadata))
+        return SignalData(
+            xi=self.xi.copy(),
+            u=self.u.copy(),
+            metadata=dict(self.metadata),
+        )
 
     def _require_signal(self) -> None:
         """Ensure that a signal has already been loaded."""

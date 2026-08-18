@@ -87,8 +87,8 @@ def _set_boundary_faces(field: np.ndarray, value: complex | float) -> np.ndarray
     dtype = np.result_type(field.dtype, np.asarray(value).dtype)
     projected = np.array(field, dtype=dtype, copy=True)
     for axis in range(projected.ndim):
-        lower = [slice(None)] * projected.ndim
-        upper = [slice(None)] * projected.ndim
+        lower: list[slice | int] = [slice(None)] * projected.ndim
+        upper: list[slice | int] = [slice(None)] * projected.ndim
         lower[axis] = 0
         upper[axis] = -1
         projected[tuple(lower)] = value

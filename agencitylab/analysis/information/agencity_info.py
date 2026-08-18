@@ -81,19 +81,17 @@ def agencity_phase_information(theta, *, verbose=False):
     return H
 
 
-def full_information_summary(b, J=None, theta=None):
-    """
-    Complete information description.
-    """
+def full_information_summary(b, J=None, theta=None, *, verbose=False):
+    """Return the descriptive information summary without altering canonical data."""
     out = {
-        "entropy_b": agencity_information_index(b),
-        "density_b": agencity_information_density(b),
+        "entropy_b": agencity_information_index(b, verbose=verbose),
+        "density_b": agencity_information_density(b, verbose=verbose),
     }
 
     if J is not None:
-        out["structure_J"] = agencity_structural_information(J)
+        out["structure_J"] = agencity_structural_information(J, verbose=verbose)
 
     if theta is not None:
-        out["phase_entropy"] = agencity_phase_information(theta)
+        out["phase_entropy"] = agencity_phase_information(theta, verbose=verbose)
 
     return out

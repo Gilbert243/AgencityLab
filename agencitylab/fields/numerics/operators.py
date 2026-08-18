@@ -7,6 +7,8 @@ are supported without discarding complex components.
 
 from __future__ import annotations
 
+from typing import TypeAlias
+
 import numpy as np
 
 from .boundaries import (
@@ -17,6 +19,13 @@ from .boundaries import (
     resolve_boundary,
 )
 from .grid import UniformRectilinearGrid
+
+
+IndexComponent: TypeAlias = slice | int
+
+
+def _full_index(ndim: int) -> list[IndexComponent]:
+    return [slice(None)] * ndim
 
 
 def _validate_field(field: np.ndarray, grid: UniformRectilinearGrid) -> np.ndarray:
@@ -46,8 +55,8 @@ def _dirichlet_project(field: np.ndarray, value: complex | float) -> np.ndarray:
     dtype = np.result_type(field.dtype, np.asarray(value).dtype)
     projected = np.array(field, dtype=dtype, copy=True)
     for axis in range(projected.ndim):
-        lower = [slice(None)] * projected.ndim
-        upper = [slice(None)] * projected.ndim
+        lower = _full_index(projected.ndim)
+        upper = _full_index(projected.ndim)
         lower[axis] = 0
         upper[axis] = -1
         projected[tuple(lower)] = value
@@ -90,9 +99,9 @@ def gradient(
                 dtype = np.result_type(dtype, np.asarray(resolved.gradient).dtype)
             derivative = np.empty(grid.shape, dtype=dtype)
 
-            center = [slice(None)] * grid.ndim
-            plus = [slice(None)] * grid.ndim
-            minus = [slice(None)] * grid.ndim
+            center = _full_index(grid.ndim)
+            plus = _full_index(grid.ndim)
+            minus = _full_index(grid.ndim)
             center[axis] = slice(1, -1)
             plus[axis] = slice(2, None)
             minus[axis] = slice(None, -2)
@@ -100,20 +109,20 @@ def gradient(
                 work[tuple(plus)] - work[tuple(minus)]
             ) / (2.0 * spacing)
 
-            lower = [slice(None)] * grid.ndim
-            upper = [slice(None)] * grid.ndim
+            lower = _full_index(grid.ndim)
+            upper = _full_index(grid.ndim)
             lower[axis] = 0
             upper[axis] = -1
             if isinstance(resolved, NeumannBoundary):
                 derivative[tuple(lower)] = resolved.gradient
                 derivative[tuple(upper)] = resolved.gradient
             else:
-                i0 = [slice(None)] * grid.ndim
-                i1 = [slice(None)] * grid.ndim
-                i2 = [slice(None)] * grid.ndim
-                im0 = [slice(None)] * grid.ndim
-                im1 = [slice(None)] * grid.ndim
-                im2 = [slice(None)] * grid.ndim
+                i0 = _full_index(grid.ndim)
+                i1 = _full_index(grid.ndim)
+                i2 = _full_index(grid.ndim)
+                im0 = _full_index(grid.ndim)
+                im1 = _full_index(grid.ndim)
+                im2 = _full_index(grid.ndim)
                 i0[axis], i1[axis], i2[axis] = 0, 1, 2
                 im0[axis], im1[axis], im2[axis] = -1, -2, -3
                 derivative[tuple(lower)] = (
@@ -167,9 +176,9 @@ def laplacian(
             continue
 
         contribution = np.empty(grid.shape, dtype=dtype)
-        center = [slice(None)] * grid.ndim
-        plus = [slice(None)] * grid.ndim
-        minus = [slice(None)] * grid.ndim
+        center = _full_index(grid.ndim)
+        plus = _full_index(grid.ndim)
+        minus = _full_index(grid.ndim)
         center[axis] = slice(1, -1)
         plus[axis] = slice(2, None)
         minus[axis] = slice(None, -2)
@@ -177,15 +186,15 @@ def laplacian(
             work[tuple(plus)] - 2.0 * work[tuple(center)] + work[tuple(minus)]
         ) / h2
 
-        lower = [slice(None)] * grid.ndim
-        upper = [slice(None)] * grid.ndim
+        lower = _full_index(grid.ndim)
+        upper = _full_index(grid.ndim)
         lower[axis] = 0
         upper[axis] = -1
         if isinstance(resolved, NeumannBoundary):
-            i0 = [slice(None)] * grid.ndim
-            i1 = [slice(None)] * grid.ndim
-            im0 = [slice(None)] * grid.ndim
-            im1 = [slice(None)] * grid.ndim
+            i0 = _full_index(grid.ndim)
+            i1 = _full_index(grid.ndim)
+            im0 = _full_index(grid.ndim)
+            im1 = _full_index(grid.ndim)
             i0[axis], i1[axis] = 0, 1
             im0[axis], im1[axis] = -1, -2
             contribution[tuple(lower)] = (
@@ -197,14 +206,14 @@ def laplacian(
                 + 2.0 * resolved.gradient / spacing
             )
         else:
-            i0 = [slice(None)] * grid.ndim
-            i1 = [slice(None)] * grid.ndim
-            i2 = [slice(None)] * grid.ndim
-            i3 = [slice(None)] * grid.ndim
-            im0 = [slice(None)] * grid.ndim
-            im1 = [slice(None)] * grid.ndim
-            im2 = [slice(None)] * grid.ndim
-            im3 = [slice(None)] * grid.ndim
+            i0 = _full_index(grid.ndim)
+            i1 = _full_index(grid.ndim)
+            i2 = _full_index(grid.ndim)
+            i3 = _full_index(grid.ndim)
+            im0 = _full_index(grid.ndim)
+            im1 = _full_index(grid.ndim)
+            im2 = _full_index(grid.ndim)
+            im3 = _full_index(grid.ndim)
             i0[axis], i1[axis], i2[axis], i3[axis] = 0, 1, 2, 3
             im0[axis], im1[axis], im2[axis], im3[axis] = -1, -2, -3, -4
             contribution[tuple(lower)] = (

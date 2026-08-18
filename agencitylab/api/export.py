@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, is_dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 
@@ -30,7 +30,7 @@ def _flatten_for_table(data: Any, parent_key: str = "", sep: str = ".") -> dict[
     if hasattr(data, "to_dict") and callable(data.to_dict):
         data = data.to_dict()
     elif is_dataclass(data):
-        data = asdict(data)
+        data = asdict(cast(Any, data))
 
     items: dict[str, Any] = {}
     if isinstance(data, dict):

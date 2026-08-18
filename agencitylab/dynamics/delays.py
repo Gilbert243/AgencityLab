@@ -35,7 +35,7 @@ def interpolate_history(history_xi, history_y, xi_query):
 
 
 def solve_delay_euler(
-    rhs: Callable[[float, np.ndarray, Callable[[float], np.ndarray]], np.ndarray],
+    rhs: Callable[[float, np.ndarray, np.ndarray], np.ndarray],
     history_function: Callable[[float], np.ndarray],
     xi_grid,
     delay: float,
@@ -71,14 +71,17 @@ def solve_delay_euler(
     def state_at(query_xi: float) -> np.ndarray:
         if query_xi <= xi_grid[0]:
             return np.asarray(history_function(query_xi), dtype=float)
-        idx = np.searchsorted(xi_grid[: len(trajectory)], query_xi, side="right") - 1
+        idx = int(np.searchsorted(xi_grid, query_xi, side="right")) - 1
         idx = max(0, min(idx, len(trajectory) - 1))
         return trajectory[idx]
 
     for i in range(1, xi_grid.size):
         h = float(xi_grid[i] - xi_grid[i - 1])
         delayed_state = state_at(float(xi_grid[i - 1] - delay))
-        derivative = np.asarray(rhs(xi_grid[i - 1], trajectory[i - 1], delayed_state), dtype=float)
+        derivative = np.asarray(
+            rhs(float(xi_grid[i - 1]), trajectory[i - 1], delayed_state),
+            dtype=float,
+        )
         trajectory[i] = trajectory[i - 1] + h * derivative
 
     return trajectory

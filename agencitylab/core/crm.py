@@ -24,7 +24,7 @@ def _uniform_step(axis):
     axis = validate_axis(axis)
     diffs = np.diff(axis)
     step = float(diffs[0])
-    tolerance = np.finfo(float).eps * max(1.0, abs(step)) * 64.0
+    tolerance = float(np.finfo(float).eps * max(1.0, abs(step)) * 64.0)
     if not np.allclose(diffs, step, rtol=1e-10, atol=tolerance):
         raise ValueError("discrete CRM requires uniformly sampled coordinates")
     return step
@@ -38,7 +38,7 @@ def _window_to_samples(window, axis):
         raise ValueError("CRM window is smaller than one sampling interval")
 
     represented = n * step
-    tolerance = max(np.finfo(float).eps * max(1.0, abs(window)) * 128.0, abs(step) * 1e-9)
+    tolerance = float(max(np.finfo(float).eps * max(1.0, abs(window)) * 128.0, abs(step) * 1e-9))
     if not np.isclose(represented, window, rtol=1e-9, atol=tolerance):
         raise ValueError("CRM window must be an integer multiple of the sampling interval")
     return n

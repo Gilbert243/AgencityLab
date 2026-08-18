@@ -69,16 +69,16 @@ def apply_window_numpy(values, kind: WindowKind = "hann", axis: int = -1):
     if values.shape[axis] < 1:
         raise ValueError("values must contain at least one sample.")
 
-    kind = str(kind).lower().strip()
+    key = str(kind).lower().strip()
     n = values.shape[axis]
 
-    if kind == "hann":
+    if key == "hann":
         window = np.hanning(n)
-    elif kind == "hamming":
+    elif key == "hamming":
         window = np.hamming(n)
-    elif kind == "blackman":
+    elif key == "blackman":
         window = np.blackman(n)
-    elif kind == "rectangular":
+    elif key == "rectangular":
         window = np.ones(n, dtype=float)
     else:
         raise ValueError("Unknown window kind.")

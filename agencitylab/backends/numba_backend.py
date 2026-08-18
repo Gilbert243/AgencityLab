@@ -8,11 +8,12 @@ path cannot silently introduce epsilon-modified physics.
 
 from __future__ import annotations
 
-from typing import Callable
+from typing import Callable, cast
 
 import numpy as np
 
 from .numpy_backend import (
+    WindowKind,
     apply_window_numpy,
     causal_moving_correlation_numpy,
     normalize_numpy,
@@ -84,7 +85,7 @@ def central_difference_numba(values, step: float):
 
 def apply_window_numba(values, kind: str = "hann"):
     """Use NumPy for already-vectorised tapering."""
-    return apply_window_numpy(values, kind=kind, axis=-1)
+    return apply_window_numpy(values, kind=cast(WindowKind, kind), axis=-1)
 
 
 def causal_moving_correlation_numba(values, window: int = 1, epsilon: float = 1e-12):

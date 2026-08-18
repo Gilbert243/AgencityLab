@@ -47,13 +47,18 @@ class AnalysisConfig:
         extra = dict(known.get("extra", {}))
         extra.update(data)
 
+        defaults = cls()
         return cls(
-            regime_window=known.get("regime_window", cls.regime_window),
-            spectrum_nfft=known.get("spectrum_nfft", cls.spectrum_nfft),
-            diagnostics_threshold=known.get("diagnostics_threshold", cls.diagnostics_threshold),
-            report_language=known.get("report_language", cls.report_language),
-            compute_signature=known.get("compute_signature", cls.compute_signature),
-            compute_multiscale=known.get("compute_multiscale", cls.compute_multiscale),
+            regime_window=known.get("regime_window", defaults.regime_window),
+            spectrum_nfft=known.get("spectrum_nfft", defaults.spectrum_nfft),
+            diagnostics_threshold=known.get(
+                "diagnostics_threshold", defaults.diagnostics_threshold
+            ),
+            report_language=known.get("report_language", defaults.report_language),
+            compute_signature=known.get("compute_signature", defaults.compute_signature),
+            compute_multiscale=known.get(
+                "compute_multiscale", defaults.compute_multiscale
+            ),
             extra=extra,
         )
 

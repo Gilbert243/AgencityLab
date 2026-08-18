@@ -100,7 +100,7 @@ class UniformRectilinearGrid:
             if np.any(differences <= 0.0):
                 raise ValueError(f"axis {index} must be strictly increasing")
             spacing = float(differences[0])
-            tolerance = max(abs(spacing) * 1e-12, np.finfo(float).eps * 32.0)
+            tolerance = max(abs(spacing) * 1e-12, float(np.finfo(float).eps) * 32.0)
             if not np.allclose(differences, spacing, rtol=1e-10, atol=tolerance):
                 raise ValueError(f"axis {index} must be uniformly spaced")
             copy = np.array(axis, dtype=float, copy=True)

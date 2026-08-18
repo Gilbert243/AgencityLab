@@ -8,7 +8,7 @@ fit is an empirical reference reported in Volume 2, not a universal constant.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Mapping
+from typing import Any, Mapping, cast
 
 import numpy as np
 
@@ -57,7 +57,9 @@ class PhaseLawFit:
     r_squared: float | None = None
     reference_kind: str = "user_supplied_fit"
     scientific_status: ScientificStatus | str = ScientificStatus.RESEARCH
-    provenance: Mapping[str, ParameterProvenance] = field(default_factory=dict)
+    provenance: Mapping[str, ParameterProvenance | Mapping[str, Any]] = field(
+        default_factory=dict
+    )
 
     def __post_init__(self) -> None:
         alpha = _finite_real_scalar(self.alpha, name="alpha")
@@ -90,15 +92,19 @@ class PhaseLawFit:
 
     def to_dict(self) -> dict[str, Any]:
         """Return a lightweight serializable metadata representation."""
+        status = (
+            self.scientific_status
+            if isinstance(self.scientific_status, ScientificStatus)
+            else ScientificStatus(self.scientific_status)
+        )
+        provenance = cast(Mapping[str, ParameterProvenance], self.provenance)
         return {
             "alpha": self.alpha,
             "beta_fit": self.beta_fit,
             "r_squared": self.r_squared,
             "reference_kind": self.reference_kind,
-            "scientific_status": self.scientific_status.value,
-            "provenance": {
-                key: item.to_dict() for key, item in self.provenance.items()
-            },
+            "scientific_status": status.value,
+            "provenance": {key: item.to_dict() for key, item in provenance.items()},
         }
 
 
