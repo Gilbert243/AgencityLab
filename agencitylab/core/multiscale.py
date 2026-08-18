@@ -39,13 +39,13 @@ def _sample_step(axis: np.ndarray) -> float:
 
 
 def _window_samples(window: float, axis: np.ndarray) -> int:
-    window = validate_positive_scalar(window, name="w")
+    window = float(validate_positive_scalar(window, name="w"))
     step = _sample_step(axis)
     samples = int(round(window / step))
     if samples < 1:
         raise ValueError("w is smaller than one sampling interval")
     represented = samples * step
-    tolerance = float(max(np.finfo(float).eps * max(1.0, abs(window)) * 128.0, step * 1e-9))
+    tolerance = max(float(np.finfo(float).eps) * max(1.0, abs(window)) * 128.0, step * 1e-9)
     if not np.isclose(represented, window, rtol=1e-9, atol=tolerance):
         raise ValueError("w must be an integer multiple of the sampling interval")
     return samples
