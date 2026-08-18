@@ -70,7 +70,9 @@ def _periodicity_score(beta: np.ndarray, xi: np.ndarray, tau: float) -> float:
     return float(1.0 / (1.0 + mismatch / scale))
 
 
-def regime_signature(result) -> dict[str, float | int | bool | str]:
+def regime_signature(
+    result,
+) -> dict[str, float | int | bool | str | None]:
     """Extract a threshold-free signature on the shared valid analysis interval."""
 
     xi = np.asarray(_get(result, "xi"), dtype=float)

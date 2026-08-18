@@ -250,18 +250,24 @@ class AgencityResult:
 
     @property
     def theta_circular_mean(self) -> float:
+        theta = self.theta
+        if theta is None:
+            return float("nan")
         mask = self.S > 0.0
         if not np.any(mask):
             return float("nan")
-        resultant = np.mean(np.exp(1j * self.theta[mask]))
+        resultant = np.mean(np.exp(1j * theta[mask]))
         return float(np.angle(resultant))
 
     @property
     def theta_circular_variance(self) -> float:
+        theta = self.theta
+        if theta is None:
+            return float("nan")
         mask = self.S > 0.0
         if not np.any(mask):
             return float("nan")
-        resultant = np.mean(np.exp(1j * self.theta[mask]))
+        resultant = np.mean(np.exp(1j * theta[mask]))
         return float(1.0 - np.abs(resultant))
 
     @property
