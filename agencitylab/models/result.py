@@ -242,11 +242,17 @@ class AgencityResult:
 
     @property
     def theta_mean(self) -> float:
-        return float(np.mean(self.theta))
+        theta = self.theta
+        if theta is None:
+            return float("nan")
+        return float(np.mean(theta))
 
     @property
     def theta_std(self) -> float:
-        return float(np.std(self.theta))
+        theta = self.theta
+        if theta is None:
+            return float("nan")
+        return float(np.std(theta))
 
     @property
     def theta_circular_mean(self) -> float:

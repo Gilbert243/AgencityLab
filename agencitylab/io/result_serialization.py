@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, is_dataclass
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 
@@ -15,7 +15,7 @@ def serialize_value(value: Any) -> Any:
     if hasattr(value, "to_dict") and callable(value.to_dict):
         return serialize_value(value.to_dict())
     if is_dataclass(value):
-        return serialize_value(asdict(value))
+        return serialize_value(asdict(cast(Any, value)))
     if isinstance(value, np.ndarray):
         if np.iscomplexobj(value):
             return {

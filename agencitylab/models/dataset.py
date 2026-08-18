@@ -33,6 +33,14 @@ class AgencityDataset:
     def __iter__(self):
         return iter(self.items)
 
+    def summary(self) -> Dict[str, Any]:
+        """Return compact dataset metadata without duplicating signal payloads."""
+        return {
+            "n_signals": len(self.items),
+            "n_samples_total": sum(item.n_samples for item in self.items),
+            "metadata": self.metadata.to_dict(),
+        }
+
     def to_dict(self) -> Dict[str, Any]:
         """Serialize the dataset to a dictionary."""
         return {

@@ -22,6 +22,10 @@ identifiers are not part of the stable public compatibility contract.
 - Added explicit result-summary names for magnitude means and circular phase
   statistics while retaining compatibility keys.
 - Reconciled the documented and actual ``agencitylab.fields`` dynamics exports.
+- Fixed the optional Vopson information-mass helper to use numeric physical-constant
+  values while keeping the relation explicitly speculative.
+- Resolved the historical package-wide mypy debt and added a full-package typing
+  gate so internal typing regressions are no longer hidden behind the public-surface check.
 
 ### Scientific integrity
 

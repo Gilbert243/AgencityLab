@@ -15,7 +15,7 @@ def plot_heatmap(result, show: bool = True):
         matrix,
         aspect="auto",
         origin="lower",
-        extent=[xi[0], xi[-1], -0.5, 4.5],
+        extent=(float(xi[0]), float(xi[-1]), -0.5, 4.5),
     )
     ax.set_yticks(range(5), labels=["M", "O", "D", "S", "J"])
     ax.set_xlabel("Coordinate")

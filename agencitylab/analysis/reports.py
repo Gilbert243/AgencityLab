@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, is_dataclass
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Dict, Mapping, Optional, cast
 
 import numpy as np
 
@@ -46,7 +46,7 @@ ANALYSIS_SCHEMA_VERSION = "0.5"
 def _portable(value):
     """Convert analysis output to JSON-friendly values without losing metadata."""
     if is_dataclass(value):
-        return _portable(asdict(value))
+        return _portable(asdict(cast(Any, value)))
     if isinstance(value, np.ndarray):
         return value.tolist()
     if isinstance(value, (np.floating, np.integer, np.bool_)):
@@ -178,6 +178,7 @@ def build_report_dict(
     crossing_indices = crossings + start
     crossing_times = xi_valid[crossings] if crossings.size else np.asarray([], dtype=float)
 
+    theta_jumps: dict[str, Any]
     if theta_jump_threshold is None:
         theta_jumps = {
             "status": "not configured",
@@ -198,6 +199,7 @@ def build_report_dict(
             "times": xi_valid[jump_indices] if jump_indices.size else np.asarray([], dtype=float),
         }
 
+    plateaus: dict[str, Any]
     if plateau_slope_threshold is None and plateau_min_duration is None:
         plateaus = {
             "status": "not configured",
@@ -221,9 +223,11 @@ def build_report_dict(
             ),
         }
 
-    orientation = orientation_statistics(
-        np.asarray(result.M)[start:stop],
-        np.asarray(result.O)[start:stop],
+    orientation: dict[str, Any] = dict(
+        orientation_statistics(
+            np.asarray(result.M)[start:stop],
+            np.asarray(result.O)[start:stop],
+        )
     )
     orientation["sigma_theta_mean"] = (
         float(np.mean(sigma[finite_sigma]))

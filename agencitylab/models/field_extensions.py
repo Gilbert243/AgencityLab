@@ -30,6 +30,10 @@ class ParameterSource(str, Enum):
         return self.value
 
 
+def _coerce_parameter_source(value: ParameterSource | str) -> ParameterSource:
+    return value if isinstance(value, ParameterSource) else ParameterSource(value)
+
+
 @dataclass(frozen=True, slots=True)
 class ParameterProvenance:
     """Minimal provenance record for one parameter value or convention."""
@@ -56,7 +60,7 @@ class ParameterProvenance:
 
     def to_dict(self) -> dict[str, str]:
         return {
-            "source": self.source.value,
+            "source": _coerce_parameter_source(self.source).value,
             "note": self.note,
             "reference": self.reference,
         }
@@ -184,7 +188,7 @@ class FieldModelMetadata:
     def to_dict(self) -> dict[str, Any]:
         return {
             "model_name": self.model_name,
-            "scientific_status": self.scientific_status.value,
+            "scientific_status": _coerce_status(self.scientific_status).value,
             "theory_source": self.theory_source,
             "assumptions": list(self.assumptions),
             "units_convention": self.units_convention,
@@ -268,7 +272,7 @@ class DynamicalAgencityFieldState:
                 else tuple(axis.copy() for axis in self.spatial_axes)
             ),
             "metadata": dict(self.metadata),
-            "scientific_status": self.scientific_status.value,
+            "scientific_status": _validate_research_status(self.scientific_status).value,
             "model_name": self.model_name,
             "units_convention": self.units_convention,
         }
@@ -363,7 +367,7 @@ class DynamicalAgencityFieldSolution:
             },
             "dynamics_name": self.dynamics_name,
             "boundary_name": self.boundary_name,
-            "scientific_status": self.scientific_status.value,
+            "scientific_status": _validate_research_status(self.scientific_status).value,
             "solver_metadata": dict(self.solver_metadata),
             "units_convention": self.units_convention,
         }

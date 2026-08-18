@@ -24,6 +24,13 @@ _SCENARIOS = (
 )
 
 
+def _required_characteristic_time(signal: AgencitySignal) -> float:
+    value = signal.metadata.characteristic_time
+    if value is None:
+        raise ValueError("reference signal metadata must define characteristic_time")
+    return float(value)
+
+
 @dataclass(frozen=True, slots=True)
 class ReferenceScenario:
     """Observable plus explicit physical context for canonical analysis.
@@ -140,7 +147,7 @@ def sinusoidal(
     """Return the smooth unit-sinusoid scenario."""
 
     signal = signals.sinusoid(samples_per_tau=samples_per_tau, cycles=cycles)
-    tau = float(signal.metadata.characteristic_time)
+    tau = _required_characteristic_time(signal)
     return ReferenceScenario(
         name="sinusoidal",
         signal=signal,
@@ -159,7 +166,7 @@ def damped(
     """Return the passive underdamped-oscillator scenario."""
 
     signal = signals.damped_oscillator(samples_per_tau=samples_per_tau, cycles=cycles)
-    tau = float(signal.metadata.characteristic_time)
+    tau = _required_characteristic_time(signal)
     return ReferenceScenario(
         name="damped",
         signal=signal,
@@ -176,7 +183,7 @@ def van_der_pol(*, samples_per_tau: int = 64, P_c: float = 1.0) -> ReferenceScen
     """Return the active self-sustained Van der Pol scenario."""
 
     signal = signals.van_der_pol(samples_per_tau=samples_per_tau)
-    tau = float(signal.metadata.characteristic_time)
+    tau = _required_characteristic_time(signal)
     return ReferenceScenario(
         name="van_der_pol",
         signal=signal,
@@ -195,7 +202,7 @@ def unstable(
     """Return the exponentially growing oscillator scenario."""
 
     signal = signals.unstable_oscillator(samples_per_tau=samples_per_tau, cycles=cycles)
-    tau = float(signal.metadata.characteristic_time)
+    tau = _required_characteristic_time(signal)
     return ReferenceScenario(
         name="unstable",
         signal=signal,
@@ -217,7 +224,7 @@ def stochastic(
         seed=seed,
         samples_per_tau=samples_per_tau,
     )
-    tau = float(signal.metadata.characteristic_time)
+    tau = _required_characteristic_time(signal)
     return ReferenceScenario(
         name="stochastic",
         signal=signal,
@@ -234,7 +241,7 @@ def lorenz(*, samples_per_tau: int = 50, P_c: float = 1.0) -> ReferenceScenario:
     """Return the classical chaotic Lorenz-x scenario."""
 
     signal = signals.lorenz(samples_per_tau=samples_per_tau)
-    tau = float(signal.metadata.characteristic_time)
+    tau = _required_characteristic_time(signal)
     return ReferenceScenario(
         name="lorenz",
         signal=signal,

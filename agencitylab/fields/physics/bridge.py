@@ -90,6 +90,7 @@ def beta_to_phi(beta, P_c, tau, *, time_axis: int = 0) -> np.ndarray:
     spatial_shape = raw_beta.shape[:axis] + raw_beta.shape[axis + 1 :]
 
     tau_arr = _finite_real_array(tau, name="tau")
+    tau_resolved: float | np.ndarray
     if tau_arr.ndim == 0:
         tau_resolved = float(tau_arr)
         if tau_resolved <= 0.0:
@@ -105,6 +106,7 @@ def beta_to_phi(beta, P_c, tau, *, time_axis: int = 0) -> np.ndarray:
         )
 
     power_arr = _finite_real_array(P_c, name="P_c")
+    power_resolved: float | np.ndarray
     if power_arr.ndim == 0:
         power_resolved = float(power_arr)
         if power_resolved < 0.0:

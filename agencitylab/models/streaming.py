@@ -129,10 +129,11 @@ class AgencityStream:
 
         should_analyze = self.analyze if run_analysis is None else bool(run_analysis)
         if should_analyze:
-            self.last_analysis = analyze_agencity(self.last_result, verbose=verbose)
-            self.last_result.attach_analysis(self.last_analysis)
-            self.last_result.signature = self.last_analysis.get("signature")
-            self.last_result.multiscale = self.last_analysis.get("multiscale")
+            analysis = analyze_agencity(self.last_result, verbose=verbose)
+            self.last_analysis = analysis
+            self.last_result.attach_analysis(analysis)
+            self.last_result.signature = analysis.get("signature")
+            self.last_result.multiscale = analysis.get("multiscale")
 
         return self.last_result
 
@@ -157,10 +158,11 @@ class AgencityStream:
         )
 
         if self.analyze:
-            self.last_analysis = analyze_agencity(self.last_result, verbose=verbose)
-            self.last_result.attach_analysis(self.last_analysis)
-            self.last_result.signature = self.last_analysis.get("signature")
-            self.last_result.multiscale = self.last_analysis.get("multiscale")
+            analysis = analyze_agencity(self.last_result, verbose=verbose)
+            self.last_analysis = analysis
+            self.last_result.attach_analysis(analysis)
+            self.last_result.signature = analysis.get("signature")
+            self.last_result.multiscale = analysis.get("multiscale")
 
         return self.last_result
 

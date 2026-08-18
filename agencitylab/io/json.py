@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 from dataclasses import asdict, is_dataclass
 from pathlib import Path
-from typing import Any, Mapping, Union
+from typing import Any, Mapping, Union, cast
 
 import numpy as np
 
@@ -21,7 +21,7 @@ def _to_jsonable(value: Any) -> Any:
         return _to_jsonable(value.to_dict())
 
     if is_dataclass(value):
-        return _to_jsonable(asdict(value))
+        return _to_jsonable(asdict(cast(Any, value)))
 
     if isinstance(value, np.ndarray):
         return _to_jsonable(value.tolist())

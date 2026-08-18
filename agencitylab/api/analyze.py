@@ -136,7 +136,7 @@ def analyze_coherence(
     b = np.asarray(_get_attr(result, "b"), dtype=complex)
     valid = S > 0.0
     sigma = sigma_theta(theta, xi, tau, valid_mask=valid)
-    orientation = orientation_statistics(M, O)
+    orientation: dict[str, Any] = dict(orientation_statistics(M, O))
     orientation["structural_phase_coherence"] = phase_coherence(
         theta,
         valid_mask=valid,
@@ -184,8 +184,8 @@ def analyze_stability(result, *, verbose: bool = False) -> Dict[str, Any]:
 def analyze_information(result, *, verbose: bool = False) -> Dict[str, Any]:
     b = _get_attr(result, "b")
     info = full_information_summary(b, verbose=verbose)
-    info["agencity_information_index"] = agencity_information_index(b, verbose=verbose)
-    info["agencity_information_density"] = agencity_information_density(b, verbose=verbose)
+    info["agencity_information_index"] = info["entropy_b"]
+    info["agencity_information_density"] = info["density_b"]
     return info
 
 
@@ -236,6 +236,7 @@ def analyze_transitions(
     crossings = critical_surface_crossings(D[start:], S[start:])
     crossing_indices = crossings + start
 
+    jumps: dict[str, Any]
     if theta_jump_threshold is None:
         jumps = {
             "status": "not configured",
