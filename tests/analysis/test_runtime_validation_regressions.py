@@ -125,6 +125,7 @@ def test_regime_growth_distinguishes_decay_and_growth_after_warmup():
 
 def test_exact_null_periodicity_is_undefined():
     result = _result(magnitude=np.array([0.0]))
+    result.D = np.zeros_like(result.D)
     result.S = np.zeros_like(result.S)
     signature = regime_signature(result)
     assert signature["exact_null"] is True
