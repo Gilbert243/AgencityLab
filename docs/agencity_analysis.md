@@ -102,7 +102,9 @@ For CRM-dependent finite-record geometry and transition summaries, the high-leve
 
 ## Regime signatures and classification
 
-`regime_signature(result)` extracts threshold-free finite-record observations such as mean and variance of `|b|`, mean `D/S/J`, tail behaviour, `Sigma_Theta`, beta curvature, a tau-periodicity score, growth ratio, and zero density.
+`regime_signature(result)` extracts threshold-free finite-record observations from both the observable flux and the intrinsic state. Flux statistics on `b` are retained descriptively, while regime evidence is computed from `beta`, `J`, `Theta`, and `S`: complex fixed-point convergence, intrinsic growth, beta variance, structural variability, curvature, zero density, and a periodicity score whose candidate period is estimated independently of `tau`.
+
+`tau` remains the structural characteristic time used by the theory. It is not silently identified with a dynamical period `T`. The historical `tau_periodicity_score` signature key is retained as a compatibility alias, but its value now comes from the independently estimated-period diagnostic.
 
 Automatic classification is deliberately separate. The qualitative theory table distinguishes:
 
@@ -113,9 +115,13 @@ Automatic classification is deliberately separate. The qualitative theory table 
 - `stochastic`
 - `chaotic`
 
-Only the exact null state can be classified without interpretive thresholds. Non-null records default to `undetermined`. To request automatic classification, supply a `RegimeCriteria` object or equivalent mapping. Its values are contextual diagnostic criteria and are recorded alongside the result.
+Only the canonical null state can be classified without interpretive thresholds. The null predicate requires the intrinsic pipeline to be null (`D = S = J = beta = b = 0`); a raw zero-valued `b` array is insufficient evidence and therefore remains `undetermined`.
 
-This conservative design is intentional: noise and chaos may have local non-zero `beta`, and high `D` does not imply coherent agencity.
+Non-null records default to `undetermined`. To request automatic classification, supply a `RegimeCriteria` object or equivalent mapping. Its values are contextual diagnostic criteria and are recorded alongside the result. Passive and unstable decisions use intrinsic beta convergence/growth. The stochastic/chaotic split uses weak structure and low beta variance versus fluctuating structured, aperiodic beta behaviour; absolute `|b|` no longer separates those regimes. `weak_flow_max` remains accepted only for source compatibility and is not used for this split.
+
+Curvature remains an independent geometric diagnostic. It is not forced to be non-zero to manufacture an `active_oscillating` result: the theoretical Van der Pol discussion can yield an almost-real beta segment even though periodic closure is present. This tension is exposed rather than hidden by an artificial curvature rule.
+
+This conservative design is intentional: noise and chaos may have local non-zero `beta`, high `D` does not imply coherent agencity, and finite records may legitimately remain `undetermined`.
 
 ## Multiscale signatures
 
