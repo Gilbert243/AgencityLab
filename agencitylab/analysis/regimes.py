@@ -10,6 +10,7 @@ import numpy as np
 from .coherence import sigma_theta
 from .geometry import curvature
 from .transitions import detect_agencity_zeros
+from .validity import resolve_analysis_interval
 
 
 @dataclass(frozen=True, slots=True)
@@ -54,7 +55,7 @@ def _tail(values: np.ndarray, fraction: float = 0.25) -> np.ndarray:
 
 
 def _periodicity_score(beta: np.ndarray, xi: np.ndarray, tau: float) -> float:
-    if beta.size < 4:
+    if beta.size < 4 or np.all(beta == 0.0):
         return float("nan")
     step = float(np.median(np.diff(xi)))
     shift = int(round(float(tau) / step))
@@ -65,17 +66,15 @@ def _periodicity_score(beta: np.ndarray, xi: np.ndarray, tau: float) -> float:
     scale = float(np.sqrt(np.mean(np.abs(left) ** 2)))
     mismatch = float(np.sqrt(np.mean(np.abs(left - right) ** 2)))
     if scale == 0.0:
-        return 1.0 if mismatch == 0.0 else 0.0
+        return float("nan")
     return float(1.0 / (1.0 + mismatch / scale))
 
 
-def regime_signature(result) -> dict[str, float | int | bool | str]:
-    """Extract a threshold-free signature from a canonical result.
+def regime_signature(
+    result,
+) -> dict[str, float | int | bool | str | None]:
+    """Extract a threshold-free signature on the shared valid analysis interval."""
 
-    The signature contains observations only. It is intentionally separate
-    from automatic classification so that scientific data are not silently
-    forced through arbitrary universal thresholds.
-    """
     xi = np.asarray(_get(result, "xi"), dtype=float)
     tau = float(_get(result, "tau"))
     S = np.asarray(_get(result, "S"), dtype=float)
@@ -88,49 +87,84 @@ def regime_signature(result) -> dict[str, float | int | bool | str]:
     if any(arr.ndim != 1 or arr.size != n for arr in (S, D, J, theta, beta, b)):
         raise ValueError("result arrays must be one-dimensional and share xi length")
 
-    valid = S > 0.0
-    sigma = sigma_theta(theta, xi, tau, valid_mask=valid)
-    finite_sigma = np.isfinite(sigma)
+    exact_null = bool(np.all(b == 0.0) and np.all(S == 0.0))
+    interval = resolve_analysis_interval(result, edge_samples=2)
+    analysis_mask = interval.mask
+    valid_count = int(np.count_nonzero(analysis_mask))
+
+    structural = S > 0.0
+    sigma = sigma_theta(theta, xi, tau, valid_mask=structural)
+    finite_sigma = np.isfinite(sigma) & analysis_mask
     kappa = curvature(beta, xi)
-    finite_kappa = np.isfinite(kappa)
+    finite_kappa = np.isfinite(kappa) & analysis_mask
+
     mag = np.abs(b)
-    tail_mag = _tail(mag)
-    tail_J = _tail(J)
+    mag_valid = mag[analysis_mask]
+    D_valid = D[analysis_mask]
+    S_valid = S[analysis_mask]
+    J_valid = J[analysis_mask]
+    beta_valid = beta[analysis_mask]
+    xi_valid = xi[analysis_mask]
+
+    tail_mag = _tail(mag_valid)
+    tail_J = _tail(J_valid)
     tail_mean = float(np.mean(tail_mag)) if tail_mag.size else float("nan")
     tail_std = float(np.std(tail_mag)) if tail_mag.size else float("nan")
-    tail_cv = tail_std / tail_mean if tail_mean > 0.0 else (0.0 if tail_std == 0.0 else float("inf"))
+    tail_cv = (
+        tail_std / tail_mean
+        if tail_mean > 0.0
+        else (0.0 if tail_std == 0.0 and tail_mag.size else float("nan"))
+    )
 
-    quarter = max(1, n // 4)
-    early = float(np.mean(mag[:quarter]))
-    late = float(np.mean(mag[-quarter:]))
-    if early == 0.0:
-        growth_ratio = float("inf") if late > 0.0 else 1.0
+    if mag_valid.size:
+        quarter = max(1, mag_valid.size // 4)
+        early = float(np.mean(mag_valid[:quarter]))
+        late = float(np.mean(mag_valid[-quarter:]))
+        if early == 0.0:
+            growth_ratio = float("inf") if late > 0.0 else 1.0
+        else:
+            growth_ratio = late / early
     else:
-        growth_ratio = late / early
+        growth_ratio = float("nan")
 
-    warm = xi >= xi[0] + 2.0 * tau
     zeros = detect_agencity_zeros(S, J)
-    warm_count = int(np.count_nonzero(warm))
-    warm_zero_count = int(np.count_nonzero(warm[zeros])) if zeros.size else 0
+    analysis_zero_count = int(np.count_nonzero(analysis_mask[zeros])) if zeros.size else 0
+    periodicity = _periodicity_score(beta_valid, xi_valid, tau) if valid_count else float("nan")
+
+    def mean_or_nan(values):
+        return float(np.mean(values)) if values.size else float("nan")
 
     return {
         "n_samples": int(n),
-        "exact_null": bool(np.all(b == 0.0) and np.all(S == 0.0)),
-        "mean_b_real": float(np.mean(np.real(b))),
-        "mean_b_imag": float(np.mean(np.imag(b))),
-        "mean_abs_b": float(np.mean(mag)),
-        "var_abs_b": float(np.var(mag)),
-        "mean_D": float(np.mean(D)),
-        "mean_S": float(np.mean(S)),
-        "mean_J": float(np.mean(J)),
-        "tail_mean_J": float(np.mean(tail_J)) if tail_J.size else float("nan"),
+        "analysis_valid_samples": valid_count,
+        "analysis_valid_fraction": interval.valid_fraction,
+        "analysis_start": interval.start_time,
+        "analysis_stop": interval.stop_time,
+        "analysis_window": interval.memory_window,
+        "analysis_window_source": interval.memory_window_source,
+        "exact_null": exact_null,
+        "mean_b_real": mean_or_nan(np.real(b[analysis_mask])),
+        "mean_b_imag": mean_or_nan(np.imag(b[analysis_mask])),
+        "mean_abs_b": mean_or_nan(mag_valid),
+        "var_abs_b": float(np.var(mag_valid)) if mag_valid.size else float("nan"),
+        "mean_D": mean_or_nan(D_valid),
+        "mean_S": mean_or_nan(S_valid),
+        "mean_J": mean_or_nan(J_valid),
+        "tail_mean_J": mean_or_nan(tail_J),
         "tail_cv_abs_b": float(tail_cv),
         "growth_ratio_abs_b": float(growth_ratio),
-        "sigma_theta_mean": float(np.mean(sigma[finite_sigma])) if np.any(finite_sigma) else float("nan"),
-        "curvature_mean_abs": float(np.mean(np.abs(kappa[finite_kappa]))) if np.any(finite_kappa) else float("nan"),
-        "curvature_std": float(np.std(kappa[finite_kappa])) if np.any(finite_kappa) else float("nan"),
-        "tau_periodicity_score": _periodicity_score(beta, xi, tau),
-        "zero_density_after_crm_warmup": float(warm_zero_count / warm_count) if warm_count else float("nan"),
+        "sigma_theta_mean": mean_or_nan(sigma[finite_sigma]),
+        "curvature_mean_abs": mean_or_nan(np.abs(kappa[finite_kappa])),
+        "curvature_std": (
+            float(np.std(kappa[finite_kappa]))
+            if np.any(finite_kappa)
+            else float("nan")
+        ),
+        "tau_periodicity_score": periodicity,
+        "tau_periodicity_defined": bool(np.isfinite(periodicity)),
+        "zero_density_after_crm_warmup": (
+            float(analysis_zero_count / valid_count) if valid_count else float("nan")
+        ),
         "status": "threshold-free diagnostic signature",
     }
 

@@ -33,6 +33,7 @@ from .metrics import (
 )
 from .regimes import classify_regime, regime_signature
 from .stability import stability_summary
+from .validity import resolve_analysis_interval
 from .transitions import (
     critical_surface_crossings,
     detect_theta_jumps,
@@ -58,20 +59,47 @@ def _portable(value):
 
 
 def _memory_window(result) -> float:
-    """Return the CRM width, falling back to the historical w=tau convention."""
-    window = getattr(result, "memory_window", None)
-    return float(result.tau) if window is None else float(window)
+    """Return the resolved CRM width used by the shared analysis interval."""
+
+    return resolve_analysis_interval(result, warmup_windows=0.0).memory_window
 
 
-def _analysis_start(result) -> int:
-    """Return the finite-record index after two complete CRM windows."""
-    xi = np.asarray(result.xi, dtype=float)
-    return int(np.searchsorted(xi, xi[0] + 2.0 * _memory_window(result), side="left"))
-
-
-def _real_agencity(result, sigma, thresholds: Mapping[str, Any] | None):
+def _real_agencity(result, sigma, thresholds: Mapping[str, Any] | None, mask):
     kwargs = dict(thresholds or {})
-    return real_agencity_criterion(result.S, sigma, result.b, **kwargs)
+    return real_agencity_criterion(
+        np.asarray(result.S)[mask],
+        np.asarray(sigma)[mask],
+        np.asarray(result.b)[mask],
+        **kwargs,
+    )
+
+
+def _dynamic_peaks_on_interval(D, xi, *, start: int, prominence):
+    summary = dynamic_peak_summary(D, xi, prominence=prominence)
+    summary["indices"] = np.asarray(summary["indices"], dtype=int) + start
+    return summary
+
+
+def _plateaus_on_interval(
+    S,
+    xi,
+    *,
+    start: int,
+    slope_threshold: float,
+    min_duration: float,
+):
+    if np.asarray(S).size < 2:
+        return []
+    intervals = detect_structural_plateaus(
+        S,
+        xi,
+        slope_threshold=slope_threshold,
+        min_duration=min_duration,
+    )
+    for interval in intervals:
+        interval["start_index"] = int(interval["start_index"]) + start
+        interval["end_index"] = int(interval["end_index"]) + start
+    return intervals
 
 
 def build_report_dict(
@@ -103,26 +131,32 @@ def build_report_dict(
 
     structural = S > 0.0
     sigma = sigma_theta(theta, xi, result.tau, valid_mask=structural)
-    finite_sigma = np.isfinite(sigma)
-    start = _analysis_start(result)
+    interval = resolve_analysis_interval(result, edge_samples=2)
+    analysis_mask = interval.mask
+    finite_sigma = np.isfinite(sigma) & analysis_mask
+    start = interval.start_index
+    stop = interval.stop_index
 
-    xi_valid = xi[start:]
-    beta_valid = beta[start:]
-    theta_valid = theta[start:]
-    S_valid = S[start:]
-    D_valid = D[start:]
-    J_valid = J[start:]
+    xi_valid = xi[start:stop]
+    beta_valid = beta[start:stop]
+    theta_valid = theta[start:stop]
+    S_valid = S[start:stop]
+    D_valid = D[start:stop]
+    J_valid = J[start:stop]
     structural_valid = S_valid > 0.0
 
     raw_signature = regime_signature(result)
     regime = classify_regime(raw_signature, criteria=regime_criteria)
-    real_diag = _real_agencity(result, sigma, real_agencity_thresholds)
+    real_diag = _real_agencity(
+        result, sigma, real_agencity_thresholds, analysis_mask
+    )
 
     geometry = geometric_summary(
         beta_valid,
         xi=xi_valid,
         theta=theta_valid,
         valid_mask=structural_valid,
+        winding_closed=False,
     ) if beta_valid.size else {
         "geometry_source": "beta",
         "curvature": [],
@@ -178,22 +212,28 @@ def build_report_dict(
             "status": "diagnostic thresholds configured",
             "slope_threshold": float(plateau_slope_threshold),
             "min_duration": float(plateau_min_duration),
-            "intervals": detect_structural_plateaus(
-                S,
-                xi,
+            "intervals": _plateaus_on_interval(
+                S_valid,
+                xi_valid,
+                start=start,
                 slope_threshold=plateau_slope_threshold,
                 min_duration=plateau_min_duration,
             ),
         }
 
-    orientation = orientation_statistics(result.M, result.O)
+    orientation = orientation_statistics(
+        np.asarray(result.M)[start:stop],
+        np.asarray(result.O)[start:stop],
+    )
     orientation["sigma_theta_mean"] = (
-        float(np.mean(sigma[finite_sigma])) if np.any(finite_sigma) else float("nan")
+        float(np.mean(sigma[finite_sigma]))
+        if np.any(finite_sigma)
+        else float("nan")
     )
     orientation["sigma_theta"] = sigma
     orientation["structural_phase_coherence"] = phase_coherence(
-        theta,
-        valid_mask=structural,
+        theta_valid,
+        valid_mask=structural_valid,
         values_are_angles=True,
     )
     orientation["sigma_theta_definition"] = "Var(Theta(s); s in [t-tau,t])"
@@ -246,7 +286,12 @@ def build_report_dict(
         },
         "geometry": geometry,
         "events": {
-            "dynamic_peaks": dynamic_peak_summary(D, xi, prominence=d_peak_prominence),
+            "dynamic_peaks": _dynamic_peaks_on_interval(
+                D_valid,
+                xi_valid,
+                start=start,
+                prominence=d_peak_prominence,
+            ),
         },
         "transitions": {
             "zeros": zeros,
@@ -259,10 +304,9 @@ def build_report_dict(
         },
         "structural_plateaus": plateaus,
         "analysis_interval": {
-            "finite_record_crm_start_index": int(start),
-            "finite_record_crm_start_time": float(xi[start]) if start < xi.size else None,
-            "memory_window": _memory_window(result),
-            "rule": "t >= t0 + 2*w for CRM-dependent finite-record geometry/transitions",
+            **interval.to_dict(),
+            "finite_record_crm_start_index": interval.start_index,
+            "finite_record_crm_start_time": interval.start_time,
         },
         # Compatibility diagnostics retained from earlier versions. They are not
         # used to alter theoretical outputs or the theory-facing classifier.
@@ -325,7 +369,8 @@ def build_text_report(
         f"Mean J                   : {m.get('J_mean', float('nan')):.6g}",
         f"Sigma_Theta mean         : {coherence.get('sigma_theta_mean', float('nan')):.6g}",
         f"Mean |kappa|             : {geometry.get('curvature_mean_abs', float('nan')):.6g}",
-        f"Winding                  : {winding.get('winding_number', float('nan'))}",
+        f"Net phase turns           : {geometry.get('net_phase_turns', float('nan'))}",
+        f"Closed winding            : {winding.get('winding_number', float('nan'))}",
         f"Regime                   : {report.get('regime', 'undetermined')}",
         f"Real-agencity status     : {real_diag.get('status', 'undetermined')}",
         f"Real-agencity fraction   : {real_diag.get('real_agencity_fraction', float('nan'))}",

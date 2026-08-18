@@ -225,12 +225,50 @@ class AgencityResult:
         return float(np.mean(self.beta_abs))
 
     @property
+    def mean_abs_b(self) -> float:
+        return self.b_mean
+
+    @property
+    def mean_abs_beta(self) -> float:
+        return self.beta_mean
+
+    @property
+    def complex_mean_b(self) -> complex:
+        return complex(np.mean(self.b))
+
+    @property
+    def complex_mean_beta(self) -> complex:
+        return complex(np.mean(self.beta))
+
+    @property
     def theta_mean(self) -> float:
         return float(np.mean(self.theta))
 
     @property
     def theta_std(self) -> float:
         return float(np.std(self.theta))
+
+    @property
+    def theta_circular_mean(self) -> float:
+        theta = self.theta
+        if theta is None:
+            return float("nan")
+        mask = self.S > 0.0
+        if not np.any(mask):
+            return float("nan")
+        resultant = np.mean(np.exp(1j * theta[mask]))
+        return float(np.angle(resultant))
+
+    @property
+    def theta_circular_variance(self) -> float:
+        theta = self.theta
+        if theta is None:
+            return float("nan")
+        mask = self.S > 0.0
+        if not np.any(mask):
+            return float("nan")
+        resultant = np.mean(np.exp(1j * theta[mask]))
+        return float(1.0 - np.abs(resultant))
 
     @property
     def A_ref_unit(self) -> str:
@@ -261,9 +299,15 @@ class AgencityResult:
             "A_ref": self.A_ref,
             "memory_window": self.memory_window,
             "b_mean": self.b_mean,
+            "mean_abs_b": self.mean_abs_b,
+            "complex_mean_b_real": float(np.real(self.complex_mean_b)),
+            "complex_mean_b_imag": float(np.imag(self.complex_mean_b)),
             "b_std": float(np.std(self.b_abs)),
             "b_peak": float(np.max(self.b_abs)),
             "beta_mean": self.beta_mean,
+            "mean_abs_beta": self.mean_abs_beta,
+            "complex_mean_beta_real": float(np.real(self.complex_mean_beta)),
+            "complex_mean_beta_imag": float(np.imag(self.complex_mean_beta)),
             "beta_max": float(np.max(self.beta_abs)),
             "J_mean": float(np.mean(self.J)),
             "D_mean": float(np.mean(self.D)),
@@ -272,6 +316,8 @@ class AgencityResult:
             "O_mean": float(np.mean(self.O)),
             "theta_mean": self.theta_mean,
             "theta_std": self.theta_std,
+            "theta_circular_mean": self.theta_circular_mean,
+            "theta_circular_variance": self.theta_circular_variance,
             "unit": self.unit,
             "coordinate_unit": self.coordinate_unit,
             "power_unit": self.power_unit,

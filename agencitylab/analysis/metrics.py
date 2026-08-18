@@ -65,12 +65,21 @@ def agencity_integral(xi, b, component: Component = "real"):
     return float(np.trapz(x, xi))
 
 
-def agencity_energy(b) -> float:
+def squared_flux_norm(b) -> float:
+    """Return the discrete squared norm ``sum(|b|**2)``.
+
+    This is an energy-like diagnostic, not a physical energy in joules and not
+    a time integral because no sampling interval is applied.
     """
-    Energy-like quantity: sum(|b|^2).
-    """
+
     b = np.asarray(b)
     return float(np.sum(np.abs(b) ** 2)) if b.size else 0.0
+
+
+def agencity_energy(b) -> float:
+    """Compatibility name for :func:`squared_flux_norm`."""
+
+    return squared_flux_norm(b)
 
 
 def agencity_power_mean(b) -> float:

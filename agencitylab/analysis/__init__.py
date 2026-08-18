@@ -12,6 +12,7 @@ from .metrics import (
     agencity_peak,
     agencity_integral,
     agencity_energy,
+    squared_flux_norm,
     agencity_power_mean,
     agencity_efficiency,
     global_efficiency,
@@ -58,6 +59,7 @@ from .geometry import (
     trajectory_length,
     curvature,
     radius,
+    net_phase_turns,
     winding_number,
     winding_diagnostic,
     geometric_summary,
@@ -85,6 +87,7 @@ from .anomalies import anomaly_summary
 from .multi_scale import agencity_multiscale, agencity_spectrum_array, find_optimal_tau
 from .signature import agencity_signature
 from .reports import ANALYSIS_SCHEMA_VERSION, build_report_dict, build_text_report
+from .validity import AnalysisInterval, analysis_valid_mask, resolve_analysis_interval
 
 __all__ = [
     "ANALYSIS_SCHEMA_VERSION",
@@ -94,6 +97,7 @@ __all__ = [
     "agencity_peak",
     "agencity_integral",
     "agencity_energy",
+    "squared_flux_norm",
     "agencity_power_mean",
     "agencity_efficiency",
     "global_efficiency",
@@ -128,6 +132,7 @@ __all__ = [
     "trajectory_length",
     "curvature",
     "radius",
+    "net_phase_turns",
     "winding_number",
     "winding_diagnostic",
     "geometric_summary",
@@ -153,4 +158,7 @@ __all__ = [
     "agencity_signature",
     "build_report_dict",
     "build_text_report",
+    "AnalysisInterval",
+    "analysis_valid_mask",
+    "resolve_analysis_interval",
 ]

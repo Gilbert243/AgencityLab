@@ -9,7 +9,25 @@ identifiers are not part of the stable public compatibility contract.
 
 ## Unreleased
 
-No changes yet.
+### Fixed
+
+- Fixed Landauer helpers to use the numeric value of metadata-rich physical constants.
+- Made beta-trajectory curvature robust to numerically unresolved velocity without
+  inserting an epsilon into canonical physics.
+- Centralized CRM warm-up and finite-difference edge exclusions for analysis
+  signatures, using the actual memory window ``w`` rather than silently assuming
+  ``w = tau``.
+- Marked periodicity of an exact null trajectory as undefined.
+- Separated open-interval net phase turns from closed-interval winding semantics.
+- Added explicit result-summary names for magnitude means and circular phase
+  statistics while retaining compatibility keys.
+- Reconciled the documented and actual ``agencitylab.fields`` dynamics exports.
+
+### Scientific integrity
+
+- No canonical equation or physical/contextual parameter definition changed.
+- The regime classifier remains an experimental diagnostic pending revalidation
+  after the numerical-analysis fixes.
 
 ## 1.1.0 — 2026-08-14
 
