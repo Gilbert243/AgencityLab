@@ -53,11 +53,12 @@ references/glossary
 
 ## Project status
 
-AgencityLab `1.1.1` is the current stable public software release. This patch
-release hardens runtime validation and analysis diagnostics, including regime
-classification, without changing the canonical equations. Version `1.1.0`
-introduced the reference library; `1.0.0` remains the first stable compatibility
-baseline.
+AgencityLab `1.1.2` is the current stable public software release. This patch
+release hardens numerical beta-trajectory curvature and structural phase-turn
+mask handling discovered during post-1.1.1 validation, without changing the
+canonical equations. Version `1.1.1` hardened runtime validation and regime
+diagnostics; `1.1.0` introduced the reference library, and `1.0.0` remains the
+first stable compatibility baseline.
 
 Use the [scientific API map](api_map.md) first. The main scalar entry point is
 `agencitylab.compute_agencity`; interpretation belongs under
