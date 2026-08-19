@@ -60,17 +60,37 @@ def trajectory_length(beta) -> float:
     return float(np.sum(np.abs(np.diff(beta))))
 
 
+def _trajectory_origin_and_scale(beta: np.ndarray) -> tuple[complex, float]:
+    """Return a stable geometric origin and translation-invariant scale."""
+
+    if beta.size == 0:
+        return 0.0j, 0.0
+
+    real = np.real(beta)
+    imag = np.imag(beta)
+    origin = complex(
+        0.5 * float(np.min(real)) + 0.5 * float(np.max(real)),
+        0.5 * float(np.min(imag)) + 0.5 * float(np.max(imag)),
+    )
+    shifted = beta - origin
+    scale = float(np.max(np.abs(shifted)))
+    return origin, scale
+
+
 def _trajectory_scale(beta: np.ndarray) -> float:
     """Return a translation-invariant scale for numerical geometry tests."""
 
+    return _trajectory_origin_and_scale(beta)[1]
+
+
+def _coordinate_resolution(beta: np.ndarray) -> float:
+    """Return an absolute floating-point resolution estimate for complex samples."""
+
     if beta.size == 0:
         return 0.0
-    shifted = beta - beta[0]
-    return max(
-        float(np.ptp(np.real(beta))),
-        float(np.ptp(np.imag(beta))),
-        float(np.max(np.abs(shifted))),
-    )
+    real_spacing = float(np.max(np.abs(np.spacing(np.real(beta)))))
+    imag_spacing = float(np.max(np.abs(np.spacing(np.imag(beta)))))
+    return float(np.hypot(real_spacing, imag_spacing))
 
 
 def _default_speed_tolerance(beta: np.ndarray, axis: np.ndarray) -> float:
@@ -109,16 +129,39 @@ def _velocity_resolution_floor(
 def _is_numerically_collinear(beta: np.ndarray) -> bool:
     """Return whether sampled points lie on one line to machine resolution."""
 
-    scale = _trajectory_scale(beta)
-    if beta.size < 2 or scale == 0.0:
+    origin, scale = _trajectory_origin_and_scale(beta)
+    if beta.size < 2 or scale == 0.0 or not np.isfinite(scale):
         return True
-    shifted = beta - beta[0]
+    shifted = beta - origin
     direction = shifted[int(np.argmax(np.abs(shifted)))]
-    if abs(direction) == 0.0:
+    direction_abs = abs(direction)
+    if direction_abs == 0.0 or not np.isfinite(direction_abs):
         return True
-    perpendicular = np.abs(np.imag(np.conjugate(direction) * shifted)) / abs(direction)
-    tolerance = 128.0 * np.finfo(float).eps * scale
+    unit_direction = direction / direction_abs
+    perpendicular = np.abs(np.imag(np.conjugate(unit_direction) * shifted))
+    arithmetic_floor = 128.0 * np.finfo(float).eps * scale
+    coordinate_floor = 4.0 * _coordinate_resolution(beta)
+    tolerance = max(arithmetic_floor, coordinate_floor)
     return bool(np.max(perpendicular) <= tolerance)
+
+
+def _normalised_axis(axis: np.ndarray) -> np.ndarray:
+    """Return an affine-normalised axis for scale-safe curvature arithmetic."""
+
+    left = float(axis[0])
+    right = float(axis[-1])
+    span = right - left
+    if np.isfinite(span) and span > 0.0:
+        return (axis - left) / span
+
+    magnitude = max(abs(left), abs(right))
+    if magnitude == 0.0 or not np.isfinite(magnitude):
+        return axis
+    scaled = axis / magnitude
+    scaled_span = float(scaled[-1] - scaled[0])
+    if not np.isfinite(scaled_span) or scaled_span <= 0.0:
+        return axis
+    return (scaled - scaled[0]) / scaled_span
 
 
 def curvature(beta, xi=None, *, speed_tolerance: float | None = None) -> np.ndarray:
@@ -137,7 +180,8 @@ def curvature(beta, xi=None, *, speed_tolerance: float | None = None) -> np.ndar
     if beta.size < 3:
         return np.full(beta.size, np.nan, dtype=float)
     axis = _axis(xi, beta.size)
-    if _trajectory_scale(beta) == 0.0:
+    origin, geometry_scale = _trajectory_origin_and_scale(beta)
+    if geometry_scale == 0.0 or not np.isfinite(geometry_scale):
         return np.full(beta.size, np.nan, dtype=float)
     d1 = np.gradient(beta, axis, edge_order=2)
     speed = np.abs(d1)
@@ -159,9 +203,19 @@ def curvature(beta, xi=None, *, speed_tolerance: float | None = None) -> np.ndar
         out[defined] = 0.0
         return out
 
-    d2 = np.gradient(d1, axis, edge_order=2)
-    numerator = np.imag(np.conjugate(d1[defined]) * d2[defined])
-    out[defined] = numerator / speed[defined] ** 3
+    geometry_beta = (beta - origin) / geometry_scale
+    geometry_axis = _normalised_axis(axis)
+    geometry_d1 = np.gradient(geometry_beta, geometry_axis, edge_order=2)
+    geometry_d2 = np.gradient(geometry_d1, geometry_axis, edge_order=2)
+    geometry_speed = np.abs(geometry_d1)
+
+    with np.errstate(over="ignore", under="ignore", divide="ignore", invalid="ignore"):
+        numerator = np.imag(np.conjugate(geometry_d1[defined]) * geometry_d2[defined])
+        values = numerator / geometry_speed[defined] ** 3
+        values = values / geometry_scale
+
+    values = np.where(np.isfinite(values), values, np.nan)
+    out[defined] = values
     return out
 
 
