@@ -60,20 +60,65 @@ def trajectory_length(beta) -> float:
     return float(np.sum(np.abs(np.diff(beta))))
 
 
+def _trajectory_scale(beta: np.ndarray) -> float:
+    """Return a translation-invariant scale for numerical geometry tests."""
+
+    if beta.size == 0:
+        return 0.0
+    shifted = beta - beta[0]
+    return max(
+        float(np.ptp(np.real(beta))),
+        float(np.ptp(np.imag(beta))),
+        float(np.max(np.abs(shifted))),
+    )
+
+
 def _default_speed_tolerance(beta: np.ndarray, axis: np.ndarray) -> float:
-    """Return a scale-aware floating-point zero threshold for ``|beta_dot|``."""
+    """Return a scale-aware roundoff floor for ``|beta_dot|``."""
 
     if beta.size < 2:
         return 0.0
-    scale = max(
-        float(np.max(np.abs(beta))),
-        float(np.ptp(np.real(beta))),
-        float(np.ptp(np.imag(beta))),
-    )
+    scale = max(float(np.max(np.abs(beta))), _trajectory_scale(beta))
     if scale == 0.0:
         return 0.0
     min_step = float(np.min(np.diff(axis)))
     return float(64.0 * np.finfo(float).eps * scale / min_step)
+
+
+def _velocity_resolution_floor(
+    beta: np.ndarray,
+    axis: np.ndarray,
+    d1: np.ndarray,
+) -> np.ndarray:
+    """Estimate whether the sampled velocity is numerically resolved.
+
+    The default diagnostic combines a scale-aware floating-point floor with
+    disagreement between the centred numerical derivative and a wider
+    symmetric secant.  This is a discretisation/roundoff test only; it does not
+    modify the canonical trajectory or introduce a physical epsilon.
+    """
+
+    floor = np.full(beta.size, _default_speed_tolerance(beta, axis), dtype=float)
+    if beta.size >= 5:
+        wide = d1.copy()
+        wide[2:-2] = (beta[4:] - beta[:-4]) / (axis[4:] - axis[:-4])
+        floor[2:-2] += np.abs(d1[2:-2] - wide[2:-2])
+    return floor
+
+
+def _is_numerically_collinear(beta: np.ndarray) -> bool:
+    """Return whether sampled points lie on one line to machine resolution."""
+
+    scale = _trajectory_scale(beta)
+    if beta.size < 2 or scale == 0.0:
+        return True
+    shifted = beta - beta[0]
+    direction = shifted[int(np.argmax(np.abs(shifted)))]
+    if abs(direction) == 0.0:
+        return True
+    perpendicular = np.abs(np.imag(np.conjugate(direction) * shifted)) / abs(direction)
+    tolerance = 128.0 * np.finfo(float).eps * scale
+    return bool(np.max(perpendicular) <= tolerance)
 
 
 def curvature(beta, xi=None, *, speed_tolerance: float | None = None) -> np.ndarray:
@@ -81,30 +126,40 @@ def curvature(beta, xi=None, *, speed_tolerance: float | None = None) -> np.ndar
 
     The canonical trajectory is not changed.  Curvature is returned as ``NaN``
     wherever the discrete velocity is numerically unresolved.  The default
-    threshold is scale-aware floating-point zero detection, not a physical
-    epsilon.  Callers may provide an explicit non-negative numerical tolerance.
+    resolution test combines scale-aware floating-point zero detection with a
+    local derivative-consistency check; neither is a physical epsilon.  A
+    trajectory whose sampled points are collinear to machine resolution has
+    zero curvature wherever its velocity is resolved.  Callers may provide an
+    explicit non-negative numerical speed tolerance.
     """
 
     beta = _complex_1d(beta, name="beta")
     if beta.size < 3:
         return np.full(beta.size, np.nan, dtype=float)
     axis = _axis(xi, beta.size)
+    if _trajectory_scale(beta) == 0.0:
+        return np.full(beta.size, np.nan, dtype=float)
     d1 = np.gradient(beta, axis, edge_order=2)
-    d2 = np.gradient(d1, axis, edge_order=2)
     speed = np.abs(d1)
 
     if speed_tolerance is None:
-        tolerance = _default_speed_tolerance(beta, axis)
+        tolerance = _velocity_resolution_floor(beta, axis, d1)
     else:
         try:
-            tolerance = float(speed_tolerance)
+            scalar_tolerance = float(speed_tolerance)
         except Exception as exc:
             raise ValueError("speed_tolerance must be finite and non-negative") from exc
-        if not np.isfinite(tolerance) or tolerance < 0.0:
+        if not np.isfinite(scalar_tolerance) or scalar_tolerance < 0.0:
             raise ValueError("speed_tolerance must be finite and non-negative")
+        tolerance = np.full(beta.size, scalar_tolerance, dtype=float)
 
     out = np.full(beta.size, np.nan, dtype=float)
     defined = speed > tolerance
+    if _is_numerically_collinear(beta):
+        out[defined] = 0.0
+        return out
+
+    d2 = np.gradient(d1, axis, edge_order=2)
     numerator = np.imag(np.conjugate(d1[defined]) * d2[defined])
     out[defined] = numerator / speed[defined] ** 3
     return out
@@ -116,20 +171,32 @@ def radius(beta) -> np.ndarray:
 
 
 def net_phase_turns(theta, *, valid_mask=None) -> float:
-    """Return net unwrapped structural-orientation turns on any valid interval."""
+    """Return net structural-orientation turns on one contiguous valid interval.
+
+    Leading and trailing invalid samples are ignored, so a CRM warm-up mask is
+    equivalent to explicitly slicing the valid interval.  If the valid samples
+    are split into multiple disjoint blocks, the net phase change is undefined
+    without an additional convention and ``NaN`` is returned.
+    """
 
     theta = _real_1d(theta, name="theta")
     if theta.size < 2:
         return float("nan")
     if valid_mask is None:
-        valid = np.ones(theta.size, dtype=bool)
+        selected = theta
     else:
         valid = np.asarray(valid_mask, dtype=bool)
         if valid.ndim != 1 or valid.size != theta.size:
             raise ValueError("valid_mask must match theta")
-    if not np.all(valid):
-        return float("nan")
-    unwrapped = np.unwrap(theta)
+        indices = np.flatnonzero(valid)
+        if indices.size < 2:
+            return float("nan")
+        start = int(indices[0])
+        stop = int(indices[-1] + 1)
+        if not np.all(valid[start:stop]):
+            return float("nan")
+        selected = theta[start:stop]
+    unwrapped = np.unwrap(selected)
     return float((unwrapped[-1] - unwrapped[0]) / (2.0 * np.pi))
 
 
