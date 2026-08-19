@@ -11,6 +11,26 @@ identifiers are not part of the stable public compatibility contract.
 
 No changes yet.
 
+## 1.1.3 — 2026-08-19
+
+### Fixed
+
+- Stabilized beta-trajectory curvature under large but still numerically
+  resolvable translations by accounting for floating-point coordinate
+  resolution in the collinearity diagnostic.
+- Made curvature arithmetic scale-safe across extreme representable trajectory
+  and parameter-axis scales by recentering and normalizing the numerical
+  geometry before rescaling the resulting curvature.
+- Prevented intermediate floating-point overflow/underflow from being exposed
+  as misleading infinite curvature; numerically non-representable diagnostic
+  results remain explicitly undefined.
+
+### Scientific integrity
+
+- No canonical equation or physical/contextual parameter definition changed.
+- The change is confined to beta-trajectory geometry diagnostics and does not
+  redefine `beta`, `Theta`, CRM, `P_c`, or `b`.
+
 ## 1.1.2 — 2026-08-19
 
 ### Fixed

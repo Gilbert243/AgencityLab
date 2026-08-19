@@ -106,7 +106,7 @@ def test_field_entropy_is_global_u1_invariant():
 
 
 def test_selected_research_apis_are_namespaced_without_redefining_scalar_core():
-    assert agencitylab.__version__ == "1.1.2"
+    assert agencitylab.__version__ == "1.1.3"
     assert callable(thermodynamics.temperature_dependent_lambda)
     assert callable(thermodynamics.modulus_law_margin)
     assert callable(thermodynamics.phase_law_prediction)
