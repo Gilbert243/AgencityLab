@@ -28,7 +28,7 @@ def _periodic_grid(n: int = 32) -> UniformRectilinearGrid:
 
 def test_dynamics_status_and_public_boundary_are_research_only():
     assert SCIENTIFIC_STATUS is ScientificStatus.RESEARCH
-    assert agencitylab.__version__ == "1.1.0"
+    assert agencitylab.__version__ == "1.1.1"
     assert fields_api.simulate_klein_gordon is not None
     assert not hasattr(agencitylab, "simulate_klein_gordon")
 

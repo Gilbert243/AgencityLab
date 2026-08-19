@@ -42,12 +42,12 @@ def test_release_metadata_is_consistent():
     citation = (ROOT / "CITATION.cff").read_text(encoding="utf-8")
     license_text = (ROOT / "LICENSE").read_text(encoding="utf-8")
 
-    assert al.__version__ == "1.1.0"
-    assert 'version = "1.1.0"' in pyproject
+    assert al.__version__ == "1.1.1"
+    assert 'version = "1.1.1"' in pyproject
     assert "Development Status :: 5 - Production/Stable" in pyproject
     assert "Typing :: Typed" in pyproject
-    assert "version: 1.1.0" in citation
-    assert "date-released: 2026-08-14" in citation
+    assert "version: 1.1.1" in citation
+    assert "date-released: 2026-08-18" in citation
     assert "license: MIT" in citation
     assert "Permission is hereby granted" in license_text
     assert (ROOT / "agencitylab" / "py.typed").is_file()
@@ -57,7 +57,7 @@ def test_quickstart_compute_analyze_export_roundtrip(tmp_path):
     xi, u = _signal()
     result = _compute(xi, u, unit="rad", coordinate_unit="s", power_unit="W")
 
-    assert result.metadata.agencitylab_version == al.__version__ == "1.1.0"
+    assert result.metadata.agencitylab_version == al.__version__ == "1.1.1"
     np.testing.assert_allclose(result.S, np.hypot(result.M, result.O))
     expected_beta = np.zeros_like(result.beta)
     mask = result.S > 0.0
