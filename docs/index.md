@@ -53,10 +53,11 @@ references/glossary
 
 ## Project status
 
-AgencityLab `1.1.0` is the current stable public software release. It adds the
-reference signal, dataset, and scientific-scenario library without changing the
-canonical equations. Version `1.0.0` remains the first stable compatibility
-baseline; earlier repository snapshots are development history.
+AgencityLab `1.1.1` is the current stable public software release. This patch
+release hardens runtime validation and analysis diagnostics, including regime
+classification, without changing the canonical equations. Version `1.1.0`
+introduced the reference library; `1.0.0` remains the first stable compatibility
+baseline.
 
 Use the [scientific API map](api_map.md) first. The main scalar entry point is
 `agencitylab.compute_agencity`; interpretation belongs under

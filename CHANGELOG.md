@@ -9,6 +9,10 @@ identifiers are not part of the stable public compatibility contract.
 
 ## Unreleased
 
+No changes yet.
+
+## 1.1.1 — 2026-08-18
+
 ### Fixed
 
 - Fixed Landauer helpers to use the numeric value of metadata-rich physical constants.
@@ -26,12 +30,19 @@ identifiers are not part of the stable public compatibility contract.
   values while keeping the relation explicitly speculative.
 - Resolved the historical package-wide mypy debt and added a full-package typing
   gate so internal typing regressions are no longer hidden behind the public-surface check.
+- Hardened theory-facing regime classification so an exact null regime requires
+  absence of canonical dynamics rather than zero observable flux alone.
+- Estimated regime periodicity from the intrinsic ``beta`` trajectory independently
+  of ``tau``; fixed points remain explicitly non-periodic/undefined.
+- Stopped using absolute ``b`` magnitude to split stochastic from chaotic diagnostics;
+  contextual structure and intrinsic-state variability now carry that distinction,
+  and insufficient evidence remains ``undetermined``.
 
 ### Scientific integrity
 
 - No canonical equation or physical/contextual parameter definition changed.
-- The regime classifier remains an experimental diagnostic pending revalidation
-  after the numerical-analysis fixes.
+- Regime classification remains an experimental diagnostic; no universal numerical
+  threshold was introduced or promoted to canonical theory.
 
 ## 1.1.0 — 2026-08-14
 
