@@ -5,7 +5,7 @@
 **A scientific Python framework for implementing, testing, and exploring the Theory of Agencity.**
 
 <p>
-  <img src="https://img.shields.io/badge/version-1.1.2-2ea44f.svg" alt="AgencityLab 1.1.2">
+  <img src="https://img.shields.io/badge/version-1.1.3-2ea44f.svg" alt="AgencityLab 1.1.3">
   <img src="https://img.shields.io/badge/Python-3.10--3.14-3776AB.svg?logo=python&logoColor=white" alt="Python 3.10-3.14">
   <img src="https://img.shields.io/badge/core-NumPy-013243.svg?logo=numpy&logoColor=white" alt="NumPy core">
   <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License">

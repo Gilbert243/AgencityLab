@@ -51,7 +51,7 @@ from agencitylab.thermodynamics.laws import (
 
 
 def test_thermodynamics_remains_research_in_its_explicit_namespace():
-    assert agencitylab.__version__ == "1.1.2"
+    assert agencitylab.__version__ == "1.1.3"
     assert DISSIPATION_STATUS is ScientificStatus.RESEARCH
     assert TEMPERATURE_STATUS is ScientificStatus.RESEARCH
     assert ENTROPY_STATUS is ScientificStatus.RESEARCH
