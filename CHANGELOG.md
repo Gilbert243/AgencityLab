@@ -11,6 +11,24 @@ identifiers are not part of the stable public compatibility contract.
 
 No changes yet.
 
+## 1.1.2 — 2026-08-19
+
+### Fixed
+
+- Fixed residual numerical curvature blow-ups on rectilinear or slowly reversing
+  ``beta`` trajectories by distinguishing numerically unresolved velocity from
+  resolved geometry and preserving zero curvature for sampled trajectories that
+  are collinear to machine resolution.
+- Made structural phase-turn and winding diagnostics accept leading/trailing
+  invalid ``valid_mask`` samples as one contiguous analysis interval, while
+  keeping discontinuous masks explicitly undefined.
+
+### Scientific integrity
+
+- No canonical equation or physical/contextual parameter definition changed.
+- Curvature and winding remain analysis diagnostics; machine-resolution checks do
+  not introduce a physical epsilon or redefine ``beta``.
+
 ## 1.1.1 — 2026-08-18
 
 ### Fixed
