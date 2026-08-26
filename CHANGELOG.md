@@ -9,7 +9,23 @@ identifiers are not part of the stable public compatibility contract.
 
 ## Unreleased
 
-No changes yet.
+### Added
+
+- Added the experimental `agencitylab.biology` namespace for the biological
+  mapping of the Theory of Agencity: versioned `(R,s)` references, structural
+  epochs, individual `P_c`, reference `tau`, causal CRM depth `w`,
+  `Q/Gamma/Delta/Psi/Phi` observables, explicit `Z -> u` metrology, covariance,
+  frozen protocols, reference registries and thin computation orchestration.
+- Added source-cohort and dataset-role checks to preserve independent biological
+  reference calibration and prevent target-informed/post-hoc reference tuning.
+
+### Scientific integrity
+
+- Biology does not redefine the canonical equations or claim to validate or
+  invalidate the Theory of Agencity. Physical/contextual values remain explicit.
+- Multi-coordinate Biology never broadcasts one organism `P_c` across observable
+  coordinates; the existing multivariate API is used only with an explicit
+  physical `P_c,k` partition whose sum equals organism `P_c`.
 
 ## 1.1.3 — 2026-08-19
 

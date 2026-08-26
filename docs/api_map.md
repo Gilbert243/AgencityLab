@@ -69,6 +69,20 @@ solution = fields.simulate_klein_gordon(...)
 The bridge `phi = sqrt(P_c * tau) * beta` remains explicit. Observable
 `beta_obs` and autonomous `phi` are distinct scientific quantities.
 
+## Biology
+
+**Status: experimental**
+
+```python
+import agencitylab.biology as biology
+```
+
+Biology implements the metrological and protocol mapping from biological
+measurements to the existing Agencity computation APIs. It keeps organism
+`P_c`, reference `tau`, causal CRM depth `w`, component `A_ref` values and
+measurement provenance explicit. It does not provide medical diagnosis and does
+not silently infer physical references from signal statistics.
+
 ## Thermodynamics
 
 **Status: research**

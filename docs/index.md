@@ -14,6 +14,7 @@ scientific_validation
 :caption: Scientific computation and analysis
 
 api_map
+biology
 stable_api
 observable_fields
 dynamical_field_foundations
@@ -64,11 +65,12 @@ remains the first stable compatibility baseline.
 Use the [scientific API map](api_map.md) first. The main scalar entry point is
 `agencitylab.compute_agencity`; interpretation belongs under
 `agencitylab.analysis`; spatial/autonomous field work under
-`agencitylab.fields`; thermodynamics, gravity, quantum and cosmology under their
-corresponding namespaces.
+`agencitylab.fields`; biological mapping under `agencitylab.biology`; and
+thermodynamics, gravity, quantum and cosmology under their corresponding
+namespaces.
 
-Observable spatial orchestration and generic field numerics remain
-**experimental**. Autonomous `phi`, effective-beta dynamics, flat-field
+Observable spatial orchestration, generic field numerics and the biological
+mapping remain **experimental**. Autonomous `phi`, effective-beta dynamics, flat-field
 conservation, coherent structures, thermodynamics and classical gravity remain
 **research**. Quantum/agenton and homogeneous cosmology remain **speculative**.
 Software stability is distinct from empirical validation.
