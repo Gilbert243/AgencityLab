@@ -34,6 +34,7 @@ from .version import __version__
 
 _LAZY_PUBLIC: dict[str, tuple[str, str | None]] = {
     "analysis": ("agencitylab.analysis", None),
+    "biology": ("agencitylab.biology", None),
     "api": ("agencitylab.api", None),
     "applications": ("agencitylab.applications", None),
     "extensions": ("agencitylab.extensions", None),
@@ -79,6 +80,7 @@ __all__ = [
     "PhysicalParameterError",
     "UnitValidationError",
     "analysis",
+    "biology",
     "api",
     "applications",
     "extensions",
