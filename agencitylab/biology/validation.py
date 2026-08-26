@@ -82,6 +82,34 @@ def validate_observable_against_protocol(
             )
     if observable.coordinate_unit != protocol.time_reference.unit:
         raise ValueError("observable time unit does not match biological tau/w reference unit")
+
+    if observable.xi.size < 3:
+        raise ValueError("biological observable time axis must contain at least three samples")
+    diffs = np.diff(observable.xi)
+    if np.any(diffs <= 0.0):
+        raise ValueError("biological observable time axis must be strictly increasing")
+    step = float(diffs[0])
+    tolerance = float(np.finfo(float).eps * max(1.0, abs(step)) * 64.0)
+    if not np.allclose(diffs, step, rtol=1e-10, atol=tolerance):
+        raise ValueError("biological CRM requires a uniformly sampled observable time axis")
+
+    w = protocol.memory_reference.w
+    window_samples = int(round(w / step))
+    if window_samples < 1:
+        raise ValueError(
+            "biological w is smaller than one sampling interval; increase temporal resolution"
+        )
+    represented_w = window_samples * step
+    representation_tolerance = max(
+        float(np.finfo(float).eps) * max(1.0, abs(w)) * 128.0,
+        abs(step) * 1e-9,
+    )
+    if not np.isclose(represented_w, w, rtol=1e-9, atol=representation_tolerance):
+        raise ValueError(
+            "biological w must be an integer multiple of the observable sampling interval"
+        )
+    if observable.xi.size < 2 * window_samples:
+        raise ValueError("observable is too short for two biological CRM windows")
     if protocol.measurement_map_id:
         if observable.measurement_map_id != protocol.measurement_map_id:
             raise ValueError("observable measurement map id does not match biology protocol")
