@@ -9,6 +9,10 @@ identifiers are not part of the stable public compatibility contract.
 
 ## Unreleased
 
+No changes yet.
+
+## 1.2.0 — 2026-08-27
+
 ### Added
 
 - Added the experimental `agencitylab.biology` namespace for the biological
@@ -26,6 +30,11 @@ identifiers are not part of the stable public compatibility contract.
 - Multi-coordinate Biology never broadcasts one organism `P_c` across observable
   coordinates; the existing multivariate API is used only with an explicit
   physical `P_c,k` partition whose sum equals organism `P_c`.
+
+### Release engineering
+
+- Promoted the package, citation metadata, documentation and CI distribution
+  checks to version `1.2.0`, including clean-install smoke tests for Biology.
 
 ## 1.1.3 — 2026-08-19
 
