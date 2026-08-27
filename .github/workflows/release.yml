@@ -20,7 +20,7 @@ jobs:
           python-version: "3.14"
           cache: pip
       - name: Install build tooling
-        run: python -m pip install --upgrade pip "build>=1.2" "twine>=5.1"
+        run: python -m pip install --upgrade pip "build>=1.2" "twine>=7.0"
       - name: Verify release tag matches package version
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name }}

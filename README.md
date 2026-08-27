@@ -5,7 +5,7 @@
 **A scientific Python framework for implementing, testing, and exploring the Theory of Agencity.**
 
 <p>
-  <img src="https://img.shields.io/badge/version-1.1.3-2ea44f.svg" alt="AgencityLab 1.1.3">
+  <img src="https://img.shields.io/badge/version-1.2.0-2ea44f.svg" alt="AgencityLab 1.2.0">
   <img src="https://img.shields.io/badge/Python-3.10--3.14-3776AB.svg?logo=python&logoColor=white" alt="Python 3.10-3.14">
   <img src="https://img.shields.io/badge/core-NumPy-013243.svg?logo=numpy&logoColor=white" alt="NumPy core">
   <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License">
@@ -44,6 +44,7 @@ computed through one reference scalar pipeline.
 | `agencitylab.analysis` | Coherence, transitions, geometry, signatures | diagnostic |
 | `agencitylab.api` | Stable workflows, batch, streaming, orchestration | software API |
 | `agencitylab.reference` | Observable generators, datasets, reproducible scenarios | reference/test utility |
+| `agencitylab.biology` | Biological mapping, metrology, references and frozen protocols | experimental |
 | `agencitylab.fields` | Observable spatial fields and autonomous field models | experimental / research |
 | `agencitylab.thermodynamics` | Thermodynamic constructions | research |
 | `agencitylab.gravity` | Classical gravity extensions | research |
